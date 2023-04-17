@@ -20,8 +20,8 @@ source activate cellbender
 
 for i in {1..8}; do 
 	table_row=$((i + 1))
-	expected_cells=$(awk '{print $2}' $pool_ref)
-	num_droplets=$(awk '{print $3}' $pool_ref)
+	expected_cells=$(awk -v a="$table_row" 'NR==a{print $2}' $pool_ref)
+	num_droplets=$(awk -v a="$table_row" 'NR==a{print $3}' $pool_ref)
 	cellbender remove-background \
         	--input $work_dir/Pool_"$i"/filtered_feature_bc_matrix.h5 \
                 --output $out_dir/Pool_"$i"/cell_bender.output.h5 \
