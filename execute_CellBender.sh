@@ -3,7 +3,7 @@
 #SBATCH -o execute_CellBender.log
 #SBATCH --time=2-00:00:00
 #SBATCH --partition gpuq
-#SBATCH --mem-per-gpu=16G
+#SBATCH --mem-per-gpu=32G
 #SBATCH --gpus-per-node=1
 
 
