@@ -5,7 +5,6 @@
 #SBATCH --partition gpuq
 #SBATCH --gres=gpu:p100:1
 
-
 ################################### Set Directories ##################################
 
 work_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellranger_outputs
