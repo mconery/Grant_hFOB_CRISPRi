@@ -4,6 +4,7 @@
 #SBATCH --time=2-00:00:00
 #SBATCH --partition gpuq
 #SBATCH --gres=gpu:p100:2
+#SBATCH --mem-per-gpu=16G
 
 ################################### Set Directories ##################################
 
