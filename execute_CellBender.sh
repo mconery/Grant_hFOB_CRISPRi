@@ -3,7 +3,7 @@
 #SBATCH -o execute_CellBender.log
 #SBATCH --time=2-00:00:00
 #SBATCH --partition gpuq
-#SBATCH --gres=gpu:p100:1
+#SBATCH --gres=gpu:p100:2
 
 ################################### Set Directories ##################################
 
