@@ -127,9 +127,9 @@ for pool in good_pools:
                  stripplot=False, multi_panel=True, show=False, save='.post_leiden')
 
 ####################################### Development Checkpoint ########################################
-outfile = open(qc_dir + 'aggr/leiden_filtered_results.pkl','wb')
-pickle.dump(filtered_cellbender_results,outfile)
-outfile.close()
+#outfile = open(qc_dir + 'aggr/leiden_filtered_results.pkl','wb')
+#pickle.dump(filtered_cellbender_results,outfile)
+#outfile.close()
 #Read in pickle file
 with open(qc_dir + 'aggr/leiden_filtered_results.pkl', 'rb') as f:
     filtered_cellbender_results = pickle.load(f)
@@ -143,6 +143,8 @@ for pool in good_pools:
     #Rename droplet ids and store pool info
     cellbender_good_results[pool].obs_names = [x.replace('-1','-' + pool.replace('Pool_', '')) for x in cellbender_good_results[pool].obs_names]
     cellbender_good_results[pool].obs['Pool'] = pool.replace('Pool_', '')
+    #Use ENSG codes for gene names
+    cellbender_good_results[pool].var_names=cellbender_good_results[pool].var['gene_ids']
     #Filter for the likely cell-containing droplets
     cellbender_good_results[pool] = cellbender_good_results[pool][filtered_cellbender_results[pool].obs_names]
     #Make variable names unique
