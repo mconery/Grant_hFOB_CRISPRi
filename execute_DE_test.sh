@@ -12,7 +12,7 @@ de_test_script=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_scree
 ######################################################################################
 
 #Activate modules
-module load R/4.2.2
+module load R/4.2.3
 module load hdf5/1.10.1
 module load Pandoc/2.10
 
