@@ -2,7 +2,7 @@
 
 #SBATCH -o execute_DE_test.log
 #SBATCH --time=3-00:00:00
-#SBATCH --cpus-per-task 40
+#SBATCH --cpus-per-task 80
 #SBATCH --mem=180G
 
 ################################### Set File Locations ##################################
