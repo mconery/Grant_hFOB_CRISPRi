@@ -453,14 +453,14 @@ test_random_mast <- function(sgrna, qced_results_mast, guide_to_cells, cell_grou
 }
 
 #Make a wrapper function
-test_random_mast_wrapper <- function(iteration, neg_control_sgrnas, test_random_mast_in_out, qced_results_ntc_test, guide_to_cells, cell_group){
+test_random_mast_wrapper <- function(iteration, neg_control_sgrnas, qced_results_ntc_test, guide_to_cells, cell_group){
   #Lapply test function 
-  null_results <- lapply(neg_control_sgrnas[1], 
+  null_results <- lapply(neg_control_sgrnas, 
                            test_random_mast, 
                            qced_results_mast=qced_results_ntc_test, 
                            guide_to_cells=guide_to_cells,
                            cell_group=cell_group)
-  names(null_results) <- neg_control_sgrnas[1]
+  names(null_results) <- neg_control_sgrnas
   #Combine results into a matrix
   null_df <- rbind.fill.matrix(null_results)
   #Append itertion colunn onto dataframe
@@ -475,11 +475,11 @@ test_random_mast_wrapper <- function(iteration, neg_control_sgrnas, test_random_
 
 #Run null tests for each non-targeting sgRNA using in-out method in single-sgRNA cells
 null_in_out_single_sgrna_results <- lapply(seq(1,1000,1), 
-                                            test_random_mast_wrapper, 
-                                            test_random_mast=test_random_mast,
-                                            qced_results_ntc_test=qced_results_ntc_test, 
-                                            guide_to_cells=guide_to_single_guide_cells,
-                                            cell_group=single_guide_cells)
+                                          FUN = test_random_mast_wrapper, 
+                                          neg_control_sgrnas=neg_control_sgrnas,
+                                          qced_results_ntc_test=qced_results_ntc_test, 
+                                          guide_to_cells=guide_to_single_guide_cells,
+                                          cell_group=single_guide_cells)
 names(null_in_out_single_sgrna_results) <- neg_control_sgrnas
 #Combine results into a matrix
 null_in_out_single_sgrna_df <- rbind.fill.matrix(null_in_out_single_sgrna_results)
@@ -488,11 +488,11 @@ saveRDS(null_in_out_single_sgrna_df, file = paste0(out_dir, "null_in_out_single_
 
 #Run null tests for each non-targeting sgRNA using in-out method in all cells
 null_in_out_all_results <- lapply(seq(1,1000,1), 
-                                           test_random_mast_wrapper, 
-                                           test_random_mast=test_random_mast,
-                                           qced_results_ntc_test=qced_results_ntc_test, 
-                                           guide_to_cells=guide_to_cells,
-                                           cell_group=all_cells)
+                                         FUN = test_random_mast_wrapper, 
+                                         neg_control_sgrnas=neg_control_sgrnas,
+                                         qced_results_ntc_test=qced_results_ntc_test, 
+                                         guide_to_cells=guide_to_cells,
+                                         cell_group=all_cells)
 names(null_in_out_all_results) <- neg_control_sgrnas
 #Combine results into a matrix
 null_in_out_all_df <- rbind.fill.matrix(null_in_out_all_results)
@@ -507,11 +507,11 @@ ntc_only_cells <- unique(ntc_only_cells[!(ntc_only_cells %in% unlist(guide_to_ce
 
 #Run null tests for each non-targeting sgRNA using ntc method in single-sgRNA cells
 null_ntc_single_sgrna_results <- lapply(seq(1,1000,1), 
-                                           test_random_mast_wrapper, 
-                                           test_random_mast=test_random_mast,
-                                           qced_results_ntc_test=qced_results_ntc_test, 
-                                           guide_to_cells=guide_to_single_guide_cells,
-                                           cell_group=single_sgrna_ntc_cells)
+                                         FUN = test_random_mast_wrapper, 
+                                         neg_control_sgrnas=neg_control_sgrnas,
+                                         qced_results_ntc_test=qced_results_ntc_test, 
+                                         guide_to_cells=guide_to_single_guide_cells,
+                                         cell_group=single_sgrna_ntc_cells)
 names(null_ntc_single_sgrna_results) <- neg_control_sgrnas
 #Combine results into a matrix
 null_ntc_single_sgrna_df <- rbind.fill.matrix(null_ntc_single_sgrna_results)
@@ -520,8 +520,8 @@ saveRDS(null_ntc_single_sgrna_df, file = paste0(out_dir, "null_ntc_single_sgrna_
 
 #Run null tests for each non-targeting sgRNA using ntc method in all cells
 null_ntc_all_results <- lapply(seq(1,1000,1), 
-                                  test_random_mast_wrapper, 
-                                  test_random_mast=test_random_mast,
+                                  FUN = test_random_mast_wrapper, 
+                                  neg_control_sgrnas=neg_control_sgrnas,
                                   qced_results_ntc_test=qced_results_ntc_test, 
                                   guide_to_cells=guide_to_cells,
                                   cell_group=ntc_only_cells)
