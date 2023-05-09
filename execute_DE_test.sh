@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -o execute_DE_test.log
-#SBATCH --time=3-00:00:00
+#SBATCH --time=7-00:00:00
 #SBATCH --cpus-per-task 60
 #SBATCH --mem=180G
 
