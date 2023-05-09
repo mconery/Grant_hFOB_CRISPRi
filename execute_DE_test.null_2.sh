@@ -7,7 +7,7 @@
 
 ################################### Set User Variables ###############################
 
-de_test_script=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/Grant_hFOB_CRISPRi/test_differential_expression.R
+de_test_script=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/Grant_hFOB_CRISPRi/test_differential_expression_null.R
 test_type=in_out
 cell_type=all
 
