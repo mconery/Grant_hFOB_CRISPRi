@@ -6,9 +6,7 @@
 #differential expression of nearby genes. The script is set to run with the 
 #following modules:
 
-#  R/4.2.2
-#  hdf5/1.10.1
-#  Pandoc/2.10
+#  R/4.2.3
 
 #The script will try two main different methods for detecting differential 
 #expression of genes:
@@ -26,7 +24,6 @@ library(Seurat)
 library(SeuratObject)
 library(SeuratDisk)
 library(stringr)
-library(zellkonverter)
 library(future)
 library(plyr)
 library(pbapply)
@@ -50,8 +47,12 @@ rep_range <- 1000000 #Testing within +/- 1Mb
 # 1) Read in files ====
 
 #Read in Scanpy QC-ed cell results
-qced_results_raw <- readH5AD(qced_results_loc)
-qced_results_seurat <- adata_Seurat <- as.Seurat(qced_results_raw, counts = "X", data = NULL)
+Convert(qced_results_loc, dest = "h5seurat", overwrite = TRUE)
+qced_results_meta <- read.csv(str_replace(qced_results_loc, "[.]h5ad", "/obs.csv"))
+rownames(qced_results_meta) <- qced_results_meta$X
+qced_results_meta <- qced_results_meta[,c(2:ncol(qced_results_meta))]
+qced_results_seurat <- LoadH5Seurat(str_replace(qced_results_loc, "h5ad", "h5seurat"), meta.data = FALSE, misc = FALSE)
+qced_results_seurat <- AddMetaData(object = qced_results_seurat, metadata = qced_results_meta)
 
 #Read in number of guides per cell
 guides_per_cell_raw <- read.csv(guides_per_cell_loc, header = TRUE, sep = ",")
