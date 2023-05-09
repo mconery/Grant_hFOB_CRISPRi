@@ -472,20 +472,20 @@ test_random_mast_wrapper <- function(iteration, neg_control_sgrnas, qced_results
   return(null_df)
 }
 
-# 9) Run Null Distributions test
+# 9) Run Null Distributions test ====
 
 #Run null tests for each non-targeting sgRNA using in-out method in single-sgRNA cells
-null_in_out_single_sgrna_results <- lapply(seq(1,100,1), 
-                                          FUN = test_random_mast_wrapper, 
-                                          neg_control_sgrnas=neg_control_sgrnas,
-                                          qced_results_ntc_test=qced_results_ntc_test, 
-                                          guide_to_cells=guide_to_single_guide_cells,
-                                          cell_group=single_guide_cells)
-names(null_in_out_single_sgrna_results) <- neg_control_sgrnas
-#Combine results into a matrix
-null_in_out_single_sgrna_df <- rbind.fill.matrix(null_in_out_single_sgrna_results)
-#Save results as an RDS object
-saveRDS(null_in_out_single_sgrna_df, file = paste0(out_dir, "null_in_out_single_sgrna_df.rds"))
+#null_in_out_single_sgrna_results <- lapply(seq(1,100,1), 
+#                                          FUN = test_random_mast_wrapper, 
+#                                          neg_control_sgrnas=neg_control_sgrnas,
+#                                          qced_results_ntc_test=qced_results_ntc_test, 
+#                                          guide_to_cells=guide_to_single_guide_cells,
+#                                          cell_group=single_guide_cells)
+#names(null_in_out_single_sgrna_results) <- neg_control_sgrnas
+##Combine results into a matrix
+#null_in_out_single_sgrna_df <- rbind.fill.matrix(null_in_out_single_sgrna_results)
+##Save results as an RDS object
+#saveRDS(null_in_out_single_sgrna_df, file = paste0(out_dir, "null_in_out_single_sgrna_df.rds"))
 
 #Run null tests for each non-targeting sgRNA using in-out method in all cells
 null_in_out_all_results <- lapply(seq(1,1000,1), 
