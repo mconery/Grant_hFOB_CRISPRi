@@ -251,3 +251,4 @@ sc.pl.umap(cellbender_merged_good_filtered, color=['n_genes_by_counts', 'total_c
 
 #Write exportable annData object to file for use in Seurat/R
 cellbender_export.write_h5ad(qc_dir + 'aggr/aggr.post_qc.h5ad')
+cellbender_export.write_csvs(qc_dir + 'aggr/aggr.post_qc.csv', skip_data=False)
