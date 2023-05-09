@@ -232,7 +232,7 @@ if (test_type == "in_out" && cell_type == "single_guide") {
   null_in_out_single_sgrna_df <- rbind.fill.matrix(null_in_out_single_sgrna_results)
   #Save results as an RDS object
   saveRDS(null_in_out_single_sgrna_df, file = paste0(out_dir, "null_in_out_single_sgrna_df.rds"))
-} else if (test_type = "in_out" && cell_type == "all"){
+} else if (test_type == "in_out" && cell_type == "all"){
   #Run null tests for each non-targeting sgRNA using in-out method in all cells
   null_in_out_all_results <- lapply(seq(1,100,1), 
                                     FUN = test_random_mast_wrapper, 
@@ -245,7 +245,7 @@ if (test_type == "in_out" && cell_type == "single_guide") {
   null_in_out_all_df <- rbind.fill.matrix(null_in_out_all_results)
   #Save results as an RDS object
   saveRDS(null_in_out_all_df, file = paste0(out_dir, "null_in_out_all_df.rds"))
-} else if (test_type = "ntc" && cell_type == "single_guide") {
+} else if (test_type == "ntc" && cell_type == "single_guide") {
   #Run null tests for each non-targeting sgRNA using ntc method in single-sgRNA cells
   null_ntc_single_sgrna_results <- lapply(seq(1,100,1), 
                                           FUN = test_random_mast_wrapper, 
@@ -258,7 +258,7 @@ if (test_type == "in_out" && cell_type == "single_guide") {
   null_ntc_single_sgrna_df <- rbind.fill.matrix(null_ntc_single_sgrna_results)
   #Save results as an RDS object
   saveRDS(null_ntc_single_sgrna_df, file = paste0(out_dir, "null_ntc_single_sgrna_df.rds"))
-} else if (test_type = "ntc" && cell_type == "all"){
+} else if (test_type == "ntc" && cell_type == "all"){
   #Run null tests for each non-targeting sgRNA using ntc method in all cells
   null_ntc_all_results <- lapply(seq(1,100,1), 
                                  FUN = test_random_mast_wrapper, 
