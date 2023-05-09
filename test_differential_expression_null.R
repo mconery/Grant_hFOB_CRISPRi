@@ -80,7 +80,6 @@ gencode_genes_raw <- read.table(gencode_genes_loc, header = FALSE, sep = "\t", s
 colnames(gencode_genes_raw) <- c("chr", "start", "end", "ENSG+name", "gene_type", "strand")
 
 # 3) Prepare to Run Tests ====
-print("finished 2")
 
 #Get list of unique sgrna targets
 sgrnas <- unique(guides_per_cell_raw$feature_call)
@@ -110,7 +109,7 @@ test_sgrnas <- sgrnas[30:length(sgrnas)]
 qced_results_mast <- NormalizeData(qced_results_seurat, normalization.method = "LogNormalize")
 
 # 4) Get list of genes to test within range of sgrna targets ====
-print("finished 3")
+
 #Split up the final column of the sgrna target file
 split_plus_take_one <- function(string){str_split(string, "[+]")[[1]][1]}
 split_plus_take_two <- function(string){str_split(string, "[+]")[[1]][2]}
@@ -173,7 +172,7 @@ ensg_to_symbol <- gencode_genes_filter$external_gene_name
 names(ensg_to_symbol) <- rownames(gencode_genes_filter)
 
 # 5) Create Null Distribution Testing Functions ====
-print("finished 4")
+
 #Create function for testing each sgRNA using in-out method
 test_random_mast <- function(sgrna, qced_results_mast, guide_to_cells, cell_group, test_features = NULL){
   num_cells_with_guide <- length(guide_to_cells[sgrna][[1]])
@@ -212,7 +211,7 @@ test_random_mast_wrapper <- function(iteration, neg_control_sgrnas, qced_results
 }
 
 # 6) Run Null Distributions test ====
-print("finished 5")
+
 #Get list of non-targeting cells
 single_sgrna_ntc_cells <- unique(unlist(guide_to_single_guide_cells[neg_control_sgrnas]))
 ntc_only_cells <- unlist(guide_to_cells[neg_control_sgrnas])
