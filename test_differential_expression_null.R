@@ -272,7 +272,7 @@ if (test_type == "in_out" && cell_type == "single_guide") {
   #Save results as an RDS object
   saveRDS(null_ntc_all_df, file = paste0(out_dir, "null_ntc_all_df.rds"))
 } else {
-  "ERROR: Invalid cell or test type give."
+  "ERROR: Invalid cell or test type given."
 }
 
 
