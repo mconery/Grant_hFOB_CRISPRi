@@ -52,7 +52,7 @@ if (length(args) == 2) {
   print("Necessary Parameters Input")
   #Set variables from the arguments in this case
   test_type <- args[1]
-  cell_type <- as.integer(args[2])
+  cell_type <- args[2]
 } else {
   print("Usage: %> Rscript test_differential_expression_null.R test_type cell_type");
   quit(save="no");
