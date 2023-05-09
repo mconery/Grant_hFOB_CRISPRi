@@ -475,7 +475,7 @@ test_random_mast_wrapper <- function(iteration, neg_control_sgrnas, qced_results
 # 9) Run Null Distributions test
 
 #Run null tests for each non-targeting sgRNA using in-out method in single-sgRNA cells
-null_in_out_single_sgrna_results <- lapply(seq(1,1000,1), 
+null_in_out_single_sgrna_results <- lapply(seq(1,100,1), 
                                           FUN = test_random_mast_wrapper, 
                                           neg_control_sgrnas=neg_control_sgrnas,
                                           qced_results_ntc_test=qced_results_ntc_test, 
