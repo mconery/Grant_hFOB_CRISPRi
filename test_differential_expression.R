@@ -8,11 +8,13 @@
 
 #  R/4.2.3
 
-#The script will try two main different methods for detecting differential 
+#The script will try four main different methods for detecting differential 
 #expression of genes:
 
 # 1) Compare a sgRNA to all cells without the sgRNA and only receiving 1 sgRNA
 # 2) Compare a sgRNA to all cells without the sgRNA
+# 3) Compare a sgRNA to all single-sgRNA cells with a non-targeting control
+# 4) Compare a sgRNA to all cells with non-targeting controls only
 
 ################################################################################
 
@@ -230,237 +232,205 @@ test_mast_ntc_all_cells <- function(sgrna, qced_results_mast, guide_to_cells, ne
   return(test)
 }
 
-# 5) Run false discovery MAST Tests (Commented Out Since Previously Run) ====
+# 5) Run false discovery MAST Tests ====
 
-##Run false discovery tests for each non-targeting sgRNA using in-out method in single-sgRNA cells
-#non_targeting_in_out_single_sgrna_results <- lapply(neg_control_sgrnas, 
-#                                                    test_mast_in_out_single_sgrna_cells, 
-#                                                    qced_results_mast=qced_results_ntc_test, 
-#                                                    guide_to_single_guide_cells=guide_to_single_guide_cells,
-#                                                    single_guide_cells=single_guide_cells)
-#names(non_targeting_in_out_single_sgrna_results) <- neg_control_sgrnas
-##Combine results into a matrix
-#non_targeting_in_out_single_sgrna_df <- rbind.fill.matrix(non_targeting_in_out_single_sgrna_results)
-##Save results as an RDS object
-#saveRDS(non_targeting_in_out_single_sgrna_df, file = paste0(out_dir, "non_targeting_in_out_single_sgrna_df.rds"))
-#
-##Run false discovery tests for each non-targeting sgRNA using in-out method in all cells
-#non_targeting_in_out_all_results <- lapply(neg_control_sgrnas, 
-#                                           test_mast_in_out_single_sgrna_cells, 
-#                                           qced_results_mast=qced_results_ntc_test, 
-#                                           guide_to_single_guide_cells=guide_to_single_guide_cells,
-#                                           single_guide_cells=single_guide_cells)
-#names(non_targeting_in_out_all_results) <- neg_control_sgrnas
-##Combine results into a matrix
-#non_targeting_in_out_all_df <- rbind.fill.matrix(non_targeting_in_out_all_results)
-##Save results as an RDS object
-#saveRDS(non_targeting_in_out_all_df, file = paste0(out_dir, "non_targeting_in_out_all_df.rds"))
-#
-##Run false discovery tests for each non-targeting sgRNA using ntc method in single-sgRNA cells
-#non_targeting_ntc_single_sgrna_results <- lapply(neg_control_sgrnas, 
-#                                                    test_mast_ntc_single_sgrna_cells, 
-#                                                    qced_results_mast=qced_results_ntc_test, 
-#                                                    guide_to_single_guide_cells=guide_to_single_guide_cells,
-#                                                    neg_control_sgrnas=neg_control_sgrnas)
-#names(non_targeting_ntc_single_sgrna_results) <- neg_control_sgrnas
-##Combine results into a matrix
-#non_targeting_ntc_single_sgrna_df <- rbind.fill.matrix(non_targeting_ntc_single_sgrna_results)
-##Save results as an RDS object
-#saveRDS(non_targeting_ntc_single_sgrna_df, file = paste0(out_dir, "non_targeting_ntc_single_sgrna_df.rds"))
-#
-##Run false discovery tests for each non-targeting sgRNA using ntc method in all cells
-#non_targeting_ntc_all_results <- lapply(neg_control_sgrnas, 
-#                                         test_mast_ntc_all_cells, 
-#                                         qced_results_mast=qced_results_ntc_test, 
-#                                         guide_to_cells=guide_to_cells,
-#                                         neg_control_sgrnas=neg_control_sgrnas)
-#names(non_targeting_ntc_all_results) <- neg_control_sgrnas
-##Combine results into a matrix
-#non_targeting_ntc_all_df <- rbind.fill.matrix(non_targeting_ntc_all_results)
-##Save results as an RDS object
-#saveRDS(non_targeting_ntc_all_df, file = paste0(out_dir, "non_targeting_ntc_all_df.rds"))
+#Run false discovery tests for each non-targeting sgRNA using in-out method in single-sgRNA cells
+non_targeting_in_out_single_sgrna_results <- lapply(neg_control_sgrnas, 
+                                                    test_mast_in_out_single_sgrna_cells, 
+                                                    qced_results_mast=qced_results_ntc_test, 
+                                                    guide_to_single_guide_cells=guide_to_single_guide_cells,
+                                                    single_guide_cells=single_guide_cells)
+names(non_targeting_in_out_single_sgrna_results) <- neg_control_sgrnas
+#Combine results into a matrix
+non_targeting_in_out_single_sgrna_df <- rbind.fill.matrix(non_targeting_in_out_single_sgrna_results)
+#Save results as an RDS object
+saveRDS(non_targeting_in_out_single_sgrna_df, file = paste0(out_dir, "non_targeting_in_out_single_sgrna_df.rds"))
+
+#Run false discovery tests for each non-targeting sgRNA using in-out method in all cells
+non_targeting_in_out_all_results <- lapply(neg_control_sgrnas, 
+                                           test_mast_in_out_single_sgrna_cells, 
+                                           qced_results_mast=qced_results_ntc_test, 
+                                           guide_to_single_guide_cells=guide_to_single_guide_cells,
+                                           single_guide_cells=single_guide_cells)
+names(non_targeting_in_out_all_results) <- neg_control_sgrnas
+#Combine results into a matrix
+non_targeting_in_out_all_df <- rbind.fill.matrix(non_targeting_in_out_all_results)
+#Save results as an RDS object
+saveRDS(non_targeting_in_out_all_df, file = paste0(out_dir, "non_targeting_in_out_all_df.rds"))
+
+#Run false discovery tests for each non-targeting sgRNA using ntc method in single-sgRNA cells
+non_targeting_ntc_single_sgrna_results <- lapply(neg_control_sgrnas, 
+                                                    test_mast_ntc_single_sgrna_cells, 
+                                                    qced_results_mast=qced_results_ntc_test, 
+                                                    guide_to_single_guide_cells=guide_to_single_guide_cells,
+                                                    neg_control_sgrnas=neg_control_sgrnas)
+names(non_targeting_ntc_single_sgrna_results) <- neg_control_sgrnas
+#Combine results into a matrix
+non_targeting_ntc_single_sgrna_df <- rbind.fill.matrix(non_targeting_ntc_single_sgrna_results)
+#Save results as an RDS object
+saveRDS(non_targeting_ntc_single_sgrna_df, file = paste0(out_dir, "non_targeting_ntc_single_sgrna_df.rds"))
+
+#Run false discovery tests for each non-targeting sgRNA using ntc method in all cells
+non_targeting_ntc_all_results <- lapply(neg_control_sgrnas, 
+                                         test_mast_ntc_all_cells, 
+                                         qced_results_mast=qced_results_ntc_test, 
+                                         guide_to_cells=guide_to_cells,
+                                         neg_control_sgrnas=neg_control_sgrnas)
+names(non_targeting_ntc_all_results) <- neg_control_sgrnas
+#Combine results into a matrix
+non_targeting_ntc_all_df <- rbind.fill.matrix(non_targeting_ntc_all_results)
+#Save results as an RDS object
+saveRDS(non_targeting_ntc_all_df, file = paste0(out_dir, "non_targeting_ntc_all_df.rds"))
+
 # 6) Run Positive Control Tests (Commented Out Since Previously Run) ====
 
-##Test positive control genes in single-guide rna cells with in-out approach
-#pos_control_in_out_single_sgrna_results <- lapply(pos_control_sgrnas, 
-#                                                  test_mast_in_out_single_sgrna_cells, 
-#                                                  qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
-#                                                  guide_to_single_guide_cells=guide_to_single_guide_cells,
-#                                                  single_guide_cells=single_guide_cells)
-#names(pos_control_in_out_single_sgrna_results) <- pos_control_sgrnas
-##Combine results into a matrix
-#pos_control_in_out_single_sgrna_df <- rbind.fill.matrix(pos_control_in_out_single_sgrna_results)
-##Overwrite gene names and filter for relevant tests
-#pos_control_in_out_single_sgrna_df[,"gene"] <- ensg_to_symbol[pos_control_in_out_single_sgrna_df[,"gene"]]
-#pos_control_in_out_single_sgrna_df <- pos_control_in_out_single_sgrna_df[which(pos_control_in_out_single_sgrna_df[,"gene"] == pos_control_in_out_single_sgrna_df[,"sgrna"]),]
-##Save RDS object
-#saveRDS(pos_control_in_out_single_sgrna_df, file = paste0(out_dir, "pos_control_in_out_single_sgrna_df.rds"))
-#
-##Test positive control genes in all cells with in-out approach
-#pos_control_in_out_all_results <- lapply(pos_control_sgrnas, 
-#                                                  test_mast_in_out_all_cells, 
-#                                                  qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
-#                                                  guide_to_cells=guide_to_cells,
-#                                                  all_cells=all_cells)
-#names(pos_control_in_out_all_results) <- pos_control_sgrnas
-##Combine results into a matrix
-#pos_control_in_out_all_df <- rbind.fill.matrix(pos_control_in_out_all_results)
-##Overwrite gene names and filter for relevant tests
-#pos_control_in_out_all_df[,"gene"] <- ensg_to_symbol[pos_control_in_out_all_df[,"gene"]]
-#pos_control_in_out_all_df <- pos_control_in_out_all_df[which(pos_control_in_out_all_df[,"gene"] == pos_control_in_out_all_df[,"sgrna"]),]
-##Save results as an RDS object
-#saveRDS(pos_control_in_out_all_df, file = paste0(out_dir, "pos_control_in_out_all_df.rds"))
-#
-##Test positive control genes in single-guide rna cells with non-targeting approach
-#pos_control_ntc_single_sgrna_results <- lapply(pos_control_sgrnas, 
-#                                                  test_mast_ntc_single_sgrna_cells, 
-#                                                  qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
-#                                                  guide_to_single_guide_cells=guide_to_single_guide_cells,
-#                                                  neg_control_sgrnas=neg_control_sgrnas)
-#names(pos_control_ntc_single_sgrna_results) <- pos_control_sgrnas
-##Combine results into a matrix
-#pos_control_ntc_single_sgrna_df <- rbind.fill.matrix(pos_control_ntc_single_sgrna_results)
-##Overwrite gene names and filter for relevant tests
-#pos_control_ntc_single_sgrna_df[,"gene"] <- ensg_to_symbol[pos_control_ntc_single_sgrna_df[,"gene"]]
-#pos_control_ntc_single_sgrna_df <- pos_control_ntc_single_sgrna_df[which(pos_control_ntc_single_sgrna_df[,"gene"] == pos_control_ntc_single_sgrna_df[,"sgrna"]),]
-##Save RDS object
-#saveRDS(pos_control_ntc_single_sgrna_df, file = paste0(out_dir, "pos_control_ntc_single_sgrna_df.rds"))
-#
-##Test positive control genes in all cells with non-targeting approach
-#pos_control_ntc_all_results <- lapply(pos_control_sgrnas, 
-#                                         test_mast_ntc_all_cells, 
-#                                         qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
-#                                         guide_to_cells=guide_to_cells,
-#                                         neg_control_sgrnas=neg_control_sgrnas)
-#names(pos_control_ntc_all_results) <- pos_control_sgrnas
-##Combine results into a matrix
-#pos_control_ntc_all_df <- rbind.fill.matrix(pos_control_ntc_all_results)
-##Overwrite gene names and filter for relevant tests
-#pos_control_ntc_all_df[,"gene"] <- ensg_to_symbol[pos_control_ntc_all_df[,"gene"]]
-#pos_control_ntc_all_df <- pos_control_ntc_all_df[which(pos_control_ntc_all_df[,"gene"] == pos_control_ntc_all_df[,"sgrna"]),]
-##Save results as an RDS object
-#saveRDS(pos_control_ntc_all_df, file = paste0(out_dir, "pos_control_ntc_all_df.rds"))
+#Test positive control genes in single-guide rna cells with in-out approach
+pos_control_in_out_single_sgrna_results <- lapply(pos_control_sgrnas, 
+                                                  test_mast_in_out_single_sgrna_cells, 
+                                                  qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
+                                                  guide_to_single_guide_cells=guide_to_single_guide_cells,
+                                                  single_guide_cells=single_guide_cells)
+names(pos_control_in_out_single_sgrna_results) <- pos_control_sgrnas
+#Combine results into a matrix
+pos_control_in_out_single_sgrna_df <- rbind.fill.matrix(pos_control_in_out_single_sgrna_results)
+#Overwrite gene names and filter for relevant tests
+pos_control_in_out_single_sgrna_df[,"gene"] <- ensg_to_symbol[pos_control_in_out_single_sgrna_df[,"gene"]]
+pos_control_in_out_single_sgrna_df <- pos_control_in_out_single_sgrna_df[which(pos_control_in_out_single_sgrna_df[,"gene"] == pos_control_in_out_single_sgrna_df[,"sgrna"]),]
+#Save RDS object
+saveRDS(pos_control_in_out_single_sgrna_df, file = paste0(out_dir, "pos_control_in_out_single_sgrna_df.rds"))
+
+#Test positive control genes in all cells with in-out approach
+pos_control_in_out_all_results <- lapply(pos_control_sgrnas, 
+                                                  test_mast_in_out_all_cells, 
+                                                  qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
+                                                  guide_to_cells=guide_to_cells,
+                                                  all_cells=all_cells)
+names(pos_control_in_out_all_results) <- pos_control_sgrnas
+#Combine results into a matrix
+pos_control_in_out_all_df <- rbind.fill.matrix(pos_control_in_out_all_results)
+#Overwrite gene names and filter for relevant tests
+pos_control_in_out_all_df[,"gene"] <- ensg_to_symbol[pos_control_in_out_all_df[,"gene"]]
+pos_control_in_out_all_df <- pos_control_in_out_all_df[which(pos_control_in_out_all_df[,"gene"] == pos_control_in_out_all_df[,"sgrna"]),]
+#Save results as an RDS object
+saveRDS(pos_control_in_out_all_df, file = paste0(out_dir, "pos_control_in_out_all_df.rds"))
+
+#Test positive control genes in single-guide rna cells with non-targeting approach
+pos_control_ntc_single_sgrna_results <- lapply(pos_control_sgrnas, 
+                                                  test_mast_ntc_single_sgrna_cells, 
+                                                  qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
+                                                  guide_to_single_guide_cells=guide_to_single_guide_cells,
+                                                  neg_control_sgrnas=neg_control_sgrnas)
+names(pos_control_ntc_single_sgrna_results) <- pos_control_sgrnas
+#Combine results into a matrix
+pos_control_ntc_single_sgrna_df <- rbind.fill.matrix(pos_control_ntc_single_sgrna_results)
+#Overwrite gene names and filter for relevant tests
+pos_control_ntc_single_sgrna_df[,"gene"] <- ensg_to_symbol[pos_control_ntc_single_sgrna_df[,"gene"]]
+pos_control_ntc_single_sgrna_df <- pos_control_ntc_single_sgrna_df[which(pos_control_ntc_single_sgrna_df[,"gene"] == pos_control_ntc_single_sgrna_df[,"sgrna"]),]
+#Save RDS object
+saveRDS(pos_control_ntc_single_sgrna_df, file = paste0(out_dir, "pos_control_ntc_single_sgrna_df.rds"))
+
+#Test positive control genes in all cells with non-targeting approach
+pos_control_ntc_all_results <- lapply(pos_control_sgrnas, 
+                                         test_mast_ntc_all_cells, 
+                                         qced_results_mast=qced_results_mast[symbol_to_ensg[pos_control_sgrnas],], 
+                                         guide_to_cells=guide_to_cells,
+                                         neg_control_sgrnas=neg_control_sgrnas)
+names(pos_control_ntc_all_results) <- pos_control_sgrnas
+#Combine results into a matrix
+pos_control_ntc_all_df <- rbind.fill.matrix(pos_control_ntc_all_results)
+#Overwrite gene names and filter for relevant tests
+pos_control_ntc_all_df[,"gene"] <- ensg_to_symbol[pos_control_ntc_all_df[,"gene"]]
+pos_control_ntc_all_df <- pos_control_ntc_all_df[which(pos_control_ntc_all_df[,"gene"] == pos_control_ntc_all_df[,"sgrna"]),]
+#Save results as an RDS object
+saveRDS(pos_control_ntc_all_df, file = paste0(out_dir, "pos_control_ntc_all_df.rds"))
 
 # 7) Run Enhancer Targeting Test (Commented Out Since Previously Run) ====
 
-##Make a map for each guide to the list of genes we are testing it against
-#check_genes_for_guide <- function(sgrna_target_row, gencode_genes_filter){
-#  chromo <- as.character(sgrna_target_row["chr"])
-#  rep_start <- as.numeric(sgrna_target_row["rep_start"])
-#  rep_end <- as.numeric(sgrna_target_row["rep_end"])
-#  gencode_genes_temp <- gencode_genes_filter[which(gencode_genes_filter$chr == chromo),]
-#  gencode_genes_temp <- gencode_genes_temp[which((gencode_genes_temp$start >= rep_start & gencode_genes_temp$start <= rep_end) | 
-#                                                 (gencode_genes_temp$end >= rep_start & gencode_genes_temp$end <= rep_end) | 
-#                                                 (gencode_genes_temp$start <= rep_start & gencode_genes_temp$end >= rep_end)),]
-#  return(str_replace(gencode_genes_temp$ensembl_gene_id, "[.][0-9]+",""))
-#}
-#guide_to_genes <- pbapply(sgrna_target_filter, FUN = check_genes_for_guide, MARGIN = 1, gencode_genes_filter=gencode_genes_filter)
-#
-##Create a wrapper function so that we can apply the in-out tests to the targeting guides
-#run_targeting_in_out_test <- function(sgrna, test_mast_in_out, qced_results_mast, guide_to_cells, guide_to_genes, cell_list){
-#  qced_results_test <- qced_results_mast[unlist(guide_to_genes[sgrna]),]
-#  return(test_mast_in_out(sgrna, qced_results_test, guide_to_cells, cell_list))
-#}
-#
-##Run in-out test for single-sgrna cells
-#targeting_in_out_single_sgrna_results <- lapply(test_sgrnas, 
-#                                                FUN=run_targeting_in_out_test,
-#                                                test_mast_in_out=test_mast_in_out_single_sgrna_cells, 
-#                                                qced_results_mast=qced_results_mast, 
-#                                                guide_to_cells=guide_to_single_guide_cells,
-#                                                guide_to_genes=guide_to_genes,
-#                                                cell_list=single_guide_cells)
-#names(targeting_in_out_single_sgrna_results) <- test_sgrnas
-##Combine results into a matrix
-#targeting_in_out_single_sgrna_df <- rbind.fill.matrix(targeting_in_out_single_sgrna_results)
-##Overwrite gene names
-#targeting_in_out_single_sgrna_df[,"gene"] <- ensg_to_symbol[targeting_in_out_single_sgrna_df[,"gene"]]
-##Save RDS object
-#saveRDS(targeting_in_out_single_sgrna_df, file = paste0(out_dir, "targeting_in_out_single_sgrna_df.rds"))
-#
-##Run in-out test for all cells
-#targeting_in_out_all_results <- lapply(test_sgrnas, 
-#                                                FUN=run_targeting_in_out_test,
-#                                                test_mast_in_out=test_mast_in_out_all_cells, 
-#                                                qced_results_mast=qced_results_mast, 
-#                                                guide_to_cells=guide_to_cells,
-#                                                guide_to_genes=guide_to_genes,
-#                                                cell_list=all_cells)
-#names(targeting_in_out_all_results) <- test_sgrnas
-##Combine results into a matrix
-#targeting_in_out_all_df <- rbind.fill.matrix(targeting_in_out_all_results)
-##Overwrite gene names
-#targeting_in_out_all_df[,"gene"] <- ensg_to_symbol[targeting_in_out_all_df[,"gene"]]
-##Save RDS object
-#saveRDS(targeting_in_out_all_df, file = paste0(out_dir, "targeting_in_out_all_df.rds"))
-#
-##Create a wrapper function so that we can apply the ntc tests to the targeting guides
-#run_targeting_ntc_test <- function(sgrna, test_mast_in_out, qced_results_mast, guide_to_cells, guide_to_genes, neg_control_sgrnas){
-#  qced_results_test <- qced_results_mast[unlist(guide_to_genes[sgrna]),]
-#  return(test_mast_in_out(sgrna, qced_results_test, guide_to_cells, neg_control_sgrnas))
-#}                                         
-#
-##Run ntc test for single-sgrna cells
-#targeting_ntc_single_sgrna_results <- lapply(test_sgrnas, 
-#                                                FUN=run_targeting_ntc_test,
-#                                                test_mast_in_out=test_mast_ntc_single_sgrna_cells, 
-#                                                qced_results_mast=qced_results_mast, 
-#                                                guide_to_cells=guide_to_single_guide_cells,
-#                                                guide_to_genes=guide_to_genes,
-#                                                neg_control_sgrnas=neg_control_sgrnas)
-#names(targeting_ntc_single_sgrna_results) <- test_sgrnas
-##Combine results into a matrix
-#targeting_ntc_single_sgrna_df <- rbind.fill.matrix(targeting_ntc_single_sgrna_results)
-##Overwrite gene names
-#targeting_ntc_single_sgrna_df[,"gene"] <- ensg_to_symbol[targeting_ntc_single_sgrna_df[,"gene"]]
-##Save RDS object
-#saveRDS(targeting_ntc_single_sgrna_df, file = paste0(out_dir, "targeting_ntc_single_sgrna_df.rds"))
-#
-##Run ntc test for all cells
-#targeting_ntc_all_results <- lapply(test_sgrnas, 
-#                                             FUN=run_targeting_ntc_test,
-#                                             test_mast_in_out=test_mast_ntc_all_cells, 
-#                                             qced_results_mast=qced_results_mast, 
-#                                             guide_to_cells=guide_to_cells,
-#                                             guide_to_genes=guide_to_genes,
-#                                             neg_control_sgrnas=neg_control_sgrnas)
-#names(targeting_ntc_all_results) <- test_sgrnas
-##Combine results into a matrix
-#targeting_ntc_all_df <- rbind.fill.matrix(targeting_ntc_all_results)
-##Overwrite gene names
-#targeting_ntc_all_df[,"gene"] <- ensg_to_symbol[targeting_ntc_all_df[,"gene"]]
-##Save RDS object
-#saveRDS(targeting_ntc_all_df, file = paste0(out_dir, "targeting_ntc_all_df.rds"))
+#Make a map for each guide to the list of genes we are testing it against
+check_genes_for_guide <- function(sgrna_target_row, gencode_genes_filter){
+  chromo <- as.character(sgrna_target_row["chr"])
+  rep_start <- as.numeric(sgrna_target_row["rep_start"])
+  rep_end <- as.numeric(sgrna_target_row["rep_end"])
+  gencode_genes_temp <- gencode_genes_filter[which(gencode_genes_filter$chr == chromo),]
+  gencode_genes_temp <- gencode_genes_temp[which((gencode_genes_temp$start >= rep_start & gencode_genes_temp$start <= rep_end) | 
+                                                 (gencode_genes_temp$end >= rep_start & gencode_genes_temp$end <= rep_end) | 
+                                                 (gencode_genes_temp$start <= rep_start & gencode_genes_temp$end >= rep_end)),]
+  return(str_replace(gencode_genes_temp$ensembl_gene_id, "[.][0-9]+",""))
+}
+guide_to_genes <- pbapply(sgrna_target_filter, FUN = check_genes_for_guide, MARGIN = 1, gencode_genes_filter=gencode_genes_filter)
 
+#Create a wrapper function so that we can apply the in-out tests to the targeting guides
+run_targeting_in_out_test <- function(sgrna, test_mast_in_out, qced_results_mast, guide_to_cells, guide_to_genes, cell_list){
+  qced_results_test <- qced_results_mast[unlist(guide_to_genes[sgrna]),]
+  return(test_mast_in_out(sgrna, qced_results_test, guide_to_cells, cell_list))
+}
 
-# 8) Calculate false discovery Test Rates ====
+#Run in-out test for single-sgrna cells
+targeting_in_out_single_sgrna_results <- lapply(test_sgrnas, 
+                                                FUN=run_targeting_in_out_test,
+                                                test_mast_in_out=test_mast_in_out_single_sgrna_cells, 
+                                                qced_results_mast=qced_results_mast, 
+                                                guide_to_cells=guide_to_single_guide_cells,
+                                                guide_to_genes=guide_to_genes,
+                                                cell_list=single_guide_cells)
+names(targeting_in_out_single_sgrna_results) <- test_sgrnas
+#Combine results into a matrix
+targeting_in_out_single_sgrna_df <- rbind.fill.matrix(targeting_in_out_single_sgrna_results)
+#Overwrite gene names
+targeting_in_out_single_sgrna_df[,"gene"] <- ensg_to_symbol[targeting_in_out_single_sgrna_df[,"gene"]]
+#Save RDS object
+saveRDS(targeting_in_out_single_sgrna_df, file = paste0(out_dir, "targeting_in_out_single_sgrna_df.rds"))
 
-##Read in RDS objects
-#non_targeting_in_out_all_df <- readRDS(paste0(out_dir, "non_targeting_in_out_all_df.rds"))
-#non_targeting_in_out_single_sgrna_df <- readRDS(paste0(out_dir, "non_targeting_in_out_single_sgrna_df.rds"))
-#non_targeting_ntc_all_df <- readRDS(paste0(out_dir, "non_targeting_ntc_all_df.rds"))
-#non_targeting_ntc_single_sgrna_df <- readRDS(paste0(out_dir, "non_targeting_ntc_single_sgrna_df.rds"))
+#Run in-out test for all cells
+targeting_in_out_all_results <- lapply(test_sgrnas, 
+                                                FUN=run_targeting_in_out_test,
+                                                test_mast_in_out=test_mast_in_out_all_cells, 
+                                                qced_results_mast=qced_results_mast, 
+                                                guide_to_cells=guide_to_cells,
+                                                guide_to_genes=guide_to_genes,
+                                                cell_list=all_cells)
+names(targeting_in_out_all_results) <- test_sgrnas
+#Combine results into a matrix
+targeting_in_out_all_df <- rbind.fill.matrix(targeting_in_out_all_results)
+#Overwrite gene names
+targeting_in_out_all_df[,"gene"] <- ensg_to_symbol[targeting_in_out_all_df[,"gene"]]
+#Save RDS object
+saveRDS(targeting_in_out_all_df, file = paste0(out_dir, "targeting_in_out_all_df.rds"))
 
-##Recast matrix test results to dataframes
-#non_targeting_in_out_all_df <- as.data.frame(non_targeting_in_out_all_df)
-#non_targeting_in_out_single_sgrna_df <- as.data.frame(non_targeting_in_out_single_sgrna_df)
-#non_targeting_ntc_all_df <- as.data.frame(non_targeting_ntc_all_df)
-#non_targeting_ntc_single_sgrna_df <- as.data.frame(non_targeting_ntc_single_sgrna_df)
+#Create a wrapper function so that we can apply the ntc tests to the targeting guides
+run_targeting_ntc_test <- function(sgrna, test_mast_in_out, qced_results_mast, guide_to_cells, guide_to_genes, neg_control_sgrnas){
+  qced_results_test <- qced_results_mast[unlist(guide_to_genes[sgrna]),]
+  return(test_mast_in_out(sgrna, qced_results_test, guide_to_cells, neg_control_sgrnas))
+}                                         
 
-##Recast p-value columns as numerics
-#non_targeting_in_out_all_df$p_val <- as.numeric(non_targeting_in_out_all_df$p_val)
-#non_targeting_in_out_single_sgrna_df$p_val <- as.numeric(non_targeting_in_out_single_sgrna_df$p_val)
-#non_targeting_ntc_all_df$p_val <- as.numeric(non_targeting_ntc_all_df$p_val)
-#non_targeting_ntc_single_sgrna_df$p_val <- as.numeric(non_targeting_ntc_single_sgrna_df$p_val)
+#Run ntc test for single-sgrna cells
+targeting_ntc_single_sgrna_results <- lapply(test_sgrnas, 
+                                                FUN=run_targeting_ntc_test,
+                                                test_mast_in_out=test_mast_ntc_single_sgrna_cells, 
+                                                qced_results_mast=qced_results_mast, 
+                                                guide_to_cells=guide_to_single_guide_cells,
+                                                guide_to_genes=guide_to_genes,
+                                                neg_control_sgrnas=neg_control_sgrnas)
+names(targeting_ntc_single_sgrna_results) <- test_sgrnas
+#Combine results into a matrix
+targeting_ntc_single_sgrna_df <- rbind.fill.matrix(targeting_ntc_single_sgrna_results)
+#Overwrite gene names
+targeting_ntc_single_sgrna_df[,"gene"] <- ensg_to_symbol[targeting_ntc_single_sgrna_df[,"gene"]]
+#Save RDS object
+saveRDS(targeting_ntc_single_sgrna_df, file = paste0(out_dir, "targeting_ntc_single_sgrna_df.rds"))
 
-##Benjamini-hochberg correct p-values
-#non_targeting_in_out_all_df$p_val_adj <- p.adjust(non_targeting_in_out_all_df$p_val, method="BH")
-#non_targeting_in_out_single_sgrna_df$p_val_adj <- p.adjust(non_targeting_in_out_single_sgrna_df$p_val, method="BH")
-#non_targeting_ntc_all_df$p_val_adj <- p.adjust(non_targeting_ntc_all_df$p_val, method="BH")
-#non_targeting_ntc_single_sgrna_df$p_val_adj <- p.adjust(non_targeting_ntc_single_sgrna_df$p_val, method="BH")
-
-##Make qqplots
-#make_non_targeting_qq <- function(non_targeting_df){
-#  
-#}
-
+#Run ntc test for all cells
+targeting_ntc_all_results <- lapply(test_sgrnas, 
+                                             FUN=run_targeting_ntc_test,
+                                             test_mast_in_out=test_mast_ntc_all_cells, 
+                                             qced_results_mast=qced_results_mast, 
+                                             guide_to_cells=guide_to_cells,
+                                             guide_to_genes=guide_to_genes,
+                                             neg_control_sgrnas=neg_control_sgrnas)
+names(targeting_ntc_all_results) <- test_sgrnas
+#Combine results into a matrix
+targeting_ntc_all_df <- rbind.fill.matrix(targeting_ntc_all_results)
+#Overwrite gene names
+targeting_ntc_all_df[,"gene"] <- ensg_to_symbol[targeting_ntc_all_df[,"gene"]]
+#Save RDS object
+saveRDS(targeting_ntc_all_df, file = paste0(out_dir, "targeting_ntc_all_df.rds"))
