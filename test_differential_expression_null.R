@@ -1,18 +1,20 @@
 ################################################################################
 
-#test_differential_expression.R
+#test_differential_expression_null.R
 
-#The purpose of this script is to test the cells containing a given sgRNA for  
-#differential expression of nearby genes. The script is set to run with the 
+#The purpose of this script is to run randomized tests that create a null 
+#distribution of test results for our screen.The script is set to run with the 
 #following modules:
 
 #  R/4.2.3
 
-#The script will try two main different methods for detecting differential 
+#The script will try four main different methods for detecting differential 
 #expression of genes:
 
 # 1) Compare a sgRNA to all cells without the sgRNA and only receiving 1 sgRNA
 # 2) Compare a sgRNA to all cells without the sgRNA
+# 3) Compare a sgRNA to all single-sgRNA cells with a non-targeting control
+# 4) Compare a sgRNA to all cells with non-targeting controls only
 
 ################################################################################
 
