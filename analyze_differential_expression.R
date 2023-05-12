@@ -85,6 +85,7 @@ analyze_de_results <- function(inp_dir, test_type, cell_type, p_val_thresh=0.10)
     )
   plot_df$neg_log_observed <- -log10(plot_df$observed_p_val)
   plot_df$neg_log_expected <- -log10(plot_df$expected_p_val)
+  
   #Make plot
   temp_plot <- ggplot(data = plot_df, aes(x=neg_log_expected, y=neg_log_observed, color=category)) +
     geom_point() + 
@@ -120,7 +121,77 @@ analyze_de_results <- function(inp_dir, test_type, cell_type, p_val_thresh=0.10)
 
 } 
 
-# 2) Call Analysis Functions ====
+# 2) Create KS-Test Function for Testing True non-Targeting Ness of NTCs ====
+
+#Create execution function for test
+execute_KS <- function(ntc_sgrna, ntc_df, col_name="avg_log2FC", test_alternative = "two.sided"){
+  target_vals <- as.numeric(ntc_df[which(ntc_df$sgrna == ntc_sgrna), col_name])
+  compare_vals <- as.numeric(ntc_df[which(ntc_df$sgrna != ntc_sgrna), col_name])
+  temp <- suppressWarnings(ks.test(target_vals, compare_vals, alternative = test_alternative))
+  return(temp$p.value)
+}
+
+#Define main wrapper function
+check_KS <- function(inp_dir, test_type, cell_type, col_name="p_val") {
+  
+  #Create output dir
+  inp_dir <- ifelse(substr(inp_dir, nchar(inp_dir), nchar(inp_dir)) == "/", inp_dir, paste0(inp_dir, "/"))
+  out_dir <- paste0(inp_dir, test_type, "_", cell_type, "/")
+  
+  #Read in ntc RDS object
+  ntc_results <- readRDS(paste0(inp_dir, "non_targeting_", test_type, "_", cell_type, "_df.rds"))
+  #Recast matrix test results to dataframes
+  ntc_df <- as.data.frame(ntc_results)
+  #Recast p-value columns as numerics
+  ntc_df$p_val <- as.numeric(ntc_df$p_val)
+  
+  #Get list of unique ntc sgrnas
+  ntc_sgrnas <- unique(ntc_df$sgrna)
+  #Execute tests
+  temp <- vapply(ntc_sgrnas, FUN = execute_KS, FUN.VALUE = 0, ntc_df=ntc_df, col_name=col_name, test_alternative="two.sided")
+  
+  #Return list
+  return(temp)
+  
+}
+
+# 3) Create a Wilcoxon Function for Testing True non-Targeting Ness of NTCs ====
+
+
+#Create execution function for test
+execute_wilcox <- function(ntc_sgrna, ntc_df, col_name="p_val", test_alternative = "less"){
+  target_vals <- as.numeric(ntc_df[which(ntc_df$sgrna == ntc_sgrna), col_name])
+  compare_vals <- as.numeric(ntc_df[which(ntc_df$sgrna != ntc_sgrna), col_name])
+  temp <- suppressWarnings(wilcox.test(target_vals, compare_vals, alternative = test_alternative))
+  return(temp$p.value)
+}
+
+#Define main wrapper function
+check_wilcox <- function(inp_dir, test_type, cell_type, col_name="p_val") {
+  
+  #Create output dir
+  inp_dir <- ifelse(substr(inp_dir, nchar(inp_dir), nchar(inp_dir)) == "/", inp_dir, paste0(inp_dir, "/"))
+  out_dir <- paste0(inp_dir, test_type, "_", cell_type, "/")
+  
+  #Read in ntc RDS object
+  ntc_results <- readRDS(paste0(inp_dir, "non_targeting_", test_type, "_", cell_type, "_df.rds"))
+  #Recast matrix test results to dataframes
+  ntc_df <- as.data.frame(ntc_results)
+  #Recast p-value columns as numerics
+  ntc_df$p_val <- as.numeric(ntc_df$p_val)
+  
+  #Get list of unique ntc sgrnas
+  ntc_sgrnas <- unique(ntc_df$sgrna)
+  #Execute tests
+  temp <- vapply(ntc_sgrnas, FUN = execute_wilcox, FUN.VALUE = 0, ntc_df=ntc_df, col_name=col_name, test_alternative="less")
+  
+  #Return list
+  return(temp)
+  
+}
+
+
+# 4) Call Analysis Functions ====
 
 #Loop over cell types and test types and call function
 for (test_type in test_types) {
