@@ -46,6 +46,9 @@ options(future.globals.maxSize = 4 * 1000 * 1024^2)
 #Set repression range
 rep_range <- 1000000 #Testing within +/- 1Mb
 
+#Set a random seed
+set.seed(5) 
+
 # 1) Read in variables ====
 
 args <- commandArgs(trailingOnly = TRUE);
