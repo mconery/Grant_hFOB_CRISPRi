@@ -272,7 +272,33 @@ for (sgrna in neg_control_sgrnas) {
   dev.off()
 }
 
-# 8) Run Discovery Analysis ====
+# 7) Run Leave One-Out Test for Non-Targeting Control Outliers ====
+
+#Check if directory exists and make it if not
+if (!(dir.exists(paste0(out_dir, "seed_testing")))) {
+  dir.create(paste0(out_dir, "seed_testing"))
+}
+
+#Loop over non-targeting controls and rerun calibration analysis
+for (seed in seq(1,20,1)) {
+  set.seed(seed = seed)
+  #Run check
+  calibration_result_seed <- run_sceptre_lowmoi(
+    response_matrix = response_hfob_lowmoi,
+    grna_matrix = grna_hfob_lowmoi,
+    covariate_data_frame = covariate_hfob_lowmoi,
+    grna_group_data_frame = grna_group_hfob_lowmoi,
+    formula_object = formula_object,
+    response_grna_group_pairs = response_grna_group_pairs_hfob,
+    calibration_check = TRUE # calibration_check TRUE
+  ) 
+  #Plot calibration leave-one-out result
+  jpeg(paste0(out_dir, "seed_testing/", "sceptre_calibration.hfob.loo.seed_", seed, ".jpeg"))
+  print(plot_calibration_result(calibration_result_loo))
+  dev.off()
+}
+
+# 9) Run Discovery Analysis ====
 
 #Run discovery
 discovery_result <- run_sceptre_lowmoi(
