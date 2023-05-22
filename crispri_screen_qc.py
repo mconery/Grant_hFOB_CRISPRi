@@ -10,6 +10,7 @@ import anndata as ad
 from scipy.sparse import csr_matrix
 import matplotlib.pyplot as plt
 import pickle
+import pybiomart
 from sklearn.cluster import KMeans
 
 
@@ -20,11 +21,19 @@ qc_dir = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bon
 cellranger_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellranger_outputs/'
 cellbender_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellbender_outputs/learning_rate_0.00005/'
 grna_ref_loc = cellranger_loc + 'aggr/crispr_analysis/protospacer_calls_per_cell.csv'
+hfob_loc = qc_dir + 'hFOB_marker_genes.csv'
 #Set the pool list
 pools = ['Pool_' + str(x) for x in range(1,9,1)]
 
 #Set scanpy parameters
 sc.settings.set_figure_params(dpi=80, facecolor="white")
+
+#Read in hfob gene reference
+hfob_ref_raw = pd.read_table(hfob_loc, sep=",")
+#Make dictionary mapping and get maturation and mineralization genes
+osteo_mapping = {hfob_ref_raw['ENSG'][x] : hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw))}
+maturation_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Maturation"]
+mineralization_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Mineralization"]
 
 #Define a function to do basic qc plotting
 def plot_basic_qc(cellranger_raw, pool, file_prefix):
@@ -82,6 +91,11 @@ def plot_basic_qc(cellranger_raw, pool, file_prefix):
     sc.pl.umap(hfob_filt, color=['total_counts_lt_8k', 'total_counts_lt_7k', 'total_counts_lt_6k', 'total_counts_lt_5k', 'total_counts_lt_4k'], show=False, save=".no_filt.binarized.total_counts_descending." + file_prefix)
     sc.pl.umap(hfob_filt, color=['genes_by_counts_lt_4k', 'genes_by_counts_lt_3.5k', 'genes_by_counts_lt_3k', 'genes_by_counts_lt_2.5k', 'genes_by_counts_lt_2k'], show=False, save=".no_filt.binarized.gene_counts_descending." + file_prefix)
     sc.pl.umap(hfob_filt, color=['pct_counts_mt_gt_5', 'pct_counts_mt_gt_8', 'pct_counts_mt_gt_10', 'pct_counts_mt_gt_12', 'pct_counts_mt_gt_15'], show=False, save=".no_filt.binarized.mito_pcts_ascending." + file_prefix)
+    
+    #Make UMAPs of osteoblast genes
+    hfob_osteo = hfob_filt[:,hfob_filt.var_names.isin(hfob_ref_raw['Symbol'])]
+    sc.pl.umap(hfob_osteo, color=maturation_genes, show=False, save=".no_filt.maturation_genes." + file_prefix)
+    sc.pl.umap(hfob_osteo, color=mineralization_genes, show=False, save=".no_filt.mineralization_genes." + file_prefix)
 
 #Read in files and run qc tests
 cellranger_results = {}
@@ -156,7 +170,8 @@ cellbender_merged_good = ad.concat(cellbender_good_results.values())
 #Run basic QC metrics for the merged good cells
 sc.settings.figdir = qc_dir + 'aggr/'
 #Calculate data on mitochondrial reads
-cellbender_merged_good.var['mt'] = cellbender_merged_good.var_names.str.startswith('MT-')  # annotate the group of mitochondrial genes as 'mt'
+mito_ensembl_ids = sc.queries.mitochondrial_genes("hsapiens", attrname="ensembl_gene_id")
+cellbender_merged_good.var['mt'] = cellbender_merged_good.var_names.isin(mito_ensembl_ids['ensembl_gene_id'])   # annotate the group of mitochondrial genes as 'mt'
 sc.pp.calculate_qc_metrics(cellbender_merged_good, qc_vars=['mt'], percent_top=None, log1p=False, inplace=True)
 #Make qc plots
 sc.pl.violin(cellbender_merged_good, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'], 
