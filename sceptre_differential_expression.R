@@ -30,6 +30,8 @@ library(pbapply)
 library(bedr)
 library(SingleCellExperiment)
 library(Matrix)
+library(ggplot2)
+library(tibble)
 
 #Set directories and file locations
 qced_results_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/quality_control/aggr/aggr.post_qc.h5ad"
@@ -171,7 +173,7 @@ covariate_hfob_lowmoi$bio_rep <- as.factor(covariate_hfob_lowmoi$bio_rep)
 covariate_hfob_lowmoi$p_mito <- covariate_hfob_lowmoi$p_mito/100 #rescale percentages to decimal
 
 ### Make gRNA group table ###
-grna_group_hfob_lowmoi <- rbind.data.frame(cbind.data.frame(grna_id=test_sgrnas, grna_group=str_replace(test_sgrnas, "_[0-9]","")),
+grna_group_hfob_lowmoi <- rbind.data.frame(cbind.data.frame(grna_id=test_sgrnas, grna_group=str_replace(test_sgrnas, "_[0-9]+","")),
                                                cbind.data.frame(grna_id=pos_control_sgrnas, grna_group=pos_control_sgrnas),
                                                cbind.data.frame(grna_id=neg_control_sgrnas, grna_group=rep("non-targeting", length(neg_control_sgrnas))))
 
@@ -197,7 +199,7 @@ check_genes_for_guide <- function(grna_group, grna_group_hfob_lowmoi, sgrna_targ
   temp2 <- cbind.data.frame(response_id=temp, grna_group=rep(grna_group, length(temp)))
   return(temp2)
 }
-response_grna_group_pairs_hfob <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]", "")), FUN = check_genes_for_guide, 
+response_grna_group_pairs_hfob <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = check_genes_for_guide, 
                                                              grna_group_hfob_lowmoi=grna_group_hfob_lowmoi, sgrna_target_filter=sgrna_target_filter, 
                                                              gencode_genes_filter=gencode_genes_filter)))
 #Append on the positive controls
@@ -239,7 +241,79 @@ dev.off()
 #Write calibration results to file
 write.table(calibration_result, file = paste0(out_dir, "non_targeting_test_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
-# 7) Run Leave One-Out Test for Non-Targeting Control Outliers ====
+# 7) Run Low MOI and Random Assortment Checks ====
+
+### Create histograms of the number of unique guide RNAs per cell in our hFOB dataset in comparison to the Papalexi et al. Dataset ###
+hist_gRNA <- ggplot(data = tibble(count = colSums(grna_hfob_lowmoi != 0)) |> dplyr::filter(count >= 1, count <= 40), mapping = aes(x = count)) +
+  geom_histogram(binwidth = 3, col = "black", fill = "orchid4", alpha = 0.7) +
+  scale_y_continuous(trans='log10', expand = c(0, NA)) + xlab("Unique gRNAs per Cell") + ylab("") + theme_bw(base_size = 10)
+jpeg(paste0(out_dir, "unique_grnas_per_cell.hfob.jpeg"))
+hist_gRNA
+dev.off()
+hist_gRNA <- ggplot(data = tibble(count = colSums(grna_matrix_lowmoi != 0)) |> dplyr::filter(count >= 1, count <= 40), mapping = aes(x = count)) +
+  geom_histogram(binwidth = 3, col = "black", fill = "orchid4", alpha = 0.7) +
+  scale_y_continuous(trans='log10', expand = c(0, NA)) + xlab("Unique gRNAs per Cell") + ylab("") + theme_bw(base_size = 10)
+jpeg(paste0(out_dir, "unique_grnas_per_cell.papalexi.jpeg"))
+hist_gRNA
+dev.off()
+
+### Run a test for non-random assortment of non-targeting guides and targeting guides ###
+check_ntc_assortment <- function(neg_control_sgrna, test_sgrnas, grna_hfob_lowmoi){
+  temp <- vapply(test_sgrnas, check_combo_assortment, FUN.VALUE = 0, neg_control_sgrna=neg_control_sgrna, grna_hfob_lowmoi=grna_hfob_lowmoi)
+  return(cbind.data.frame(ntc=rep(neg_control_sgrna, length(temp)), test_sgrna=test_sgrnas, fisher_pval=temp))
+}
+check_combo_assortment <- function(test_sgrna, neg_control_sgrna, grna_hfob_lowmoi){
+  temp <- ifelse(grna_hfob_lowmoi[c(test_sgrna, neg_control_sgrna),]==0,0,1)
+  check_matrix <- matrix(data = c(sum(colSums(temp) == 2), sum(colSums(temp) == 1 & temp[1,]==1),
+                                  sum(colSums(temp) == 1 & temp[2,]==1), sum(colSums(temp) == 0)), nrow = 2, ncol = 2)
+  temp2 <- fisher.test(check_matrix)
+  return(temp2$p.value)
+}
+temp <- lapply(neg_control_sgrnas, check_ntc_assortment, grna_hfob_lowmoi=grna_hfob_lowmoi, test_sgrnas=test_sgrnas)
+non_random_assort_df <- as.data.frame(rbind.fill.matrix(temp))
+#Do a multiple testing correction
+non_random_assort_df <- cbind.data.frame(non_random_assort_df, pval_adj=p.adjust(as.numeric(non_random_assort_df$fisher_pval), method = "BH"))
+non_random_assort_df <- non_random_assort_df[order(non_random_assort_df$pval_adj),]
+
+#Get list of targeting grna groups
+test_grna_groups <- unique(grna_group_hfob_lowmoi[which(grna_group_hfob_lowmoi$grna_group != "non-targeting"),"grna_group"])
+#Run a test for non-random assortment of non-targeting guides with groups of targeting guides 
+check_ntc_group_assortment <- function(neg_control_sgrna, test_grna_groups, grna_hfob_lowmoi, grna_group_hfob_lowmoi){
+  temp <- vapply(test_grna_groups, check_combo_group_assortment, FUN.VALUE = 0, neg_control_sgrna=neg_control_sgrna, grna_hfob_lowmoi=grna_hfob_lowmoi, grna_group_hfob_lowmoi=grna_group_hfob_lowmoi)
+  return(cbind.data.frame(ntc=rep(neg_control_sgrna, length(temp)), test_sgrna_group=test_grna_groups, fisher_pval=temp))
+}
+check_combo_group_assortment <- function(test_grna_group, neg_control_sgrna, grna_hfob_lowmoi, grna_group_hfob_lowmoi){
+  test_grnas <- grna_group_hfob_lowmoi[which(grna_group_hfob_lowmoi$grna_group == test_grna_group),"grna_id"]
+  temp <- ifelse(grna_hfob_lowmoi[c(test_grnas, neg_control_sgrna),]==0,0,1)
+  temp_rows <- nrow(temp)
+  temp_top <- temp[1:(temp_rows-1),]
+  temp_bottom <- temp[temp_rows,]
+  if (temp_rows == 2) {
+    top_left <- sum(temp_top * temp_bottom >= 1)
+    top_right <- sum(temp_top) - top_left
+    bottom_left <- sum(temp_bottom == 1) - top_left
+    bottom_right <- length(temp_bottom) - top_left - top_right - bottom_left
+  } else {
+    top_left <- sum(colSums(temp_top) * temp_bottom >= 1)
+    top_right <- sum(colSums(temp_top) >= 1) - top_left
+    bottom_left <- sum(temp_bottom == 1) - top_left
+    bottom_right <- length(temp_bottom) - top_left - top_right - bottom_left
+  }
+  check_matrix <- matrix(data = c(top_left, top_right, bottom_left, bottom_right), 
+                         nrow = 2, ncol = 2)
+  temp2 <- fisher.test(check_matrix)
+  return(temp2$p.value)
+}
+temp <- pblapply(neg_control_sgrnas, check_ntc_group_assortment, grna_hfob_lowmoi=grna_hfob_lowmoi, test_grna_groups=test_grna_groups, grna_group_hfob_lowmoi=grna_group_hfob_lowmoi)
+non_random_assort_group_df <- as.data.frame(rbind.fill.matrix(temp))
+#Do a multiple testing correction
+non_random_assort_group_df <- cbind.data.frame(non_random_assort_group_df, pval_adj=p.adjust(as.numeric(non_random_assort_group_df$fisher_pval), method = "BH"))
+non_random_assort_group_df <- non_random_assort_group_df[order(non_random_assort_group_df$pval_adj),]
+
+### Get guide RNAs with non-random assortments ###
+non_random_guides <- unique(non_random_assort_group_df[which(non_random_assort_group_df$pval_adj < 0.05),"ntc"])
+
+# 8) Run Leave One-Out Test for Non-Targeting Control Outliers ====
 
 #Check if directory exists and make it if not
 if (!(dir.exists(paste0(out_dir, "leave_one_out")))) {
@@ -272,7 +346,7 @@ for (sgrna in neg_control_sgrnas) {
   dev.off()
 }
 
-# 7) Run Leave One-Out Test for Non-Targeting Control Outliers ====
+# 9) Run Seed Testing to Check Test Robustness ====
 
 #Check if directory exists and make it if not
 if (!(dir.exists(paste0(out_dir, "seed_testing")))) {
@@ -293,12 +367,55 @@ for (seed in seq(1,20,1)) {
     calibration_check = TRUE # calibration_check TRUE
   ) 
   #Plot calibration leave-one-out result
-  jpeg(paste0(out_dir, "seed_testing/", "sceptre_calibration.hfob.loo.seed_", seed, ".jpeg"))
-  print(plot_calibration_result(calibration_result_loo))
+  jpeg(paste0(out_dir, "seed_testing/", "sceptre_calibration.hfob.seed_", seed, ".jpeg"))
+  print(plot_calibration_result(calibration_result_seed))
   dev.off()
 }
 
-# 9) Run Discovery Analysis ====
+# 10) Run A Calibration Check with 4 NTCs per group ====
+
+#Run check
+calibration_result_four_NTCs <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_lowmoi,
+  grna_matrix = grna_hfob_lowmoi,
+  covariate_data_frame = covariate_hfob_lowmoi,
+  grna_group_data_frame = grna_group_hfob_lowmoi,
+  formula_object = formula_object,
+  response_grna_group_pairs = response_grna_group_pairs_hfob,
+  calibration_group_size = 4,
+  calibration_check = TRUE
+) 
+#Plot calibration leave-one-out result
+jpeg(paste0(out_dir, "sceptre_calibration.hfob.4_NTCs.jpeg"))
+print(plot_calibration_result(calibration_result_four_NTCs))
+dev.off()
+
+
+# 11) Try throwing out NTCs with significant non-random assortment with targeting guide RNAs ====
+
+#Remove the selected grna from the grna-by-cell matrix and the grouping file
+grna_hfob_lowmoi_non_rando <- grna_hfob_lowmoi[!(rownames(grna_hfob_lowmoi) %in% non_random_guides),]
+grna_group_hfob_lowmoi_non_rando <- grna_group_hfob_lowmoi[!(grna_group_hfob_lowmoi$grna_id %in% non_random_guides),]
+#Get new gene expression matrix, covariate data frame, and grna matrix for cells (The order is important here!)
+response_hfob_lowmoi_non_rando <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi_non_rando != 0) != 0]
+covariate_hfob_lowmoi_non_rando <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi_non_rando != 0) != 0,]
+grna_hfob_lowmoi_non_rando <- grna_hfob_lowmoi_non_rando[,colSums(grna_hfob_lowmoi_non_rando != 0) != 0]
+#Run check
+calibration_result_non_rando <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_lowmoi_non_rando,
+  grna_matrix = grna_hfob_lowmoi_non_rando,
+  covariate_data_frame = covariate_hfob_lowmoi_non_rando,
+  grna_group_data_frame = grna_group_hfob_lowmoi_non_rando,
+  formula_object = formula_object,
+  response_grna_group_pairs = response_grna_group_pairs_hfob,
+  calibration_check = TRUE # calibration_check TRUE
+) 
+#Plot calibration leave-one-out result
+jpeg(paste0(out_dir, "sceptre_calibration.hfob.true_random_guides.jpeg"))
+print(plot_calibration_result(calibration_result_non_rando))
+dev.off()
+
+# 12) Run Discovery Analysis ====
 
 #Run discovery
 discovery_result <- run_sceptre_lowmoi(
