@@ -346,7 +346,7 @@ for (sgrna in neg_control_sgrnas) {
   dev.off()
 }
 
-# 9) Run Seed Testing to Check Test Robustness ====
+# 9) Run Seed Test to Check Test Robustness ====
 
 #Check if directory exists and make it if not
 if (!(dir.exists(paste0(out_dir, "seed_testing")))) {
@@ -391,7 +391,37 @@ print(plot_calibration_result(calibration_result_four_NTCs))
 dev.off()
 
 
-# 11) Try throwing out NTCs with significant non-random assortment with targeting guide RNAs ====
+# 11) Run A Single sgRNA per Cell Test ====
+
+#Check if directory exists and make it if not
+if (!(dir.exists(paste0(out_dir, "single_sgrna_per_cell")))) {
+  dir.create(paste0(out_dir, "single_sgrna_per_cell"))
+}
+
+#Remove the cells with multiple sgRNAs from consideration
+response_hfob_lowmoi_single_sgrna <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
+covariate_hfob_lowmoi_single_sgrna <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi != 0) == 1,]
+grna_hfob_lowmoi_single_sgrna <- grna_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
+#Remove any guides no longer represented
+grna_hfob_lowmoi_single_sgrna <- grna_hfob_lowmoi_single_sgrna[rowSums(grna_hfob_lowmoi_single_sgrna) > 0,]
+grna_group_hfob_lowmoi_single_sgrna <- grna_group_hfob_lowmoi[grna_group_hfob_lowmoi$grna_id %in% rownames(grna_hfob_lowmoi_single_sgrna),]
+response_grna_group_pairs_hfob_single_sgrna <- response_grna_group_pairs_hfob[response_grna_group_pairs_hfob$grna_group %in% grna_group_hfob_lowmoi_single_sgrna$grna_group,]
+#Run check
+calibration_result_single_sgrna <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_lowmoi_single_sgrna,
+  grna_matrix = grna_hfob_lowmoi_single_sgrna,
+  covariate_data_frame = covariate_hfob_lowmoi_single_sgrna,
+  grna_group_data_frame = grna_group_hfob_lowmoi_single_sgrna,
+  formula_object = formula_object,
+  response_grna_group_pairs = response_grna_group_pairs_hfob_single_sgrna,
+  calibration_check = TRUE # calibration_check TRUE
+) 
+#Plot calibration leave-one-out result
+jpeg(paste0(out_dir, "single_sgrna_per_cell/", "sceptre_calibration.hfob.single_sgrna.jpeg"))
+print(plot_calibration_result(calibration_result_single_sgrna))
+dev.off()
+
+# 13) Try throwing out NTCs with significant non-random assortment with targeting guide RNAs ====
 
 #Remove the selected grna from the grna-by-cell matrix and the grouping file
 grna_hfob_lowmoi_non_rando <- grna_hfob_lowmoi[!(rownames(grna_hfob_lowmoi) %in% non_random_guides),]
@@ -415,9 +445,9 @@ jpeg(paste0(out_dir, "sceptre_calibration.hfob.true_random_guides.jpeg"))
 print(plot_calibration_result(calibration_result_non_rando))
 dev.off()
 
-# 12) Run Discovery Analysis ====
+# 14) Run Discovery Analyses ====
 
-#Run discovery
+### Run All Cells discovery ###
 discovery_result <- run_sceptre_lowmoi(
   response_matrix = response_hfob_lowmoi,
   grna_matrix = grna_hfob_lowmoi,
@@ -445,3 +475,29 @@ dev.off()
 discovery_set <- obtain_discovery_set(discovery_result)
 discovery_set$response_id <- ensg_to_symbol[discovery_set$response_id]
 write.table(discovery_set, file = paste0(out_dir, "discovery_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+### Run Single-Guide Cells discovery ###
+discovery_result_single_sgrna <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_lowmoi_single_sgrna,
+  grna_matrix = grna_hfob_lowmoi_single_sgrna,
+  covariate_data_frame = covariate_hfob_lowmoi_single_sgrna,
+  grna_group_data_frame = grna_group_hfob_lowmoi_single_sgrna,
+  formula_object = formula_object,
+  response_grna_group_pairs = response_grna_group_pairs_hfob_single_sgrna,
+  calibration_check = FALSE
+) 
+#Compare calibration and discovery results
+jpeg(paste0(out_dir, "single_sgrna_per_cell/", "sceptre_discovery_calibration_compare.hfob.jpeg"))
+compare_calibration_and_discovery_results(
+  calibration_result = calibration_result_single_sgrna,
+  discovery_result = discovery_result_single_sgrna
+)
+dev.off()
+#Make volcano
+jpeg(paste0(out_dir, "single_sgrna_per_cell/", "discovery_volcano.hfob.jpeg"))
+make_volcano_plot(discovery_result = discovery_result_single_sgrna)
+dev.off()
+#obtain discovery set and write to file
+discovery_set_single_sgrna <- obtain_discovery_set(discovery_result_single_sgrna)
+discovery_set_single_sgrna$response_id <- ensg_to_symbol[discovery_set_single_sgrna$response_id]
+write.table(discovery_set_single_sgrna, file = paste0(out_dir, "single_sgrna_per_cell/", "discovery_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
