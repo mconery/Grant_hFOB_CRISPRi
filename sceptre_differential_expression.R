@@ -19,6 +19,9 @@
 # 0) Call libraries and set directories, file locations, and universal variables ====
 
 #Call libraries
+library(dplyr)
+library(cowplot)
+library(katlabutils)
 library(sceptre)
 library(Seurat)
 library(SeuratObject)
@@ -38,6 +41,9 @@ qced_results_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB
 guides_per_cell_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/protospacer_calls_per_cell.csv"
 gencode_genes_loc <- "/mnt/isilon/sfgi/suc1/customerized_geneome_annotation/hg19/genecode_v19/gencode.v19.annotation.gene_only.bed"
 sgrna_target_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/all_targeting_guides.bed"
+marker_genes_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/quality_control/hFOB_marker_genes.csv"
+implicate_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/gene_implications.tsv"
+vep_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/target.vep_annotations.txt"
 out_dir <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/differential_expression/sceptre_single_sgrna/"
 
 #Set repression range
@@ -66,7 +72,16 @@ colnames(sgrna_target_raw) <- c("chr", "start", "end", "name+seq")
 gencode_genes_raw <- read.table(gencode_genes_loc, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
 colnames(gencode_genes_raw) <- c("chr", "start", "end", "ENSG+name", "gene_type", "strand")
 
-# 2) Get list of genes to test within range of sgrna targets ====
+#Read in marker genes file
+marker_genes_raw <- read.table(marker_genes_loc, sep = ",", header = TRUE)
+
+#Read in list of implicated genes
+implicate_raw <- read.table(implicate_loc, header = TRUE, stringsAsFactors = FALSE, sep = )
+
+#Read in vep annotations file
+vep_raw <- read.csv(vep_loc, sep = "\t", header = TRUE)
+
+# 2) Get List of Genes to Test within Range of sgRNA Targets ====
 
 #Get list of unique sgrna targets
 sgrnas <- unique(guides_per_cell_raw$feature_call)
@@ -134,7 +149,7 @@ names(symbol_to_ensg) <- gencode_genes_filter$external_gene_name
 ensg_to_symbol <- gencode_genes_filter$external_gene_name
 names(ensg_to_symbol) <- rownames(gencode_genes_filter)
 
-# 3) Prepare Inputs to SCEPTRE Test ====
+# 3) Prepare Raw Inputs to SCEPTRE Test ====
 
 ### Make gRNA-by-cell matrix ###
 #Get list of cells in qced results
@@ -171,91 +186,21 @@ rownames(covariate_hfob_lowmoi) <- NULL
 colnames(covariate_hfob_lowmoi) <- c("response_n_umis", "response_n_nonzero", "bio_rep", "p_mito")
 covariate_hfob_lowmoi$bio_rep <- as.factor(covariate_hfob_lowmoi$bio_rep)
 covariate_hfob_lowmoi$p_mito <- covariate_hfob_lowmoi$p_mito/100 #rescale percentages to decimal
+#Calculate PCAs on Seurat Object and add top 15 to covariate matrix
+qced_results_seurat <- FindVariableFeatures(qced_results_seurat, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(qced_results_seurat)
+qced_results_seurat <- ScaleData(qced_results_seurat, features = all.genes)
+qced_results_seurat <- RunPCA(qced_results_seurat, rev.pca=TRUE)
+qced_results_seurat <- ProjectDim(qced_results_seurat, reduction="pca")
+temp <- Embeddings(qced_results_seurat, reduction="pca")[cells_with_guide,]
+covariate_hfob_lowmoi <- cbind.data.frame(covariate_hfob_lowmoi, temp[,1:15])
 
 ### Make gRNA group table ###
 grna_group_hfob_lowmoi <- rbind.data.frame(cbind.data.frame(grna_id=test_sgrnas, grna_group=str_replace(test_sgrnas, "_[0-9]+","")),
                                                cbind.data.frame(grna_id=pos_control_sgrnas, grna_group=pos_control_sgrnas),
                                                cbind.data.frame(grna_id=neg_control_sgrnas, grna_group=rep("non-targeting", length(neg_control_sgrnas))))
 
-# 4) Establish Pairs of Genes/sgRNAs to Test ====
-
-#Make a map for each guide to the list of genes we are testing it against
-check_range <- function(i, chromos, rep_starts, rep_ends, gencode_genes_filter){
-  chromo <- chromos[i]
-  rep_start <- rep_starts[i]
-  rep_end <- rep_ends[i]
-  gencode_genes_temp <- gencode_genes_filter[which(gencode_genes_filter$chr == chromo & 
-                                                     ((gencode_genes_filter$start >= rep_start & gencode_genes_filter$start <= rep_end) | 
-                                                        (gencode_genes_filter$end >= rep_start & gencode_genes_filter$end <= rep_end) | 
-                                                        (gencode_genes_filter$start <= rep_start & gencode_genes_filter$end >= rep_end))),"ensembl_gene_id"]
-  return(str_replace(gencode_genes_temp, "[.][0-9]+",""))
-}
-check_genes_for_guide <- function(grna_group, grna_group_hfob_lowmoi, sgrna_target_filter, gencode_genes_filter){
-  sgrnas <- grna_group_hfob_lowmoi[which(grna_group_hfob_lowmoi$grna_group == grna_group),"grna_id"]
-  chromos <- as.character(sgrna_target_filter[sgrnas,"chr"])
-  rep_starts <- as.numeric(sgrna_target_filter[sgrnas,"rep_start"])
-  rep_ends <- as.numeric(sgrna_target_filter[sgrnas,"rep_end"])
-  temp <- unique(unlist(lapply(seq(1, length(chromos), 1), FUN = check_range, chromos=chromos, rep_starts=rep_starts, rep_ends=rep_ends,gencode_genes_filter)))
-  temp2 <- cbind.data.frame(response_id=temp, grna_group=rep(grna_group, length(temp)))
-  return(temp2)
-}
-response_grna_group_pairs_hfob <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = check_genes_for_guide, 
-                                                             grna_group_hfob_lowmoi=grna_group_hfob_lowmoi, sgrna_target_filter=sgrna_target_filter, 
-                                                             gencode_genes_filter=gencode_genes_filter)))
-#Append on the positive controls
-response_grna_group_pairs_hfob <- rbind.data.frame(response_grna_group_pairs_hfob,
-                                                   cbind.data.frame(response_id=symbol_to_ensg[pos_control_sgrnas], grna_group=pos_control_sgrnas))
-rownames(response_grna_group_pairs_hfob) <- NULL
-#Make columns factors
-#response_grna_group_pairs_hfob$response_id <- as.factor(response_grna_group_pairs_hfob$response_id)
-#response_grna_group_pairs_hfob$grna_group <- as.factor(response_grna_group_pairs_hfob$grna_group)
-
-#Do a final filter on the response matrix for genes that are actually being tested for some guide
-response_hfob_lowmoi <- response_hfob_lowmoi[unique(response_grna_group_pairs_hfob$response_id),]
-
-# 5) Set the Formula Object ====
-
-#Set the object using the names from the tutorial
-formula_object <- formula(~log(response_n_umis) + 
-                            log(response_n_nonzero) +
-                            bio_rep + 
-                            p_mito)
-
-# 6) Run and Assess Calibration Check ====
-
-#Run check
-calibration_result <- run_sceptre_lowmoi(
-  response_matrix = response_hfob_lowmoi,
-  grna_matrix = grna_hfob_lowmoi,
-  covariate_data_frame = covariate_hfob_lowmoi,
-  grna_group_data_frame = grna_group_hfob_lowmoi,
-  formula_object = formula_object,
-  response_grna_group_pairs = response_grna_group_pairs_hfob,
-  calibration_check = TRUE # calibration_check TRUE
-) 
-
-#Plot calibration result
-jpeg(paste0(out_dir, "sceptre_calibration.hfob.jpeg"))
-plot_calibration_result(calibration_result)
-dev.off()
-#Write calibration results to file
-write.table(calibration_result, file = paste0(out_dir, "non_targeting_test_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
-
-# 7) Run Low MOI and Random Assortment Checks ====
-
-### Create histograms of the number of unique guide RNAs per cell in our hFOB dataset in comparison to the Papalexi et al. Dataset ###
-hist_gRNA <- ggplot(data = tibble(count = colSums(grna_hfob_lowmoi != 0)) |> dplyr::filter(count >= 1, count <= 40), mapping = aes(x = count)) +
-  geom_histogram(binwidth = 3, col = "black", fill = "orchid4", alpha = 0.7) +
-  scale_y_continuous(trans='log10', expand = c(0, NA)) + xlab("Unique gRNAs per Cell") + ylab("") + theme_bw(base_size = 10)
-jpeg(paste0(out_dir, "unique_grnas_per_cell.hfob.jpeg"))
-hist_gRNA
-dev.off()
-hist_gRNA <- ggplot(data = tibble(count = colSums(grna_matrix_lowmoi != 0)) |> dplyr::filter(count >= 1, count <= 40), mapping = aes(x = count)) +
-  geom_histogram(binwidth = 3, col = "black", fill = "orchid4", alpha = 0.7) +
-  scale_y_continuous(trans='log10', expand = c(0, NA)) + xlab("Unique gRNAs per Cell") + ylab("") + theme_bw(base_size = 10)
-jpeg(paste0(out_dir, "unique_grnas_per_cell.papalexi.jpeg"))
-hist_gRNA
-dev.off()
+# 4) Check for Random Assortment of Non-Targeting and Targeting Guides ====
 
 ### Run a test for non-random assortment of non-targeting guides and targeting guides ###
 check_ntc_assortment <- function(neg_control_sgrna, test_sgrnas, grna_hfob_lowmoi){
@@ -310,144 +255,91 @@ non_random_assort_group_df <- as.data.frame(rbind.fill.matrix(temp))
 non_random_assort_group_df <- cbind.data.frame(non_random_assort_group_df, pval_adj=p.adjust(as.numeric(non_random_assort_group_df$fisher_pval), method = "BH"))
 non_random_assort_group_df <- non_random_assort_group_df[order(non_random_assort_group_df$pval_adj),]
 
-### Get guide RNAs with non-random assortments ###
+### Get non-targeting guide RNAs with non-random assortments ###
 non_random_guides <- unique(non_random_assort_group_df[which(non_random_assort_group_df$pval_adj < 0.05),"ntc"])
+# 15 guides show non-random assortment which necessitates focusing on the single-guide RNA cells
 
-# 8) Run Leave One-Out Test for Non-Targeting Control Outliers ====
+# 5) Establish Pairs of Genes/sgRNAs to Test ====
 
-#Check if directory exists and make it if not
-if (!(dir.exists(paste0(out_dir, "leave_one_out")))) {
-  dir.create(paste0(out_dir, "leave_one_out"))
+#Make a map for each guide to the list of genes we are testing it against
+check_range <- function(i, chromos, rep_starts, rep_ends, gencode_genes_filter){
+  chromo <- chromos[i]
+  rep_start <- rep_starts[i]
+  rep_end <- rep_ends[i]
+  gencode_genes_temp <- gencode_genes_filter[which(gencode_genes_filter$chr == chromo & 
+                                                     ((gencode_genes_filter$start >= rep_start & gencode_genes_filter$start <= rep_end) | 
+                                                        (gencode_genes_filter$end >= rep_start & gencode_genes_filter$end <= rep_end) | 
+                                                        (gencode_genes_filter$start <= rep_start & gencode_genes_filter$end >= rep_end))),"ensembl_gene_id"]
+  return(str_replace(gencode_genes_temp, "[.][0-9]+",""))
 }
-
-#Loop over non-targeting controls and rerun calibration analysis
-for (sgrna in neg_control_sgrnas) {
-  set.seed(5)
-  #Remove the selected grna from the grna-by-cell matrix and the grouping file
-  grna_hfob_lowmoi_loo <- grna_hfob_lowmoi[!(rownames(grna_hfob_lowmoi) %in% sgrna),]
-  grna_group_hfob_lowmoi_loo <- grna_group_hfob_lowmoi[grna_group_hfob_lowmoi$grna_id != sgrna,]
-  #Get new gene expression matrix, covariate data frame, and grna matrix for cells (The order is important here!)
-  response_hfob_lowmoi_loo <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi_loo != 0) != 0]
-  covariate_hfob_lowmoi_loo <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi_loo != 0) != 0,]
-  grna_hfob_lowmoi_loo <- grna_hfob_lowmoi_loo[,colSums(grna_hfob_lowmoi_loo != 0) != 0]
-  #Run check
-  calibration_result_loo <- run_sceptre_lowmoi(
-    response_matrix = response_hfob_lowmoi_loo,
-    grna_matrix = grna_hfob_lowmoi_loo,
-    covariate_data_frame = covariate_hfob_lowmoi_loo,
-    grna_group_data_frame = grna_group_hfob_lowmoi_loo,
-    formula_object = formula_object,
-    response_grna_group_pairs = response_grna_group_pairs_hfob,
-    calibration_check = TRUE # calibration_check TRUE
-  ) 
-  #Plot calibration leave-one-out result
-  jpeg(paste0(out_dir, "leave_one_out/", "sceptre_calibration.hfob.loo.", sgrna, ".jpeg"))
-  print(plot_calibration_result(calibration_result_loo))
-  dev.off()
+check_genes_for_guide <- function(grna_group, grna_group_hfob_lowmoi, sgrna_target_filter, gencode_genes_filter){
+  sgrnas <- grna_group_hfob_lowmoi[which(grna_group_hfob_lowmoi$grna_group == grna_group),"grna_id"]
+  chromos <- as.character(sgrna_target_filter[sgrnas,"chr"])
+  rep_starts <- as.numeric(sgrna_target_filter[sgrnas,"rep_start"])
+  rep_ends <- as.numeric(sgrna_target_filter[sgrnas,"rep_end"])
+  temp <- unique(unlist(lapply(seq(1, length(chromos), 1), FUN = check_range, chromos=chromos, rep_starts=rep_starts, rep_ends=rep_ends,gencode_genes_filter)))
+  temp2 <- cbind.data.frame(response_id=temp, grna_group=rep(grna_group, length(temp)))
+  return(temp2)
 }
+response_grna_group_pairs_hfob <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = check_genes_for_guide, 
+                                                                           grna_group_hfob_lowmoi=grna_group_hfob_lowmoi, sgrna_target_filter=sgrna_target_filter, 
+                                                                           gencode_genes_filter=gencode_genes_filter)))
+#Append on the positive controls
+response_grna_group_pairs_hfob <- rbind.data.frame(response_grna_group_pairs_hfob,
+                                                   cbind.data.frame(response_id=symbol_to_ensg[pos_control_sgrnas], grna_group=pos_control_sgrnas))
+rownames(response_grna_group_pairs_hfob) <- NULL
+#Make columns factors
+#response_grna_group_pairs_hfob$response_id <- as.factor(response_grna_group_pairs_hfob$response_id)
+#response_grna_group_pairs_hfob$grna_group <- as.factor(response_grna_group_pairs_hfob$grna_group)
 
-# 9) Run Seed Test to Check Test Robustness ====
+#Do a final filter on the response matrix for genes that are actually being tested for some guide
+response_hfob_lowmoi <- response_hfob_lowmoi[unique(response_grna_group_pairs_hfob$response_id),]
 
-#Check if directory exists and make it if not
-if (!(dir.exists(paste0(out_dir, "seed_testing")))) {
-  dir.create(paste0(out_dir, "seed_testing"))
-}
+# 6) Filter For Single-sgRNA Cells ====
 
-#Loop over non-targeting controls and rerun calibration analysis
-for (seed in seq(1,20,1)) {
-  set.seed(seed = seed)
-  #Run check
-  calibration_result_seed <- run_sceptre_lowmoi(
-    response_matrix = response_hfob_lowmoi,
-    grna_matrix = grna_hfob_lowmoi,
-    covariate_data_frame = covariate_hfob_lowmoi,
-    grna_group_data_frame = grna_group_hfob_lowmoi,
-    formula_object = formula_object,
-    response_grna_group_pairs = response_grna_group_pairs_hfob,
-    calibration_check = TRUE # calibration_check TRUE
-  ) 
-  #Plot calibration leave-one-out result
-  jpeg(paste0(out_dir, "seed_testing/", "sceptre_calibration.hfob.seed_", seed, ".jpeg"))
-  print(plot_calibration_result(calibration_result_seed))
-  dev.off()
-}
+#Remove the cells with multiple sgRNAs from consideration
+response_hfob_lowmoi <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
+covariate_hfob_lowmoi <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi != 0) == 1,]
+grna_hfob_lowmoi <- grna_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
+#Remove any guides no longer represented
+grna_hfob_lowmoi <- grna_hfob_lowmoi[rowSums(grna_hfob_lowmoi) > 0,]
+grna_group_hfob_lowmoi <- grna_group_hfob_lowmoi[grna_group_hfob_lowmoi$grna_id %in% rownames(grna_hfob_lowmoi),]
+response_grna_group_pairs_hfob <- response_grna_group_pairs_hfob[response_grna_group_pairs_hfob$grna_group %in% grna_group_hfob_lowmoi$grna_group,]
 
-# 10) Run A Calibration Check with 4 NTCs per group ====
+# 7) Set the Formula Object ====
 
-#Run check
-calibration_result_four_NTCs <- run_sceptre_lowmoi(
+#Set the formula object for use with pcas
+formula_object <- formula(~log(response_n_umis) + 
+                            log(response_n_nonzero) +
+                            bio_rep + 
+                            p_mito + 
+                            PC_1 + PC_2 + PC_3 + PC_4 + PC_5 + 
+                              PC_6 + PC_7 + PC_8 + PC_9 + PC_10 +
+                              PC_11 + PC_12 + PC_13 + PC_14 + PC_15)
+
+# 8) Run and Assess Calibration Check ====
+
+#Run basic check
+calibration_result <- run_sceptre_lowmoi(
   response_matrix = response_hfob_lowmoi,
   grna_matrix = grna_hfob_lowmoi,
   covariate_data_frame = covariate_hfob_lowmoi,
   grna_group_data_frame = grna_group_hfob_lowmoi,
   formula_object = formula_object,
   response_grna_group_pairs = response_grna_group_pairs_hfob,
-  calibration_group_size = 4,
-  calibration_check = TRUE
-) 
-#Plot calibration leave-one-out result
-jpeg(paste0(out_dir, "sceptre_calibration.hfob.4_NTCs.jpeg"))
-print(plot_calibration_result(calibration_result_four_NTCs))
-dev.off()
-
-
-# 11) Run A Single sgRNA per Cell Test ====
-
-#Check if directory exists and make it if not
-if (!(dir.exists(paste0(out_dir, "single_sgrna_per_cell")))) {
-  dir.create(paste0(out_dir, "single_sgrna_per_cell"))
-}
-
-#Remove the cells with multiple sgRNAs from consideration
-response_hfob_lowmoi_single_sgrna <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
-covariate_hfob_lowmoi_single_sgrna <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi != 0) == 1,]
-grna_hfob_lowmoi_single_sgrna <- grna_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
-#Remove any guides no longer represented
-grna_hfob_lowmoi_single_sgrna <- grna_hfob_lowmoi_single_sgrna[rowSums(grna_hfob_lowmoi_single_sgrna) > 0,]
-grna_group_hfob_lowmoi_single_sgrna <- grna_group_hfob_lowmoi[grna_group_hfob_lowmoi$grna_id %in% rownames(grna_hfob_lowmoi_single_sgrna),]
-response_grna_group_pairs_hfob_single_sgrna <- response_grna_group_pairs_hfob[response_grna_group_pairs_hfob$grna_group %in% grna_group_hfob_lowmoi_single_sgrna$grna_group,]
-#Run check
-calibration_result_single_sgrna <- run_sceptre_lowmoi(
-  response_matrix = response_hfob_lowmoi_single_sgrna,
-  grna_matrix = grna_hfob_lowmoi_single_sgrna,
-  covariate_data_frame = covariate_hfob_lowmoi_single_sgrna,
-  grna_group_data_frame = grna_group_hfob_lowmoi_single_sgrna,
-  formula_object = formula_object,
-  response_grna_group_pairs = response_grna_group_pairs_hfob_single_sgrna,
   calibration_check = TRUE # calibration_check TRUE
 ) 
-#Plot calibration leave-one-out result
-jpeg(paste0(out_dir, "single_sgrna_per_cell/", "sceptre_calibration.hfob.single_sgrna.jpeg"))
-print(plot_calibration_result(calibration_result_single_sgrna))
+
+#Plot calibration result
+jpeg(paste0(out_dir, "sceptre_calibration.hfob.jpeg"))
+plot_calibration_result(calibration_result)
 dev.off()
+#Write calibration results to file
+write.table(calibration_result, file = paste0(out_dir, "non_targeting_test_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
-# 13) Try throwing out NTCs with significant non-random assortment with targeting guide RNAs ====
+# 9) Run Discovery Analyses ====
 
-#Remove the selected grna from the grna-by-cell matrix and the grouping file
-grna_hfob_lowmoi_non_rando <- grna_hfob_lowmoi[!(rownames(grna_hfob_lowmoi) %in% non_random_guides),]
-grna_group_hfob_lowmoi_non_rando <- grna_group_hfob_lowmoi[!(grna_group_hfob_lowmoi$grna_id %in% non_random_guides),]
-#Get new gene expression matrix, covariate data frame, and grna matrix for cells (The order is important here!)
-response_hfob_lowmoi_non_rando <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi_non_rando != 0) != 0]
-covariate_hfob_lowmoi_non_rando <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi_non_rando != 0) != 0,]
-grna_hfob_lowmoi_non_rando <- grna_hfob_lowmoi_non_rando[,colSums(grna_hfob_lowmoi_non_rando != 0) != 0]
-#Run check
-calibration_result_non_rando <- run_sceptre_lowmoi(
-  response_matrix = response_hfob_lowmoi_non_rando,
-  grna_matrix = grna_hfob_lowmoi_non_rando,
-  covariate_data_frame = covariate_hfob_lowmoi_non_rando,
-  grna_group_data_frame = grna_group_hfob_lowmoi_non_rando,
-  formula_object = formula_object,
-  response_grna_group_pairs = response_grna_group_pairs_hfob,
-  calibration_check = TRUE # calibration_check TRUE
-) 
-#Plot calibration leave-one-out result
-jpeg(paste0(out_dir, "sceptre_calibration.hfob.true_random_guides.jpeg"))
-print(plot_calibration_result(calibration_result_non_rando))
-dev.off()
-
-# 14) Run Discovery Analyses ====
-
-### Run All Cells discovery ###
+### Run Discovery on single-guide cells ###
 discovery_result <- run_sceptre_lowmoi(
   response_matrix = response_hfob_lowmoi,
   grna_matrix = grna_hfob_lowmoi,
@@ -476,28 +368,57 @@ discovery_set <- obtain_discovery_set(discovery_result)
 discovery_set$response_id <- ensg_to_symbol[discovery_set$response_id]
 write.table(discovery_set, file = paste0(out_dir, "discovery_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
-### Run Single-Guide Cells discovery ###
-discovery_result_single_sgrna <- run_sceptre_lowmoi(
-  response_matrix = response_hfob_lowmoi_single_sgrna,
-  grna_matrix = grna_hfob_lowmoi_single_sgrna,
-  covariate_data_frame = covariate_hfob_lowmoi_single_sgrna,
-  grna_group_data_frame = grna_group_hfob_lowmoi_single_sgrna,
+# 10) Examine Results for V2G-Mapped Connections ====
+
+### Make dataframe of grna pairs ###
+#create unique identifiers for each implicated connection
+join_genes_to_proxies <- function(i, implicate_raw, symbol_to_ensg){return(unlist(lapply(str_split(implicate_raw[i,"genes_any"], ","), FUN = paste_proxy, proxy_char=implicate_raw[i,"proxies"], symbol_to_ensg=symbol_to_ensg)))}
+paste_proxy <- function(gene, proxy_char, symbol_to_ensg){return(ifelse(is.na(symbol_to_ensg[gene]), NA, str_replace_all(paste0(symbol_to_ensg[gene], ".", proxy_char),pattern = ",", replacement = "-")))}
+implicated_connections <- unlist(lapply(1:nrow(implicate_raw), FUN = join_genes_to_proxies, implicate_raw=implicate_raw, symbol_to_ensg=symbol_to_ensg))
+names(implicated_connections) <- NULL
+implicated_connections <- implicated_connections[is.na(implicated_connections)==FALSE]
+#Convert it to a response pairs dataframe
+split_period_take_one <- function(string){str_split(string, "[.]")[[1]][1]}
+split_period_take_two <- function(string){str_split(string, "[.]")[[1]][2]}
+response_grna_group_pairs_implicated <- cbind.data.frame(
+  response_id=vapply(implicated_connections, split_period_take_one, character(1)),
+  grna_group=vapply(implicated_connections, split_period_take_two, character(1)))
+rownames(response_grna_group_pairs_implicated) <- NULL
+#Make response matrix for genes that were implicated
+response_hfob_implicated <- counts_matrix[,cells_with_guide]
+response_hfob_implicated <- response_hfob_implicated[unique(response_grna_group_pairs_implicated$response_id),rownames(covariate_hfob_lowmoi)]
+colnames(response_hfob_implicated) <- NULL
+
+### Run calibration and discovery ###
+calibration_result_implicated <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_implicated,
+  grna_matrix = grna_hfob_lowmoi,
+  covariate_data_frame = covariate_hfob_lowmoi,
+  grna_group_data_frame = grna_group_hfob_lowmoi,
   formula_object = formula_object,
-  response_grna_group_pairs = response_grna_group_pairs_hfob_single_sgrna,
+  response_grna_group_pairs = response_grna_group_pairs_implicated,
+  calibration_check = TRUE # calibration_check TRUE
+) 
+discovery_result_implicated <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_implicated,
+  grna_matrix = grna_hfob_lowmoi,
+  covariate_data_frame = covariate_hfob_lowmoi,
+  grna_group_data_frame = grna_group_hfob_lowmoi,
+  formula_object = formula_object,
+  response_grna_group_pairs = response_grna_group_pairs_implicated,
   calibration_check = FALSE
 ) 
-#Compare calibration and discovery results
-jpeg(paste0(out_dir, "single_sgrna_per_cell/", "sceptre_discovery_calibration_compare.hfob.jpeg"))
-compare_calibration_and_discovery_results(
-  calibration_result = calibration_result_single_sgrna,
-  discovery_result = discovery_result_single_sgrna
-)
-dev.off()
-#Make volcano
-jpeg(paste0(out_dir, "single_sgrna_per_cell/", "discovery_volcano.hfob.jpeg"))
-make_volcano_plot(discovery_result = discovery_result_single_sgrna)
-dev.off()
-#obtain discovery set and write to file
-discovery_set_single_sgrna <- obtain_discovery_set(discovery_result_single_sgrna)
-discovery_set_single_sgrna$response_id <- ensg_to_symbol[discovery_set_single_sgrna$response_id]
-write.table(discovery_set_single_sgrna, file = paste0(out_dir, "single_sgrna_per_cell/", "discovery_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+### obtain discovery set and write to file ###
+#Get vep annotations for targets
+proxy_to_vep <- vep_raw$Consequence
+names(proxy_to_vep) <- vep_raw$X.Uploaded_variation
+get_vep_status <- function(grna_group, proxy_to_vep){return(paste0(lapply(unlist(str_split(grna_group, "-")), FUN = paste_proxy, proxy_to_vep=proxy_to_vep),collapse = "/"))}
+paste_proxy <- function(proxy_char, proxy_to_vep){return(ifelse(is.na(proxy_to_vep[proxy_char]), NA, proxy_to_vep[proxy_char]))}
+discovery_result_implicated <- cbind.data.frame(discovery_result_implicated, 
+                                                vep_annotation=vapply(discovery_result_implicated$grna_group, FUN = get_vep_status, FUN.VALUE = character(1), proxy_to_vep=proxy_to_vep),
+                                                p_value_BH=p.adjust(discovery_result_implicated$p_value, method = "BH"))
+#Write to file
+discovery_result_implicated$response_id <- ensg_to_symbol[discovery_result_implicated$response_id]
+write.table(discovery_result_implicated, file = paste0(out_dir, "discovery_results.implicated_connections_only.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
