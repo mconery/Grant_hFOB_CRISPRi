@@ -8,9 +8,9 @@
 
 ################################### Set Directories ##################################
 
-work_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellranger_outputs
-out_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellbender_outputs/learning_rate_0.00005
-pool_ref=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/Grant_hFOB_CRISPRi/cellbender_counts.txt
+work_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs
+out_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellbender_outputs/learning_rate_0.00005
+pool_ref=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/Grant_hFOB_CRISPRi/cellbender_counts.txt
 
 ######################################################################################
 
