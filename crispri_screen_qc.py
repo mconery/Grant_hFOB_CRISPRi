@@ -17,9 +17,9 @@ from sklearn.cluster import KMeans
 #########################################################Main Thread####################################
 
 #Set file locations
-qc_dir = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/quality_control/'
-cellranger_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellranger_outputs/'
-cellbender_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/HFOB_screen_bone/cellbender_outputs/learning_rate_0.00005/'
+qc_dir = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/'
+cellranger_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/'
+cellbender_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellbender_outputs/learning_rate_0.00005/'
 grna_ref_loc = cellranger_loc + 'aggr/crispr_analysis/protospacer_calls_per_cell.csv'
 hfob_loc = qc_dir + 'hFOB_marker_genes.csv'
 #Set the pool list
