@@ -1,3 +1,15 @@
+################################################################################
+
+#download_hFOB_fastq.R
+
+#The purpose of this script is to download the H3K27ac ChIP-seq hFOB FASTQ 
+#files. These will be used to generate peak calls and ultimately hFOB-relevant
+#fine-mapped BMD variants. The script runs with the following modules:
+
+#  R/4.2.3
+
+################################################################################
+
 # 0) Load libraries ====
 
 library(GEOfastq)
