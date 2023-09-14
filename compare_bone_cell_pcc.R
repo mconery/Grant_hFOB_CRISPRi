@@ -361,6 +361,18 @@ nrow(morris_bmd_proxy[which(morris_bmd_proxy$count_proxies_for_expressed_genes =
 
 ############################################################################################################################
 
+#Filter for variants with all implications via interaction
+interaction_only_table <- morris_bmd_proxy[which(morris_bmd_proxy$all_implication_via_interaction == TRUE & 
+                                                   (morris_bmd_proxy$count_hMSC_Osteo > 0 | morris_bmd_proxy$count_hFOBsDiff > 0)),]
+#Make Venn diagram of targets by cell type
+VennDiag <- euler((ifelse(interaction_only_table[,c("count_hMSC_Osteo", "count_hFOBsDiff")] > 0, 1, 0)))
+jpeg(paste(inp_dir, "interaction_only_signals.with_expr.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
+           labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
+dev.off()
+
+############################################################################################################################
+
 #Filter for ideal targets
 ideal_target_table <- morris_bmd_proxy[which(morris_bmd_proxy$count_proxies_for_expressed_genes == 1 & 
                                                morris_bmd_proxy$all_implication_via_interaction == TRUE),]
