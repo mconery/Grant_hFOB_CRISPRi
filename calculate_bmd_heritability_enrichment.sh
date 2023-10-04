@@ -10,13 +10,18 @@ diff_hfob_chip_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/ChIPSeq/hFOBs/chip/
 undiff_hfob_atac_peaks=/mnt/isilon/sfgi/pahlm/analyses/grant/atacSeq/bone_diff/hFOBs/out/peak/macs2/overlap/optimal_set/hFOBs_ppr.naive_overlap.filt.narrowPeak.gz
 diff_hfob_atac_peaks=/mnt/isilon/sfgi/pahlm/analyses/grant/atacSeq/bone_diff/hFOBsDiff/out/peak/macs2/overlap/optimal_set/hFOB_diff_ppr.naive_overlap.filt.narrowPeak.gz
 hmsc_bmp2_atac_peaks=/mnt/isilon/sfgi/chesia/analyses/grant/atacSeq/bone_cells/BMP2/ENCODE/all_reps/out/peak/macs2/overlap/optimal_set/BMP2_ppr.naive_overlap.filt.narrowPeak.gz
+osteoclast_day0_down_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day0/downsample/atac/f9c4b95b-1a2d-4585-a87b-6b64bb186651/call-reproducibility_idr/execution/idr.conservative_peak.narrowPeak.gz
+osteoclast_day4_down_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/downsample/atac/8cfab6c7-da4a-4091-98d3-07f05b31de20/call-reproducibility_idr/execution/idr.conservative_peak.narrowPeak.gz
+osteoclast_day8_down_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day8/downsample/atac/7252c593-db46-477a-9c81-b66b333d992d/call-reproducibility_idr/execution/idr.conservative_peak.narrowPeak.gz
+osteoclast_day0_full_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day0/atac/d79f8990-f683-4d7f-8b29-31cd3fdd94f6/call-reproducibility_idr/execution/idr.optimal_peak.narrowPeak.gz
+osteoclast_day4_full_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/atac/388a6af8-cbec-40eb-bf89-a72ee06d521c/call-reproducibility_idr/execution/idr.optimal_peak.narrowPeak.gz
 bmd_gwas=/mnt/isilon/sfgi/conerym/data/gwas_summary_stats/pan_ukbb_raw/continuous-3148-both_sexes-irnt.appended.tsv
 bmd_gwas_n=242809
 ldsc_dir=/mnt/isilon/sfgi/conerym/analyses/grant/ldsc/bone_cells
 
 #Set files and types (ADJUST IN FUTURE)
-raw_files=($diff_hfob_chip_peaks $undiff_hfob_atac_peaks $diff_hfob_atac_peaks $hmsc_bmp2_atac_peaks) 
-file_types=(diff_hfob_chip undiff_hfob_atac diff_hfob_atac hmsc_bmp2_atac)
+raw_files=($diff_hfob_chip_peaks $undiff_hfob_atac_peaks $diff_hfob_atac_peaks $hmsc_bmp2_atac_peaks $osteoclast_day0_down_atac_peaks $osteoclast_day4_down_atac_peaks $osteoclast_day8_down_atac_peaks $osteoclast_day0_full_atac_peaks $osteoclast_day4_full_atac_peaks) 
+file_types=(diff_hfob_chip undiff_hfob_atac diff_hfob_atac hmsc_bmp2_atac osteoclast_day0_down osteoclast_day4_down osteoclast_day8_down osteoclast_day0_full osteoclast_day4_full)
 
 ######################################################################################
 
@@ -94,7 +99,7 @@ for ((i = 0 ; i < ${#file_types[@]} ; i++)); do
        --print-snps /mnt/isilon/sfgi/pahlm/analyses/grant/disease/partitioned_ldsr_phase1/hapmap3_snps_fromgtz/hm.$j.snp
    done' > scripts/${file_types[$i]}.calcLD.sh
  sed -i '1i#!/bin/bash' $ldsc_dir/scripts/${file_types[$i]}.calcLD.sh
- sbatch --mem=16G -t 12:00:00 --job-name calc_ld $ldsc_dir/scripts/${file_types[$i]}.calcLD.sh
+ sbatch --mem=32G -t 48:00:00 --job-name calc_ld $ldsc_dir/scripts/${file_types[$i]}.calcLD.sh
 done 
 
 #LD score Step 6: Run partitioned LD score regression 
