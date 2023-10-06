@@ -127,3 +127,28 @@ for ((i = 0 ; i < ${#file_types[@]} ; i++)); do
  done
 done
 
+#LD score Step 7: (OPTIONAL) Run partitioned LD score regression without baseline model
+#(first line is the output, P value should be adusted for multiple hypothesis testing with other Pvalues you use
+#(if comparing multiple celltypes or GWAS)
+mkdir -p $ldsc_dir/out_no_baseline
+cdir=$ldsc_dir
+cd $cdir
+gwas_sumstats=($(echo *.sumstats.gz))
+for gwas_sumstat in ${gwas_sumstats[@]}; do
+ gwas_base=($(basename $gwas_sumstat | cut -d . -f 1))
+ cd $cdir
+for ((i = 0 ; i < ${#file_types[@]} ; i++)); do
+ file=${merged_files[$i]}
+ echo 'source activate ldsc
+ python /mnt/isilon/sfgi/programs/ldsc/ldsc.py \
+  --h2 '$gwas_sumstat' \
+  --ref-ld-chr '$ldsc_dir/${file_types[$i]}/${file_types[$i]}'. \
+  --w-ld-chr /mnt/isilon/sfgi/pahlm/analyses/grant/disease/partitioned_ldsr_phase1/weights_hm3_no_hla/weights. \
+  --overlap-annot \
+  --frqfile-chr /mnt/isilon/sfgi/pahlm/analyses/grant/disease/partitioned_ldsr_phase1/1000G_frq/1000G.mac5eur. \
+  --out '$ldsc_dir'/out_no_baseline/'${file_types[$i]}'_'$gwas_base'' > "scripts/run_pldsr_"${file_types[$i]}"_"$gwas_base.sh
+ sed -i '1i#!/bin/bash' "scripts/run_pldsr_"${file_types[$i]}"_"$gwas_base.sh
+ sbatch --mem=4G -t 2:00:00 --job-name run_pldscore_null "scripts/run_pldsr_"${file_types[$i]}"_"$gwas_base.sh
+ done
+done
+
