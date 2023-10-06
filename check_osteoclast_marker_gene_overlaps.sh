@@ -28,17 +28,7 @@ file_types=(osteoclast_day0_down osteoclast_day4_down osteoclast_day8_down osteo
 #Step 0: Make out directory if need be
 mkdir -p $out_dir
 
-#Step 1: Loop over peak files and make temporary merged peak files
+#Step 1: Run intersection with promoter file
 for ((i = 0 ; i < ${#file_types[@]} ; i++)); do
-	bedtools merge ${raw_files[$i]} > $out_dir/${file_types[$i]}.merged_peaks.temp.bed
-done
-
-#Step 2: Run intersection with promoter file
-for ((i = 0 ; i < ${#file_types[@]} ; i++)); do
-	bedtools intersect -a $marker_gene_prom -b $out_dir/${file_types[$i]}.merged_peaks.temp.bed -loj > $out_dir/${file_types[$i]}.promoter_overlaps.bed
-done
-
-#Step 3:Remove temp files
-for ((i = 0 ; i < ${#file_types[@]} ; i++)); do
-	rm $out_dir/${file_types[$i]}.merged_peaks.temp.bed
+	bedtools intersect -a $marker_gene_prom -b ${raw_files[$i]} -c > $out_dir/${file_types[$i]}.promoter_overlaps.bed
 done
