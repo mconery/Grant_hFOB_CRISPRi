@@ -7,6 +7,7 @@ library(tidyr)
 library(dplyr)
 library(VennDiagram)
 library(eulerr)
+library(stringr)
 
 # 2) Read in data and Minimally Process ====
 
@@ -368,6 +369,21 @@ interaction_only_table <- morris_bmd_proxy[which(morris_bmd_proxy$all_implicatio
 VennDiag <- euler((ifelse(interaction_only_table[,c("count_hMSC_Osteo", "count_hFOBsDiff")] > 0, 1, 0)))
 jpeg(paste(inp_dir, "interaction_only_signals.with_expr.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
+           labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
+dev.off()
+
+############################################################################################################################
+
+#Make a column for number of gRNAs per target
+temp <- lapply(str_split(str_replace_all(str_replace_all(interaction_only_table$proxies,"rs[0-9]+\\(chr[0-9]+:",""),"\\)",""), ", "), as.numeric)
+max_w_one <- function(number){return(max(number,1))}
+interaction_only_table <- cbind.data.frame(interaction_only_table,
+                                           num_grnas=vapply(ceiling((unlist(lapply(temp, max)) - unlist(lapply(temp, min))) / 1000), FUN = max_w_one, FUN.VALUE = numeric(1)))
+#Make Venn Diagram
+VennDiag <- euler((ifelse(interaction_only_table[interaction_only_table$num_grnas == 1, 
+                                                 c("count_hMSC_Osteo", "count_hFOBsDiff")] > 0, 1, 0)))
+jpeg(paste(inp_dir, "interaction_only_signals.with_expr.1_grna.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+print(plot(VennDiag, quantities = TRUE, fill = c("cornflowerblue", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
 
