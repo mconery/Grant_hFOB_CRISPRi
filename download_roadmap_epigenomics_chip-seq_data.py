@@ -123,6 +123,9 @@ def driver(roadmap_file, out_dir, data_types, ftp_address, read_depth):
     #Filter for the minimum read count
     roadmap_filt = roadmap_filt[roadmap_filt['NREADS'] >= read_depth]
     
+    #Count number of cell types (For testing)
+    #len(roadmap_filt['E-Mnemonic'].unique())
+    
     #Prepare the commands to download the resulting files
     chip_combos = roadmap_filt['E-Mnemonic'] + '.' + roadmap_filt['MARK'] 
     download_commands = 'wget -O ' + out_dir + chip_combos + '.narrowPeak.gz ' + ftp_address + roadmap_filt['FNAME'].str.replace(r'\*$', "narrowPeak.gz", regex=True)
