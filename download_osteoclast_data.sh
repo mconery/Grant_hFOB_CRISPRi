@@ -18,6 +18,8 @@ tesfaye_chip_acc_file=$chip_dir/Tesfaye_2023.H3K27ac.SRR_Acc_List.txt
 for file in $bae_atac_acc_file $bae_chip_acc_file $tesfaye_chip_acc_file; do 
 	out_dir=$(dirname $file)
 	while read accession; do 
-		fastq-dump $accession -O $out_dir
+		if [ ! -f "$out_dir/$accession.fastq" ]; then
+			fastq-dump $accession -O $out_dir
+		fi
 	done < $file
 done
