@@ -138,6 +138,7 @@ def driver(gwas_file, output_loc, prime_p_thresh, sec_p_thresh, stagger_bp, chro
     cur_file = pd.read_csv(gwas_file, index_col=0, sep="\t")
     if cur_file.shape[1] <= 1:
         cur_file = pd.read_csv(gwas_file, index_col=0, sep=" ")
+    print("NOTE: Successfully read unmunged BMD summary statistics.")
     #Filter for the SNPs below the secondary threshold
     filt_file = cur_file[cur_file['P'] <= sec_p_thresh] #May need to modify row if file changes
     #Figure out which multiple of the stagger_bp each SNP is in
@@ -236,6 +237,7 @@ def driver(gwas_file, output_loc, prime_p_thresh, sec_p_thresh, stagger_bp, chro
         selected_df = temp[columns_to_select]        
         #Print the list of commands to a file
         selected_df.to_csv(locus_specific_file, index=False)
+        print("NOTE: Wrote chr" + str(locus[0]) + ":" + str(locus[1]) + "-" + str(locus[2]) + " variant list to file.")
     
     #Create locus file name
     output_loci_file = output_loc + "bmd.sig_loci.csv"
