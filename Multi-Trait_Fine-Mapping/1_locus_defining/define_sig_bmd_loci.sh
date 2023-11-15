@@ -9,7 +9,7 @@
 #Set scripts directory and script locations
 script_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/full_hFOB_screen_bone/Grant_hFOB_CRISPRi
 locus_defining_script=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/define_sig_loci_for_bmd.py
-trait_identifying_script=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/define_sig_loci_for_bmd.py
+trait_identifying_script=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/define_traits_for_sig_loci.py
 
 #Define other file paths
 chromo_lengths=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/grch37_chr_bounds_mhc_only.bed
