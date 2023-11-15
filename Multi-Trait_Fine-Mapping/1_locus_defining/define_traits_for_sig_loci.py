@@ -158,7 +158,8 @@ def driver(locus_dir, munge_dir, p_thresh, variant_name_conv, gwas_name_conv):
     #Loop over the traits and then over the loci to fill the dictionary
     for trait_index in range(len(trait_files)):
         #Read in the full gwas for the current trait
-        trait_gwas = pd.read_csv(munge_dir + trait_files[trait_index], index_col=2, sep="\t") #Fixing index column to format of munged file
+        trait_gwas = pd.read_csv(munge_dir + trait_files[trait_index], sep="\t") #Fixing index column to format of munged file
+        trait_gwas.set_index('SNP', inplace=True)
         #Use z-scores to calculate -logP values
         trait_gwas['-logP'] = (-np.log(2) - norm.logcdf(-np.abs(trait_gwas['Z'])))/np.log(10)
         #Filter for rows that are significant at the threshold
