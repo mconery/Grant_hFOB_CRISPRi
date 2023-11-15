@@ -13,7 +13,7 @@ trait_identifying_script=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/d
 
 #Define other file paths
 chromo_lengths=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/grch37_chr_bounds_mhc_only.bed
-munge_dir=/mnt/isilon/sfgi/trangk/analyses/grant/ldsr/snps/bone_Mitch/non_merge
+munge_dir=/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats
 raw_bmd_gwas_file="/mnt/isilon/sfgi/conerym/data/gwas_summary_stats/bone_traits/Biobank2-British-Bmd-As-C-Gwas-SumStats.txt.gz"
 locus_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files"
 
