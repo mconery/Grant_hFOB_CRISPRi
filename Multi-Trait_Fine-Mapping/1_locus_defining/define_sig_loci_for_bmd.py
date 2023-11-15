@@ -71,7 +71,7 @@ def main(argv):
     sec_p_thresh = options_dict.get('-s', 1e-6)
     stagger_bp = options_dict.get('-t', 250000)
     temp = os.path.realpath(__file__)
-    chromo_lengths = options_dict.get('-c', temp[:temp.find('define_sig_loci_for_trait.py')] + 'grch37_chr_bounds_mhc_only.bed')
+    chromo_lengths = options_dict.get('-c', temp[:temp.find('define_sig_loci_for_bmd.py')] + 'grch37_chr_bounds_mhc_only.bed')
     #Confirm that integers were given for optional parameters
     try:
         stagger_bp = int(stagger_bp)
@@ -109,17 +109,6 @@ def add_slash(directory):
         return directory + '/'
     else:
         return directory
-
-###############################################################################
-################################  TEST LOCATIONS ##############################
-###############################################################################
-
-gwas_file="/mnt/isilon/sfgi/conerym/data/gwas_summary_stats/bone_traits/Biobank2-British-Bmd-As-C-Gwas-SumStats.txt.gz"
-output_loc="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files"
-prime_p_thresh=5e-8
-sec_p_thresh=1e-6
-stagger_bp=250000
-chromo_lengths="/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/full_hFOB_screen_bone/Grant_hFOB_CRISPRi/Multi-Trait_Fine-Mapping/1_locus_defining/grch37_chr_bounds_mhc_only.bed"
 
 ###############################################################################
 #############################  DRIVER  ########################################
