@@ -172,6 +172,8 @@ def driver(locus_dir, munge_dir, p_thresh, variant_name_conv, gwas_name_conv):
             #Check if any rows remained and if so then append the trait to the locus entry in the dictionary
             if len(merged_df) > 0:
                 out_dict[loci[locus_index]].append(traits[trait_index])
+        #Print update
+        print("NOTE: Finished identifying loci for " + traits[trait_index])
         
     
     #Create trait_file_name
