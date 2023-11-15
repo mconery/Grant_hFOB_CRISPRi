@@ -120,16 +120,6 @@ def check_file_name(file_name, name_conv):
     return all(temp)
 
 ###############################################################################
-################################  TEST LOCATIONS ##############################
-###############################################################################
-
-locus_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files"
-munge_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats"
-p_thresh=1e-6
-variant_name_conv="CHR.START.END.variants.csv"
-gwas_name_conv="TRAIT.sumstats.gz"
-
-###############################################################################
 #############################  DRIVER  ########################################
 ###############################################################################
 
