@@ -191,10 +191,10 @@ def driver(ukbb_pop, output_folder, loci_file, rounding):
             if rounding == 15:
                 # Note: when you apply any operation on BlockMatrix,
                 # you need to write it first to storage before export
-                cur_bm.write(export_loc, force_row_major=True)
-                hl.linalg.BlockMatrix.export(export_loc,export_loc + '.ld.gz', delimiter=',')
+                cur_bm.write(unrounded_loc, force_row_major=True)
+                hl.linalg.BlockMatrix.export(unrounded_loc,export_loc + '.ld.gz', delimiter=',')
                 #Delete the directory
-                rmtree(export_loc)
+                rmtree(unrounded_loc)
             else: 
                 # Note: when you apply any operation on BlockMatrix,
                 # you need to write it first to storage before export
@@ -210,6 +210,9 @@ def driver(ukbb_pop, output_folder, loci_file, rounding):
             #Check for whether rounding occurs and then export the filtered matrix
             if rounding == 15:
                 #### In this case we need to make the matrix from scratch ####
+                #Check for whether the unrounded_loc directory exists (if it does, the job was interrupted the last time, and it will be necessary to remove the half-written directory)
+                if exists(unrounded_loc):
+                    rmtree(unrounded_loc)
                 # filter by interval
                 interval = hl.parse_locus_interval(locus_prefix)
                 ht_idx_cur_tile = ht_idx.filter(interval.contains(ht_idx.locus))
@@ -225,16 +228,25 @@ def driver(ukbb_pop, output_folder, loci_file, rounding):
                 
                 # Note: when you apply any operation on BlockMatrix,
                 # you need to write it first to storage before export
-                cur_bm.write(export_loc, force_row_major=True)
-                hl.linalg.BlockMatrix.export(export_loc,export_loc + '.ld.gz', delimiter=',')
+                cur_bm.write(unrounded_loc, force_row_major=True)
+                hl.linalg.BlockMatrix.export(unrounded_loc,export_loc + '.ld.gz', delimiter=',')
                 #Delete the directory
-                rmtree(export_loc)
+                rmtree(unrounded_loc)
             else:
                 #### Here we can check to see if we can get away without recreating the matrix, which we can do if the unrounded matrix already exists ####
                 if exists(unrounded_loc + '.unrounded.ld.gz'):
-                    #Round the existing file
-                    round_ld(unrounded_loc + '.unrounded.ld.gz', export_loc + '.ld.gz', rounding)
+                    #Check for whether the unrounded_loc directory exists (if it does, the job was interrupted the last time, and the unrounded file is unusable)
+                    if exists(unrounded_loc):
+                        rmtree(unrounded_loc + '.unrounded.ld.gz')
+                        hl.linalg.BlockMatrix.export(unrounded_loc, unrounded_loc + '.ld.gz', delimiter=',')
+                        round_ld_and_del(unrounded_loc + '.ld.gz', export_loc + '.ld.gz', rounding)
+                    else:
+                        #Round the existing file
+                        round_ld(unrounded_loc + '.unrounded.ld.gz', export_loc + '.ld.gz', rounding)
                 else: #The unrounded matrix must then be made from scratch
+                    #Check for whether the unrounded_loc directory exists (if it does, the job was interrupted the last time, and the unrounded directory must be deleted else it will create a file write conflict)
+                    if exists(unrounded_loc):
+                        rmtree(unrounded_loc)    
                     # filter by interval
                     interval = hl.parse_locus_interval(locus_prefix)
                     ht_idx_cur_tile = ht_idx.filter(interval.contains(ht_idx.locus))
@@ -256,14 +268,31 @@ def driver(ukbb_pop, output_folder, loci_file, rounding):
                     #Round the new matrix
                     round_ld_and_del(unrounded_loc + '.ld.gz', export_loc + '.ld.gz', rounding)
         
-        #Make custom message for when the map and ld files both already existed
+        #Case where the map and ld file both existed
         else:
-            end_time = time.time()
-            duration = round(end_time - start_time,2)
-            print(export_loc + ' previously existing. Completed in ' + str(duration) +' seconds (' + str(i+1) + ' of ' + str(num_tiles) + ')')
-            #Reset start time
-            start_time = end_time
-            continue
+            #Check for whether the unrounded_loc directory exists (if it does, the job was interrupted the last time, and the rounded ld file is unusable, but the unrounded directory should be okay)
+            if exists(unrounded_loc):
+                rmtree(export_loc + '.ld.gz')
+                if rounding == 15:
+                    #Repurpose the directory to write the matrix
+                    hl.linalg.BlockMatrix.export(unrounded_loc, export_loc + '.ld.gz', delimiter=',')
+                    #Delete the directory
+                    rmtree(unrounded_loc)
+                else:
+                    #Repurpose the directory to write the matrix
+                    hl.linalg.BlockMatrix.export(unrounded_loc, unrounded_loc + '.ld.gz', delimiter=',')
+                    #Round the new matrix
+                    round_ld_and_del(unrounded_loc + '.ld.gz', export_loc + '.ld.gz', rounding)
+                    #Delete the directory
+                    rmtree(unrounded_loc)
+            else:
+                #Make custom message for when the map and ld files both already existed
+                end_time = time.time()
+                duration = round(end_time - start_time,2)
+                print(export_loc + ' previously existing. Completed in ' + str(duration) +' seconds (' + str(i+1) + ' of ' + str(num_tiles) + ')')
+                #Reset start time
+                start_time = end_time
+                continue
         
         #Get new end time
         end_time = time.time()
