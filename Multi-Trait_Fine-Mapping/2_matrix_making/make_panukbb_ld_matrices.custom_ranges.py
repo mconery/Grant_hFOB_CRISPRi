@@ -270,21 +270,24 @@ def driver(ukbb_pop, output_folder, loci_file, rounding):
         
         #Case where the map and ld file both existed
         else:
-            #Check for whether the unrounded_loc directory exists (if it does, the job was interrupted the last time, and the rounded ld file is unusable, but the unrounded directory should be okay)
-            if exists(unrounded_loc):
+            #Check the rounding because the two rounding types have different handling
+            #In the first case a 15-digit matrix is written directly from the directory
+            if rounding == 15 and exists(unrounded_loc):
+                #Remove the final unrounded ld file in this case
                 rmtree(export_loc + '.ld.gz')
-                if rounding == 15:
-                    #Repurpose the directory to write the matrix
-                    hl.linalg.BlockMatrix.export(unrounded_loc, export_loc + '.ld.gz', delimiter=',')
-                    #Delete the directory
-                    rmtree(unrounded_loc)
-                else:
-                    #Repurpose the directory to write the matrix
-                    hl.linalg.BlockMatrix.export(unrounded_loc, unrounded_loc + '.ld.gz', delimiter=',')
-                    #Round the new matrix
-                    round_ld_and_del(unrounded_loc + '.ld.gz', export_loc + '.ld.gz', rounding)
-                    #Delete the directory
-                    rmtree(unrounded_loc)
+                #Repurpose the directory to write the matrix
+                hl.linalg.BlockMatrix.export(unrounded_loc, export_loc + '.ld.gz', delimiter=',')
+                #Delete the directory
+                rmtree(unrounded_loc)
+            #In the next case a rounded ld file is being written from the unrounded file
+            elif exists(unrounded_loc + '.ld.gz'): 
+                #remove the rounded ld file
+                rmtree(export_loc + '.ld.gz')
+                #Round the new matrix
+                round_ld_and_del(unrounded_loc + '.ld.gz', export_loc + '.ld.gz', rounding)
+                #Delete the directory
+                rmtree(unrounded_loc + '.ld.gz')
+            #In this final case, everything was done already.
             else:
                 #Make custom message for when the map and ld files both already existed
                 end_time = time.time()
