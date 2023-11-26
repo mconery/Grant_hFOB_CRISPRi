@@ -142,7 +142,7 @@ def driver(locus_file, munge_dir, out_dir, p_thresh, gwas_name_conv):
     #Loop over the traits and then over the loci to fill the dictionary
     for trait_index in range(len(trait_files)):
         #Read in the full gwas for the current trait
-        trait_gwas = pd.read_csv(munge_dir + trait_files[trait_index], sep="\t", low_memory=False) #Fixing index column to format of munged file
+        trait_gwas = pd.read_csv(munge_dir + trait_files[trait_index], sep="\t") #Fixing index column to format of munged file
         #Filter for rows that are significant at the threshold
         filtered_trait_gwas = trait_gwas.loc[trait_gwas['P'] <= p_thresh]
         #Now loop over the loci and find any that contain one of the remaining filtered variants
