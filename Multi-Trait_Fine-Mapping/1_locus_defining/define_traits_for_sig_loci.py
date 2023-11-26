@@ -148,11 +148,11 @@ def driver(locus_file, munge_dir, out_dir, p_thresh, gwas_name_conv):
         #Now loop over the loci and find any that contain one of the remaining filtered variants
         for locus_index in range(len(loci)):
             #Get loci start and end parameters
-            locus_chr = loci[locus_index].split["."][0]
-            locus_start = loci[locus_index].split["."][1]
-            locus_end = loci[locus_index].split["."][2]
+            locus_chr = int(loci[locus_index].split(".")[0].replace("chr", ""))
+            locus_start = int(loci[locus_index].split(".")[1])
+            locus_end = int(loci[locus_index].split(".")[2])
             #Check whether any variants in the locus are significant
-            filtered_df = filtered_trait_gwas.loc[filtered_trait_gwas['CHR'] == locus_chr and filtered_trait_gwas['BP'] >= locus_start and filtered_trait_gwas['BP'] <= locus_end]
+            filtered_df = filtered_trait_gwas[(filtered_trait_gwas['CHR'] == locus_chr) & (filtered_trait_gwas['BP'] >= locus_start) & (filtered_trait_gwas['BP'] <= locus_end)]
             #Check if any rows remained and if so then append the trait to the locus entry in the dictionary
             if len(filtered_df) > 0:
                 out_dict[loci[locus_index]].append(traits[trait_index])
