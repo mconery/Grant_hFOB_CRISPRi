@@ -24,10 +24,9 @@ import json
 def help(exit_num=1):
     print("""-----------------------------------------------------------------
 ARGUMENTS
-    -l => <txt> locus file directory REQUIRED
+    -l => <txt> locus file REQUIRED
     -g => <txt> munged summary statistics file directory  REQUIRED
     -p => <flt> p-value significance threshold (default is 1e-6) OPTIONAL
-    -n => <txt> variant file naming convention (default is CHR.START.END.variants.csv) OPTIONAL
     -a => <txt> gwas summary statistics naming convention (default is TRAIT.sumstats.gz) OPTIONAL
 """)
     sys.exit(exit_num)
@@ -42,7 +41,7 @@ ARGUMENTS
 
 def main(argv): 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "l:g:p:n:a:nh")
+        opts, args = getopt.getopt(sys.argv[1:], "l:g:o:p:a:nh")
     except getopt.GetoptError:
         print("ERROR: Incorrect usage of getopts flags!")
         help()
@@ -56,15 +55,15 @@ def main(argv):
     
     ## Required arguments
     try:
-        locus_dir = options_dict['-l']
+        locus_file = options_dict['-l']
         munge_dir = options_dict['-g']
+        out_dir = options_dict['-o']
 
     except KeyError:
         print("ERROR: One of your required arguments does not exist.")
         help()
     
     p_thresh = options_dict.get('-p', 1e-6)
-    variant_name_conv = options_dict.get('-n', 'CHR.START.END.variants.csv')
     gwas_name_conv = options_dict.get('-a', 'TRAIT.sumstats.gz')
 
     #Confirm that float was given for optional p-value threshold parameter
@@ -77,27 +76,24 @@ def main(argv):
     if p_thresh <= 0 or p_thresh > 1:
         print("ERROR: p-value threshold must be in (0,1].")
         sys.exit(1)
-    #Confirm that the directories exist
-    if exists(locus_dir) == False:
-        print("ERROR: Input locus directory does not exist.")
+    #Confirm that the directories and files exist
+    if exists(locus_file) == False:
+        print("ERROR: Input locus file does not exist.")
         sys.exit(1)
     if exists(munge_dir) == False:
         print("ERROR: Input directory of munged GWAS summary statistics does not exist.")
+        sys.exit(1)
+    if exists(out_dir) == False:
+        print("ERROR: Output directory does not exist.")
         sys.exit(1)
     #Verify that TRAIT is present in gwas naming convention
     if 'TRAIT' not in gwas_name_conv:
         print("ERROR: Unable to identify position of TRAIT in gwas file name convention.")
         sys.exit(1)
-    #Also check the variant naming convention
-    if 'CHR' not in variant_name_conv:
-        print("ERROR: Unable to identify position of CHRomosome in variant file name convention.")
-        sys.exit(1)
-    elif 'START' not in variant_name_conv or 'END' not in variant_name_conv:
-        print("ERROR: Unable to identify position of locus START or END in variant file name convention.")
-        sys.exit(1)
+   
     print("Acceptable Inputs Given")
     #Call driver function
-    driver(locus_dir, munge_dir, p_thresh, variant_name_conv, gwas_name_conv)
+    driver(locus_file, munge_dir, out_dir, p_thresh, gwas_name_conv)
 
 ###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
@@ -125,50 +121,46 @@ def check_file_name(file_name, name_conv):
 
 ## drive the script ##
 ## ONE-TIME CALL -- called by main
-def driver(locus_dir, munge_dir, p_thresh, variant_name_conv, gwas_name_conv):
+def driver(locus_file, munge_dir, out_dir, p_thresh, gwas_name_conv):
     
     #Add slash to directories if needed
     munge_dir = add_slash(munge_dir)
-    locus_dir = add_slash(locus_dir)
     #List all variant files in the gwas dir and get list of traits
     trait_files = os.listdir(munge_dir)
     trait_files = [x for x in trait_files if check_file_name(x, gwas_name_conv)]
     traits = [x.split(".")[gwas_name_conv.split(".").index("TRAIT")] for x in trait_files]
-    #List all variant files in the locus dir and get list of loci
-    variant_files = os.listdir(locus_dir)
-    variant_files = [x for x in variant_files if check_file_name(x, variant_name_conv)]
-    temp = variant_name_conv.split(".")
-    loci = [str(x.split(".")[temp.index("CHR")]) + "." + str(x.split(".")[temp.index("START")]) + "." + str(x.split(".")[temp.index("END")]) for x in variant_files]
+    #Read in variant file and get list of loci
+    locus_raw = pd.read_csv(locus_file, sep=",", header=None) #Fixing index column to format of munged file
+    locus_raw_mapping = {x:['CHR', 'START', 'END', 'LEN'][x] for x in locus_raw.columns}
+    locus_raw.rename(columns=locus_raw_mapping, inplace=True)
+    loci = locus_raw.iloc[:,:3].apply(lambda row: '.'.join(row.astype(str)), axis=1).to_list()
+    loci = ['chr' + x for x in loci]
     
-    #Calculate p-value threshold in Negative log terms
-    neg_log_p_thresh = -np.log10(p_thresh)
     #Make a dictionary to hold the traits for each locus
     out_dict = dict(zip(loci, [[] for x in loci]))
     
     #Loop over the traits and then over the loci to fill the dictionary
     for trait_index in range(len(trait_files)):
         #Read in the full gwas for the current trait
-        trait_gwas = pd.read_csv(munge_dir + trait_files[trait_index], sep="\t") #Fixing index column to format of munged file
-        trait_gwas.set_index('SNP', inplace=True)
-        #Use z-scores to calculate -logP values
-        trait_gwas['-logP'] = (-np.log(2) - norm.logcdf(-np.abs(trait_gwas['Z'])))/np.log(10)
+        trait_gwas = pd.read_csv(munge_dir + trait_files[trait_index], sep="\t", low_memory=False) #Fixing index column to format of munged file
         #Filter for rows that are significant at the threshold
-        filtered_trait_gwas = trait_gwas.loc[trait_gwas['-logP'] > neg_log_p_thresh]
+        filtered_trait_gwas = trait_gwas.loc[trait_gwas['P'] <= p_thresh]
         #Now loop over the loci and find any that contain one of the remaining filtered variants
-        for locus_index in range(len(variant_files)):
-            #Read in locus file
-            locus_variants = pd.read_csv(locus_dir + variant_files[locus_index], index_col=0, sep=",")
-            #Attempt to find significant variants in the locus by merging pandas dfs
-            merged_df = pd.merge(filtered_trait_gwas, locus_variants, left_index=True, right_index=True, how='inner')
+        for locus_index in range(len(loci)):
+            #Get loci start and end parameters
+            locus_chr = loci.split["."][0]
+            locus_start = loci.split["."][1]
+            locus_end = loci.split["."][2]
+            #Check whether any variants in the locus are significant
+            filtered_df = filtered_trait_gwas.loc[filtered_trait_gwas['CHR'] == locus_chr and filtered_trait_gwas['BP'] >= locus_start and filtered_trait_gwas['BP'] <= locus_end]
             #Check if any rows remained and if so then append the trait to the locus entry in the dictionary
-            if len(merged_df) > 0:
+            if len(filtered_df) > 0:
                 out_dict[loci[locus_index]].append(traits[trait_index])
         #Print update
         print("NOTE: Finished identifying loci for " + traits[trait_index])
-        
     
     #Create trait_file_name
-    output_file = locus_dir + "traits_per_loci.json"
+    output_file = out_dir + "traits_per_loci.json"
     #Write to file
     with open(output_file, 'w') as json_file:
         json.dump(out_dict, json_file)
