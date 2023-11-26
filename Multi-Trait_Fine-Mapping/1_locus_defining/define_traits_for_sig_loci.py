@@ -125,6 +125,7 @@ def driver(locus_file, munge_dir, out_dir, p_thresh, gwas_name_conv):
     
     #Add slash to directories if needed
     munge_dir = add_slash(munge_dir)
+    out_dir = add_slash(out_dir)
     #List all variant files in the gwas dir and get list of traits
     trait_files = os.listdir(munge_dir)
     trait_files = [x for x in trait_files if check_file_name(x, gwas_name_conv)]
