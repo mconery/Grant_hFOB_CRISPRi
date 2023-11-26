@@ -16,6 +16,7 @@ chromo_lengths=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/grch37_chr_
 munge_dir=/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats
 raw_bmd_gwas_file="/mnt/isilon/sfgi/conerym/data/gwas_summary_stats/bone_traits/Biobank2-British-Bmd-As-C-Gwas-SumStats.txt.gz"
 locus_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files"
+locus_file=$locus_dir/bmd.sig_loci.csv
 
 #Define global variables
 prime_p_thresh=5e-8
@@ -28,4 +29,4 @@ tile_size=250000
 python $locus_defining_script -g $raw_bmd_gwas_file -o $locus_dir -p $prime_p_thresh -s $sec_p_thresh -c $chromo_lengths -t $tile_size
 
 #Identify the traits that should be mapped at each locus
-python $trait_identifying_script -l $locus_dir -g $munge_dir -p $sec_p_thresh
+python $trait_identifying_script -l $locus_file -g $munge_dir -o $locus_dir -p $prime_p_thresh
