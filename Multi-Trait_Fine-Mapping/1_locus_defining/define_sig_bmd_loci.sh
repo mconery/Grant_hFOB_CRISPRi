@@ -2,7 +2,7 @@
 
 #SBATCH -o define_sig_bmd_loci.log
 #SBATCH --time=2-00:00:00
-#SBATCH --mem=32G
+#SBATCH --mem=96G
 
 ################################################################# Set files and locations #################################################################
 
