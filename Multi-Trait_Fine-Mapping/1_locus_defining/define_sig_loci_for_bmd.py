@@ -216,17 +216,17 @@ def driver(gwas_file, output_loc, prime_p_thresh, sec_p_thresh, stagger_bp, chro
         print("NOTE: No significant loci identified.")
         sys.exit(0)
     
-    #Write files of variants for each loci
-    for locus in final_ranges:
-        temp = cur_file[(cur_file['CHR'] == locus[0]) & (cur_file['BP'] >= locus[1]) & (cur_file['BP'] <= locus[2])]
-        locus_specific_file = output_loc + 'chr' + str(locus[0]) + '.' + str(locus[1]) + '.' + str(locus[2]) + '.variants.csv'
-        #Select specific columns
-        columns_to_select = ["RSID", "CHR", "BP", "EA", "NEA"]
-        # Select the specific columns
-        selected_df = temp[columns_to_select]        
-        #Print the list of commands to a file
-        selected_df.to_csv(locus_specific_file, index=False)
-        print("NOTE: Wrote chr" + str(locus[0]) + ":" + str(locus[1]) + "-" + str(locus[2]) + " variant list to file.")
+    ##Write files of variants for each loci (Commented out because no longer necessary)
+    #for locus in final_ranges:
+    #    temp = cur_file[(cur_file['CHR'] == locus[0]) & (cur_file['BP'] >= locus[1]) & (cur_file['BP'] <= locus[2])]
+    #    locus_specific_file = output_loc + 'chr' + str(locus[0]) + '.' + str(locus[1]) + '.' + str(locus[2]) + '.variants.csv'
+    #    #Select specific columns
+    #    columns_to_select = ["RSID", "CHR", "BP", "EA", "NEA"]
+    #    # Select the specific columns
+    #    selected_df = temp[columns_to_select]        
+    #    #Print the list of commands to a file
+    #    selected_df.to_csv(locus_specific_file, index=False)
+    #    print("NOTE: Wrote chr" + str(locus[0]) + ":" + str(locus[1]) + "-" + str(locus[2]) + " variant list to file.")
     
     #Create locus file name
     output_loci_file = output_loc + "bmd.sig_loci.csv"
