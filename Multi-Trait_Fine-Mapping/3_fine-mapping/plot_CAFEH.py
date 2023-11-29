@@ -173,7 +173,7 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
     #Set subplot height
     subplot_height = 8     
     # Define a custom color map with enough distinct colors for 'k'
-    num_k_colors = 10  # Adjust this based on the expected number of 'k' values
+    num_k_colors = cafehs.active.shape[1]  # Adjust this based on the expected number of 'k' values
     color_map = plt.cm.get_cmap('tab10', num_k_colors)
     
     #Check what plot_type we have an print the corresponding plots
@@ -206,7 +206,7 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
                         cafehs.bp[credible_sets[k]],
                         assoc_array[credible_sets[k]],
                         label='k{}'.format(k),
-                        zorder = trait_signals+1-k,
+                        zorder = num_k_colors+1-k,
                         color = signal_color)
             axs[trait_id].scatter(
                 cafehs.bp[np.isin(cafehs.snp_ids, remain_snps)],
