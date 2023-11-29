@@ -169,14 +169,16 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
     credible_sets = cafehs.credible_sets
 
     # Use Agg backend for non-interactive plotting
-    matplotlib.use('Agg')        
+    matplotlib.use('Agg')  
+    #Set subplot height
+    subplot_height = 10      
     
     #Check what plot_type we have an print the corresponding plots
     #Non-residual case
     if plot_type == 'gwas':
         plt.clf() #Clear plot
         #Establish plot for number of traits
-        fig, axs = plt.subplots(len(cafehs.study_ids))
+        fig, axs = plt.subplots(len(cafehs.study_ids), figsize=(10, len(cafehs.study_ids) * subplot_height))
         fig.suptitle(file_prefix)
         #Iterate over trait to make the subplots
         for trait_id in range(len(cafehs.study_ids)):
