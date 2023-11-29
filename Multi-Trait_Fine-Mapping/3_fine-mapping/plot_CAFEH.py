@@ -18,9 +18,9 @@ import numpy as np
 import pandas as pd
 import sys
 from os.path import exists
+import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from cafeh.cafeh_summary import fit_cafeh_summary, fit_cafeh_z
 from cafeh.model_queries import *
 from cafeh.cafeh_summary import CAFEHSummary
 import pickle
@@ -70,7 +70,6 @@ def main(argv):
     
     #Get optional inputs
     plot_type = options_dict.get('-t', 'gwas')
-    assoc_type = options_dict.get('-a', 'gwas')
     purity = options_dict.get('-u', 0.5)
     max_assoc = options_dict.get('-m', 1)
     #Confirm that the file/folder locs exist
@@ -169,6 +168,9 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
     #Get credible sets
     credible_sets = cafehs.credible_sets
 
+    # Use Agg backend for non-interactive plotting
+    matplotlib.use('Agg')        
+    
     #Check what plot_type we have an print the corresponding plots
     #Non-residual case
     if plot_type == 'gwas':
