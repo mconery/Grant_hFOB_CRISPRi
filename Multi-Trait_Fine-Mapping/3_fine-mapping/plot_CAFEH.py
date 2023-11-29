@@ -171,7 +171,7 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
     # Use Agg backend for non-interactive plotting
     matplotlib.use('Agg')  
     #Set subplot height
-    subplot_height = 10      
+    subplot_height = 8      
     
     #Check what plot_type we have an print the corresponding plots
     #Non-residual case
@@ -208,9 +208,10 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
                 color="#DEDEDE",
                 zorder = 1)
             axs[trait_id].set_title(trait.title())
-            axs[trait_id].set_ylabel('-log(P-value)') #Set y-axis title on every figure
             if(trait_id == len(cafehs.study_ids)-1): #Add x-axis title for bottom subplot
                 axs[trait_id].set_xlabel('chr' + str(np.max(cafehs.chr)))
+        #Add shared y-label to figure
+        fig.text(0.04, 0.5, '-log(P-value)', va='center', rotation='vertical')
         # Adjust layout
         plt.subplots_adjust(hspace=0.5)
         #Print info that will only go once on the figure
