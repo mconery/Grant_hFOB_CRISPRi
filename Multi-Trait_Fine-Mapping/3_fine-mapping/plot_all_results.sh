@@ -17,7 +17,7 @@ plot_dir=$finemap_dir/signal_plots
 temp_script_dir=$finemap_dir/temp_script_files
 
 #Set global variables
-minpurity=0.1
+min_purity=0.1
 p_thres=1e-6
 
 ###########################################################################################################################################################
