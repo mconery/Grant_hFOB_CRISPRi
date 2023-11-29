@@ -23,6 +23,9 @@ trait_json=$locus_dir/traits_per_loci.json
 
 ###########################################################################################################################################################
 
+#Change into temp script directory so all slurm outputs accumulate there
+cd $temp_script_dir
+
 #Loop over the loci and map each that needs it
 awk -F "," '{print "chr"$1"."$2"."$3}' $locus_file | while read file_prefix; do 
 
