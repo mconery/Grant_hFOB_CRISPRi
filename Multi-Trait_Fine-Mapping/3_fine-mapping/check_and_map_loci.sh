@@ -23,7 +23,6 @@ trait_json=$locus_dir/traits_per_loci.json
 
 ###########################################################################################################################################################
 
-conda activate cafeh
 #Loop over the loci and map each that needs it
 awk -F "," '{print "chr"$1"."$2"."$3}' $locus_file | while read file_prefix; do 
 
