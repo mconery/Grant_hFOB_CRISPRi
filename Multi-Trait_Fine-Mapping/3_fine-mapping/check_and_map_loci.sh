@@ -8,7 +8,7 @@
 
 #Set scripts directory and script locations
 script_dir=/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/full_hFOB_screen_bone/Grant_hFOB_CRISPRi
-cafeh_script=$script_dir/Multi-Trait_Fine-Mapping/1_locus_defining/define_sig_loci_for_bmd.py
+cafeh_script=$script_dir/Multi-Trait_Fine-Mapping/3_fine-mapping/finemap_CAFEH.py
 
 #Define other file paths
 finemap_dir=/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related
