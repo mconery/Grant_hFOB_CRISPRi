@@ -182,7 +182,7 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
         plt.clf() #Clear plot
         #Establish plot for number of traits
         fig, axs = plt.subplots(len(cafehs.study_ids), figsize=(10, len(cafehs.study_ids) * subplot_height))
-        fig.suptitle(file_prefix)
+        #fig.suptitle(file_prefix)
         #Iterate over trait to make the subplots
         for trait_id in range(len(cafehs.study_ids)):
             #Get trait
