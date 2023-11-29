@@ -31,7 +31,7 @@ def help(exit_num=1):
 ARGUMENTS
     -p => <txt> Pickled CAFEH output REQUIRED
     -o => <txt> output folder location REQUIRED
-    -t => <txt> plot type: gwas, absolute residual, or preceding residual  (default is non-residual) OPTIONAL
+    -t => <txt> plot type: gwas, absolute residual, or preceding residual  (default is gwas) OPTIONAL
     -u => <num> purity threshold for plotting non-residual plots (default is 0.5) OPTIONAL
     -m => <num> Necessary max association p-value for plotting credible sets on non-residual plots (default is 1) OPTIONAL
 """)
