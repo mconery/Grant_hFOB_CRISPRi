@@ -171,7 +171,10 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
     # Use Agg backend for non-interactive plotting
     matplotlib.use('Agg')  
     #Set subplot height
-    subplot_height = 8      
+    subplot_height = 8     
+    # Define a custom color map with enough distinct colors for 'k'
+    num_k_colors = 10  # Adjust this based on the expected number of 'k' values
+    color_map = plt.cm.get_cmap('tab10', num_k_colors)
     
     #Check what plot_type we have an print the corresponding plots
     #Non-residual case
@@ -192,6 +195,8 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
             #Iterate over credible sets and make the non-residual sub-plots
             trait_signals = len(np.arange(cafehs.dims['K'])[active_components])
             for k in np.arange(cafehs.dims['K'])[active_components]:
+                #Get signal color
+                signal_color = color_map(k % num_k_colors)
                 #Check that the credible set passes the purity and association thresholds
                 if np.max(assoc_array[credible_sets[k]]) >= -np.log10(max_assoc) and cafehs.realpure[k] >= purity: 
                     #Remove credible set SNPs from remaining snps
@@ -201,7 +206,8 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
                         cafehs.bp[credible_sets[k]],
                         assoc_array[credible_sets[k]],
                         label='k{}'.format(k),
-                        zorder = trait_signals+1-k)
+                        zorder = trait_signals+1-k,
+                        color = signal_color)
             axs[trait_id].scatter(
                 cafehs.bp[np.isin(cafehs.snp_ids, remain_snps)],
                 assoc_array[np.isin(cafehs.snp_ids, remain_snps)],
@@ -213,7 +219,7 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
         #Add shared y-label to figure
         fig.text(0.04, 0.5, '-log(P-value)', va='center', rotation='vertical')
         # Adjust layout
-        plt.subplots_adjust(hspace=0.5)
+        plt.subplots_adjust(hspace=0.2)
         #Print info that will only go once on the figure
         plt.savefig(f'{out_dir}{file_prefix}.purity-{purity}.{max_assoc}.pvalue.png', bbox_inches='tight')
         
