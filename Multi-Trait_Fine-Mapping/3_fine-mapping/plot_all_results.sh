@@ -16,6 +16,10 @@ cafeh_dir=$finemap_dir/cafeh_results
 plot_dir=$finemap_dir/signal_plots
 temp_script_dir=$finemap_dir/temp_script_files
 
+#Set global variables
+minpurity=0.1
+p_thres=1e-6
+
 ###########################################################################################################################################################
 
 #Switch folder for temp file generation
@@ -24,7 +28,7 @@ cd $temp_script_dir
 #Loop over the loci and plot each
 for file in $(ls $cafeh_dir); do 
 file_prefix=${file/%.pkl/}
-echo "source activate cafeh; python $plot_script -p $cafeh_dir/$file -o $plot_dir -t gwas -u 0.1 -m 5e-8" > $temp_script_dir/$file_prefix.plot.sh
+echo "source activate cafeh; python $plot_script -p $cafeh_dir/$file -o $plot_dir -t gwas -u $min_purity -m $p_thresh" > $temp_script_dir/$file_prefix.plot.sh
 sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.plot.sh
 sbatch --mem=4G -t 2:00:00 --job-name $file_prefix $temp_script_dir/$file_prefix.plot.sh
 done
