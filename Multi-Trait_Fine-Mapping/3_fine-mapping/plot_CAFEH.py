@@ -47,7 +47,7 @@ ARGUMENTS
 
 def main(argv): 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "p:o:t:a:u:m:nh")
+        opts, args = getopt.getopt(sys.argv[1:], "p:o:t:u:m:nh")
     except getopt.GetoptError:
         print("ERROR: Incorrect usage of getopts flags!")
         help()
@@ -122,9 +122,9 @@ def main(argv):
 ################################  TEST LOCATIONS ##############################
 ###############################################################################
 
-pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/chr1.10000001.11750000.pkl"
+pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr1.10000001.11750000.pkl"
 out_dir="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping"
-plot_type="non-residual"
+plot_type="absolute-residual"
 purity=0.1
 max_assoc=1
 
@@ -182,7 +182,6 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
         plt.clf() #Clear plot
         #Establish plot for number of traits
         fig, axs = plt.subplots(len(cafehs.study_ids), figsize=(10, len(cafehs.study_ids) * subplot_height))
-        #fig.suptitle(file_prefix)
         #Iterate over trait to make the subplots
         for trait_id in range(len(cafehs.study_ids)):
             #Get trait
@@ -192,8 +191,6 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
             #Get components active for the given trait
             active_components = cafehs.active[trait_id,] > 0.5 #Components active in any trait
             assoc_array = cafehs.neglogP[trait_id,]
-            #Iterate over credible sets and make the non-residual sub-plots
-            trait_signals = len(np.arange(cafehs.dims['K'])[active_components])
             for k in np.arange(cafehs.dims['K'])[active_components]:
                 #Get signal color
                 signal_color = color_map(k % num_k_colors)
@@ -218,8 +215,10 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
                 axs[trait_id].set_xlabel('chr' + str(np.max(cafehs.chr)))
         #Add shared y-label to figure
         fig.text(0.04, 0.5, '-log(P-value)', va='center', rotation='vertical')
-        # Adjust layout
-        plt.subplots_adjust(hspace=0.2)
+        #Add shared  and adjust spacing
+        fig.suptitle(file_prefix, fontsize=40)
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.968)
         #Print info that will only go once on the figure
         plt.savefig(f'{out_dir}{file_prefix}.purity-{purity}.{max_assoc}.pvalue.png', bbox_inches='tight')
         
@@ -227,26 +226,54 @@ def driver(pickle_file, out_dir, plot_type, purity, max_assoc):
     else:
         #Get the correct set of residuals
         if plot_type == 'absolute_residual':
-            assoc_array = cafehs.abs_neglogp_resid.T
+            assoc_array = cafehs.abs_neglogp_resid
         else:
-            assoc_array = cafehs.precede_neglogp_resid.T
-        #Iterate over credible sets and make the residual plots
-        for i in np.arange(cafehs.dims['K']):
-            plt.clf()
-            logp_test = assoc_array[:,i]
-            cred_set = credible_sets[i]
-            rest_set = np.array([i for i in cafehs.snp_ids if i not in cred_set])
-            logp_test_cred = logp_test[np.sort(cred_set)]
-            logp_test_rest = logp_test[np.sort(rest_set)]
-            plt.scatter(cafehs.bp[np.sort(cred_set)], logp_test_cred, color=sns.color_palette("tab10")[i])
-            plt.scatter(cafehs.bp[np.sort(rest_set)], logp_test_rest, color=sns.color_palette(['#DEDEDE']))
-            plt.title(f"{file_prefix}/component-{i} {plot_type}")
-            plt.xlabel('SNP')
-            plt.ticklabel_format(axis="x", style='plain')
-            plt.xticks(rotation = 45) 
-            plt.ylabel('-log(residual association)')
-            plt.savefig(f'{out_dir}{file_prefix}.component-{i}.{plot_type}.png', bbox_inches='tight')
-            
+            assoc_array = cafehs.precede_neglogp_resid
+        plt.clf() #Clear plot
+        #Set subplot height
+        subplot_width = 8
+        #Establish plot for number of traits and residuals
+        fig, axs = plt.subplots(num_k_colors, len(cafehs.study_ids), figsize=(num_k_colors * subplot_width, len(cafehs.study_ids) * subplot_height))
+        #Iterate over trait to make the subplots
+        for trait_id in range(len(cafehs.study_ids)):
+            #Get trait
+            trait=cafehs.study_ids[trait_id]
+            #Set an array of SNPs that aren't in any credible sets for the trait
+            remain_snps = cafehs.snp_ids
+            for k in range(num_k_colors):
+                #Get trait_assoc_array
+                trait_assoc_array=assoc_array[trait]
+                #Get signal color
+                signal_color = color_map(k % num_k_colors)
+                #Calculate SNP sets and residuals for plot
+                logp_test = trait_assoc_array[k,:]
+                cred_set = cafehs.snp_ids[credible_sets[k]]
+                rest_set = np.array([i for i in cafehs.snp_ids if i not in cred_set])
+                logp_test_cred = logp_test[np.sort(np.where(np.isin(cafehs.snp_ids, cred_set)))]
+                logp_test_rest = logp_test[np.sort(np.where(np.isin(cafehs.snp_ids, rest_set)))]
+                axs[k, trait_id].scatter(
+                    cafehs.bp[np.sort(np.where(np.isin(cafehs.snp_ids, cred_set)))],
+                    logp_test_cred,
+                    zorder = 2,
+                    color = signal_color)
+                axs[k, trait_id].scatter(
+                    cafehs.bp[np.sort(np.where(np.isin(cafehs.snp_ids, rest_set)))],
+                    logp_test_rest,
+                    zorder = 1,
+                    color = "#DEDEDE")
+                if k == 0:
+                    axs[k, trait_id].set_title(trait.title())
+                elif k == num_k_colors: #Add x-axis title for bottom subplot
+                    axs[k, trait_id].set_xlabel('chr' + str(np.max(cafehs.chr)))
+        #Add shared y-label to figure
+        fig.text(0.04, 0.5, '-log(residual association)', va='center', rotation='vertical')
+        #Add shared title and adjust spacing
+        fig.suptitle(file_prefix, fontsize=40)
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.968)
+        #Save the figure
+        plt.savefig(f'{out_dir}{file_prefix}.{plot_type}.png', bbox_inches='tight')
+                
 ###############################################################################
 
 #cProfile.run('main(sys.argv[1:])')
