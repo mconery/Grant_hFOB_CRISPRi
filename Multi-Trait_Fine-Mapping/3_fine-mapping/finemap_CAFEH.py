@@ -36,6 +36,9 @@ ARGUMENTS
     -m => <txt> munged summary statistics directory (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats) OPTIONAL
     -l => <txt> Storage location for map and matrix files (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/ld_matrices) OPTIONAL
     -n => <txt> Location of file of trait sample sizes (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv) OPTIONAL
+    -k => <int> starting number of components to map (default is 10) OPTIONAL
+    -x => <int> max number of components to map (default is 30) OPTIONAL
+    -u => <num> purity threshold for determining real signals (default is 0.1) OPTIONAL
     -j => <txt> location of json specifying traits to map at each locus (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json) OPTIONAL
     -r => <num> random seed (default is 5) OPTIONAL
     -c => <str> summary stats file naming convention showing where ANCestry and TRAIT are found relative to periods 
@@ -53,7 +56,7 @@ ARGUMENTS
 
 def main(argv): 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "p:o:m:l:n:j:r:c:nh")
+        opts, args = getopt.getopt(sys.argv[1:], "p:o:m:l:n:k:x:u:j:r:c:nh")
     except getopt.GetoptError:
         print("ERROR: Incorrect usage of getopts flags!")
         help()
@@ -78,6 +81,9 @@ def main(argv):
     munge_dir = options_dict.get('-m', "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats")
     ld_loc = options_dict.get('-l', "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/ld_matrices")
     size_file = options_dict.get('-n', "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv")
+    starting_signals = options_dict.get('-k', 10)
+    max_signals = options_dict.get('-x', 25)
+    purity_thresh = options_dict.get('-u', 0.1)
     trait_json = options_dict.get('-j', "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json")
     random_seed = options_dict.get('-r', 5)
     file_format = options_dict.get('-c', 'TRAIT.sumstats.gz')
@@ -103,15 +109,36 @@ def main(argv):
     except ValueError:
         print("ERROR: Random seed must be an integer.")
         sys.exit(1)
+    #Recast starting signal count
+    try:
+        starting_signals = int(starting_signals)
+    except ValueError:
+        print("ERROR: The number of starting signals must be an integer.")
+        sys.exit(1)
+    try:
+        max_signals = int(max_signals)
+    except ValueError:
+        print("ERROR: The maximum number of signals must be an integer.")
+        sys.exit(1)
     #Verify that TRAIT is present in file format
     if 'TRAIT' not in file_format:
         print("ERROR: Unable to identify position of TRAIT in file name format.")
         sys.exit(1)
+    #Recast purity value 
+    try:
+        purity_thresh = float(purity_thresh)
+        if purity_thresh >= 1 or purity_thresh < 0: 
+            print("ERROR: Purity level should be in [0,1).")
+            sys.exit(1)
+    except ValueError:
+        print("ERROR: Purity level is not coercible to a float. It should be a proportion in [0,1).")
+        sys.exit(1)
+        
     print("Acceptable Inputs Given for " + file_prefix)
     
     #Call driver function
     try:
-        driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, trait_json, random_seed, file_format)
+        driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, starting_signals, max_signals, purity_thresh, trait_json, random_seed, file_format)
     except MemoryError:
         print("ERROR: Insufficient memory for fine-mapping job. Try rerunning with additional memory")
         sys.exit(1)
@@ -125,6 +152,8 @@ out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_an
 munge_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats"
 ld_loc="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/ld_matrices"
 size_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv"
+starting_signals=2
+purity_thresh=0.1
 trait_json="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json"
 random_seed=5
 file_format='TRAIT.sumstats.gz'
@@ -144,7 +173,7 @@ def add_slash(directory):
 #############################  DRIVER  ########################################
 ###############################################################################
 
-def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, trait_json, random_seed, file_format): 
+def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, starting_signals, max_signals, purity_thresh, trait_json, random_seed, file_format): 
     
     #Add final slash to out_dir and ld_loc if it's missing
     out_dir = add_slash(out_dir)
@@ -173,6 +202,7 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, trait_json, rando
         locus_traits=trait_dict[file_prefix]
     except KeyError:
         print("ERROR: Given locus missing from trait json. Check json location or file prefix: " + file_prefix + '.')
+        sys.exit(1)
     
     #Read in lists of traits and filter for SNPs in locus
     trait_stats_dict = {}
@@ -237,9 +267,12 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, trait_json, rando
     
     ##Fit CAFEH with betas and standard errors
     np.random.seed(random_seed) # Set random seed to ensure reproducible results
-    cafehs = fit_cafeh_summary(LD_df, beta_df, stderr_df, n=n_df)
-    #Get number of components
-    K = len(cafehs.purity)
+    cafehs = fit_cafeh_summary(LD_df, beta_df, stderr_df, n=n_df, K=starting_signals)
+    #Verify that at least one low-purity signal was found
+    K = starting_signals
+    while np.sum([x < purity_thresh for x in list(cafehs.purity.values())]) == 0 and K < max_signals:
+        K = K + 1 
+        cafehs = fit_cafeh_summary(LD_df, beta_df, stderr_df, n=n_df, K=K)
     
     #Store extra basic data in the cafehs object
     cafehs.ID = np.array(map_filt['SNP'])
