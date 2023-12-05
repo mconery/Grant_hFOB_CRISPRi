@@ -151,7 +151,13 @@ def driver(ukbb_pop, output_folder, loci_file, rounding):
         #Define locus
         tile = loci_ranges[i]
         #Make prefixes
-        locus_prefix=tile[0] + ':' + tile[1] + '-' + tile[2]
+        if tile[0] == '23':
+            chromo = 'X'
+        elif tile[0] == '24':
+            chromo = 'Y'
+        else:
+            chromo = tile[0]
+        locus_prefix = chromo + ':' + tile[1] + '-' + tile[2]
         unrounded_loc = output_folder + 'panukbb.' + ukbb_pop + '.chr' + str(tile[0]) + '.' + str(tile[1]) + '.' + str(tile[2])
         if rounding == 15:
             export_loc = output_folder + 'panukbb.' + ukbb_pop + '.chr' + str(tile[0]) + '.' + str(tile[1]) + '.' + str(tile[2]) + '.unrounded'
