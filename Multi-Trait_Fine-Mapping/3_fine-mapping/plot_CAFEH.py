@@ -100,7 +100,7 @@ def main(argv):
     try:
         purity = float(purity)
         if purity >= 1 or purity < 0: 
-            print("ERROR: Purity level should be  in [0,1).")
+            print("ERROR: Purity level should be in [0,1).")
             sys.exit(1)
     except ValueError:
         print("ERROR: Purity level is not coercible to a float. It should be a proportion in [0,1).")
