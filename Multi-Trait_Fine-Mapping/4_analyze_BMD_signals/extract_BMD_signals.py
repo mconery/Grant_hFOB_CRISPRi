@@ -88,19 +88,19 @@ def main(argv):
     if exists(trait_sizes_file) == False:
         print("ERROR: File of trait sizes needed for standardizing matrix columns doesn't exist.")
         sys.exit(1)
-    #Check that the plot_type makes sense
+    #Check that the assoc_type makes sense
     if type(assoc_type) != str:
         print("ERROR: Association type is invalid. Select gwas, absolute_residual, or preceding_residual.")
         sys.exit(1)
     else:
         if assoc_type.lower()[0] == 'g':
-            plot_type = 'gwas'
+            assoc_type = 'gwas'
             print("NOTE: GWAS association type selected.")
-        elif plot_type.lower()[0] == 'a':
-            plot_type = 'absolute_residual'
+        elif assoc_type.lower()[0] == 'a':
+            assoc_type = 'absolute_residual'
             print("NOTE: Absolute residual association type selected.")
-        elif plot_type.lower()[0] == 'p':
-            plot_type = 'preceding_residual'
+        elif assoc_type.lower()[0] == 'p':
+            assoc_type = 'preceding_residual'
             print("NOTE: Preceding residual association type selected.")
         else: 
             print("ERROR: Association type is invalid. Select gwas, absolute_residual, or preceding_residual.")
