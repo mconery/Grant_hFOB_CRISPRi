@@ -14,6 +14,7 @@ extract_script=$script_dir/Multi-Trait_Fine-Mapping/4_analyze_BMD_signals/extrac
 finemap_dir=/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related
 cafeh_dir=$finemap_dir/cafeh_results
 out_dir=$finemap_dir/summary_files
+temp_dir=$finemap_dir/temp_script_files
 
 ###########################################################################################################################################################
 
@@ -21,6 +22,9 @@ out_dir=$finemap_dir/summary_files
 assoc_threshes=(1 1e-6 5e-8)
 assoc_types=(gwas absolute_residual)
 purity_threshes=(0.1 0.5)
+
+#Change the directory to the temp directory
+cd $temp_dir
 
 #Loop over the loci and plot each
 for assoc_type in ${assoc_types[@]}; do 
