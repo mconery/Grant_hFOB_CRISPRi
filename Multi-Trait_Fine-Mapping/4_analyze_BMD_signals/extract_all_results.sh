@@ -18,9 +18,9 @@ out_dir=$finemap_dir/summary_files
 ###########################################################################################################################################################
 
 #Set parameters for testing
-assoc_threshes = (1 1e-6 5e-8)
-assoc_types = (gwas absolute_residual)
-purity_threshes = (0.1 0.5)
+assoc_threshes=(1 1e-6 5e-8)
+assoc_types=(gwas absolute_residual)
+purity_threshes=(0.1 0.5)
 
 #Loop over the loci and plot each
 for assoc_type in ${assoc_types[@]}; do 
