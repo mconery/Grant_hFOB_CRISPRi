@@ -33,8 +33,9 @@ def help(exit_num=1):
 ARGUMENTS
     -p => <txt> Pickled CAFEH output directory REQUIRED
     -o => <txt> output folder location REQUIRED
-    -t => <txt> file of trait sizes OPTIONAL (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv)
+    -t => <txt> file of trait sizes (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv) OPTIONAL
     -a => <txt> association type for thresholding: gwas, absolute residual, or preceding residual  (default is gwas) OPTIONAL
+    -c => <num> activity threshold for calling a trait active (default is 0.5) OPTIONAL
     -u => <num> purity threshold for thresholding (default is 0.5) OPTIONAL
     -m => <num> Necessary min association p-value for thresholding (default is 1) OPTIONAL
 """)
@@ -50,7 +51,7 @@ ARGUMENTS
 
 def main(argv): 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "p:o:t:a:u:m:nh")
+        opts, args = getopt.getopt(sys.argv[1:], "p:o:t:a:c:u:m:nh")
     except getopt.GetoptError:
         print("ERROR: Incorrect usage of getopts flags!")
         help()
@@ -72,16 +73,20 @@ def main(argv):
         help()
     
     #Get optional inputs
-    assoc_type = options_dict.get('-t', 'gwas')
-    active_thresh = options_dict.get('-a', 0.5)
+    trait_sizes_file = options_dict.get('-t', '/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv')
+    assoc_type = options_dict.get('-a', 'gwas')
+    active_thresh = options_dict.get('-c', 0.5)
     purity = options_dict.get('-u', 0.5)
-    max_assoc = options_dict.get('-m', 1)
+    min_assoc = options_dict.get('-m', 1)
     #Confirm that the file/folder locs exist
     if exists(out_dir) == False:
         print("ERROR: Output directory does not exist.")
         sys.exit(1)
     if exists(pickle_dir) == False:
         print("ERROR: Directory of CAFEH pickle files doesn't exist.")
+        sys.exit(1)
+    if exists(trait_sizes_file) == False:
+        print("ERROR: File of trait sizes needed for standardizing matrix columns doesn't exist.")
         sys.exit(1)
     #Check that the plot_type makes sense
     if type(assoc_type) != str:
@@ -103,8 +108,8 @@ def main(argv):
     #Recast purity value 
     try:
         purity = float(purity)
-        if purity >= 1 or purity < 0: 
-            print("ERROR: Purity level should be in [0,1).")
+        if purity > 1 or purity < 0: 
+            print("ERROR: Purity level should be in [0,1].")
             sys.exit(1)
     except ValueError:
         print("ERROR: Purity level is not coercible to a float. It should be a proportion in [0,1).")
@@ -112,24 +117,24 @@ def main(argv):
     #Recast active value 
     try:
         active_thresh = float(active_thresh)
-        if active_thresh >= 1 or active_thresh < 0: 
-            print("ERROR: Activity threshold should be in [0,1).")
+        if active_thresh > 1 or active_thresh <= 0: 
+            print("ERROR: Activity threshold should be in (0,1].")
             sys.exit(1)
     except ValueError:
         print("ERROR: Activity threshold is not coercible to a float. It should be a proportion in [0,1).")
         sys.exit(1)
-    #Recast maximum association value 
+    #Recast minimum association value needed for retaining
     try:
-        max_assoc = float(max_assoc)
-        if max_assoc > 1 or purity <= 0: 
-            print("ERROR: Maximum association level should be in (0,1].")
+        min_assoc = float(min_assoc)
+        if min_assoc > 1 or min_assoc <= 0: 
+            print("ERROR: Minimum association level should be in (0,1].")
             sys.exit(1)
     except ValueError:
-        print("ERROR: Maximum association level is not coercible to a float. It should be a p-value in (0,1].")
+        print("ERROR: Minimum association level is not coercible to a float. It should be a p-value in (0,1].")
         sys.exit(1)
     print("Acceptable Inputs Given")
     #Call driver function
-    driver(pickle_dir, out_dir, assoc_type, active_thresh, purity, min_assoc)
+    driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc)
 
 ###############################################################################
 ################################  TEST LOCATIONS ##############################
@@ -158,7 +163,7 @@ def add_slash(directory):
 #############################  DRIVER  ########################################
 ###############################################################################
 
-def driver(pickle_dir, out_dir, assoc_type, active_thresh, purity, min_assoc): 
+def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc): 
 
     #Add slashes to directories if needed    
     out_dir = add_slash(out_dir)
