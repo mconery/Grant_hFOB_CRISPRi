@@ -144,21 +144,6 @@ def main(argv):
         sys.exit(1)
 
 ###############################################################################
-################################  TEST LOCATIONS ##############################
-###############################################################################
-
-file_prefix="chr1.10000001.11750000"
-out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/cafeh_results"
-munge_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats"
-ld_loc="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/ld_matrices"
-size_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv"
-starting_signals=2
-purity_thresh=0.1
-trait_json="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json"
-random_seed=5
-file_format='TRAIT.sumstats.gz'
-    
-###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
 ###############################################################################
 
