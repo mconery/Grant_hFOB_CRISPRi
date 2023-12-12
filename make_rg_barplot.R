@@ -19,6 +19,7 @@ library(tools)
 #Set file locations
 global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_561pairs.txt"
 plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.bar.jpeg"
+no_second_bmd_plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.no_panukbb_bmd.bar.jpeg"
 
 # 1) Make Bar-Plot ====
 
@@ -69,5 +70,29 @@ p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
                axis.title=element_text(size=20), 
                legend.position = "none", axis.text.y = element_text(color="black", size=16), axis.title.x = element_blank()) 
 jpeg(plot_loc, width = 1080, height=400)
+print(p)
+dev.off()
+
+#Also make a version with Pan-UKBB eBMD removed
+global_bmd_filt <- global_bmd %>% filter(non_bmd_trait != "bone_mineral_density")
+# Create a bar plot
+p <- ggplot(global_bmd_filt, aes(x = non_bmd_trait_clean, y = rg)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  ylab("Genetic Correlation") +
+  xlab("Phenotype") +
+  theme_minimal()
+# Add asterisks for significant values (p < 0.05)
+p <- p + geom_text(data = subset(global_bmd_filt, p_bh < 0.05), aes(label = "*", vjust = v_adj), size = 10)
+#Set min and max values
+p <- p + scale_y_continuous(limits = c(-0.9, 0.9))
+#Add an axis at x=0
+p <- p + geom_hline(yintercept = 0, color="black", linewidth=1)
+# Customize the appearance of the asterisks
+p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+               panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+               axis.text.x = element_text(size = 20, angle=45, hjust = 1, vjust = 1), 
+               axis.title=element_text(size=20), 
+               legend.position = "none", axis.text.y = element_text(color="black", size=16), axis.title.x = element_blank()) 
+jpeg(no_second_bmd_plot_loc, width = 1080, height=400)
 print(p)
 dev.off()
