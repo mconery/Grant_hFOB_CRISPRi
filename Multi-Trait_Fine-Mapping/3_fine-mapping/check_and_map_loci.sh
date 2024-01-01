@@ -21,6 +21,9 @@ locus_dir=$finemap_dir/loci_files
 locus_file=$locus_dir/bmd.sig_loci.csv
 trait_json=$locus_dir/traits_per_loci.json
 
+#Define purity threshold
+purity_thresh=0.01
+
 ###########################################################################################################################################################
 
 #Change into temp script directory so all slurm outputs accumulate there
@@ -31,7 +34,7 @@ awk -F "," '{print "chr"$1"."$2"."$3}' $locus_file | while read file_prefix; do
 
 #Check to see whether the files have been made yet
 if [ ! -e $cafeh_dir/$file_prefix.pkl ]; then
-	echo "source activate cafeh; python $cafeh_script -p $file_prefix -o $cafeh_dir -m $munge_dir -l $ld_dir -n $size_file -j $trait_json" > $temp_script_dir/$file_prefix.sh
+	echo "source activate cafeh; python $cafeh_script -p $file_prefix -o $cafeh_dir -m $munge_dir -l $ld_dir -n $size_file -j $trait_json -u $purity_thresh" > $temp_script_dir/$file_prefix.sh
       sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.sh
       sbatch --mem=300G -t 7-00:00:00 --job-name $file_prefix $temp_script_dir/$file_prefix.sh
      
