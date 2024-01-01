@@ -24,6 +24,7 @@ library(bedr)
 library(tidyverse)
 library(cowplot)
 library(reshape2)
+library(ggpubr)
 
 #Set File Locations 
 inp_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/full_hFOB_screen_bone/target_selection/kanai_fine-mapped_eBMD_variants.atac_chip_peaks.bed"
@@ -491,3 +492,67 @@ make_histogram(target_df_no_exon_cs_prox[which(target_df_no_exon_cs_prox$num_grn
 
 #Write file
 write.table(target_df_no_exon_cs_prox, file = out_file, col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+
+# 8) Test Enrichment of Both Peak Types in Higher PIP Targets ====
+
+#Make a function that I can call to test enrichment of both peak types in higher pip variants
+make_both_peak_enrichment_bar <- function(jump, file_prefix, target_df){
+  #Convert to independent pip to numeric
+  target_df$indep_pip <- as.numeric(target_df$indep_pip)
+  #Create buckets for PIPs
+  pip_bucket_df <- cbind.data.frame(pip_bucket_mins=seq(0, 1-jump, jump), pip_bucket_maxes=seq(jump, 1, jump))
+  round_selective <- function(inp_num, rdigits=2){ifelse(inp_num %% 1 == 0, trimws(format(inp_num, nsmall = 0)), trimws(format(round(inp_num,digits = rdigits), nsmall=rdigits)))}
+  pip_bucket_df <- cbind.data.frame(pip_bucket_df, pip_bin=paste0(vapply(pip_bucket_df$pip_bucket_mins, FUN = round_selective, FUN.VALUE = character(1)), "-", 
+                                                                  vapply(pip_bucket_df$pip_bucket_maxes, FUN = round_selective, FUN.VALUE = character(1))))
+  #Calculate percentage of targets with both peak types in pip buckets
+  calc_both_peak_pct <- function(pip_bucket_row, target_df){
+    target_df$indep_pip <- as.numeric(target_df$indep_pip)
+    temp <- target_df[which(target_df$indep_pip > pip_bucket_row["pip_bucket_mins"] & target_df$indep_pip <= pip_bucket_row["pip_bucket_maxes"]),]
+    both_count <- nrow(temp[which(temp$peak_type == "BOTH"),])
+    other_count <- nrow(temp) - both_count
+    return(c(both_count, other_count, both_count/nrow(temp)))
+  }
+  temp <- t(apply(pip_bucket_df, MARGIN = 1, FUN = calc_both_peak_pct, target_df=target_df))
+  pip_bucket_df <- cbind.data.frame(pip_bucket_df, temp)
+  colnames(pip_bucket_df) <- c("pip_bucket_mins", "pip_bucket_maxes", "pip_bin", "Both_Peak_Targets", "Other_Targets", "Both_Peak_PCT")
+  
+  #Run statistical tests of whether enrichment is significant
+  test_peak_enrichment <- function(big_row, pip_bucket_df){
+    temp <- fisher.test(pip_bucket_df[c(big_row-1,big_row), c("Both_Peak_Targets", "Other_Targets")])
+    return(t(c(pip_bucket_df[c(big_row-1,big_row),"pip_bin"],format(round(temp$p.value, digits = 2), digits = 2))))
+  }
+  pval_df <- as.data.frame(rbind.fill.matrix(pblapply(c(2:nrow(pip_bucket_df)), FUN = test_peak_enrichment, pip_bucket_df=pip_bucket_df)))
+  pval_df <- cbind.data.frame(rep(1.05, nrow(pval_df)), pval_df)
+  colnames(pval_df) <- c("y.position", "group1", "group2", "p")
+  
+  #Bin the data out in the target_df
+  take_min_with <- function(inp_num, min_num){return(min(inp_num, min_num))}
+  target_df_append <- cbind.data.frame(target_df, 
+                                                       pip_bin=paste0(vapply(vapply((target_df$indep_pip%/%jump)*jump, FUN = take_min_with, FUN.VALUE = numeric(1), min_num=(1%/%jump - 1)*jump), FUN = round_selective, FUN.VALUE = character(1)), "-", 
+                                                                      vapply(vapply((target_df$indep_pip%/%jump)*jump + jump, FUN = take_min_with, FUN.VALUE = numeric(1), min_num=1), FUN = round_selective, FUN.VALUE = character(1))))
+  target_df_append$pip_bin <- as.factor(target_df_append$pip_bin) 
+  target_df_append$peak_type <- factor(target_df_append$peak_type, levels = c("atac", "chip", "BOTH_Separate", "BOTH"))
+  
+  #Make histogram
+  target_df_append$indep_pip <- as.numeric(target_df_append$indep_pip)
+  jpeg(file=paste0(plot_dir, file_prefix, ".peak_type.hist.jpg"), res = 200, width = 3, height = 3, units = "in")
+  print(ggplot(target_df_append, aes(x=pip_bin, fill=peak_type)) + 
+    geom_bar(position = "fill") + 
+    #stat_pvalue_manual(pval_df, label = "p = {p}", bracket.shorten = -0.1, label.size = 6) + 
+    xlab("Combined Mean PIP") + ylab("Prop. of Targets in Peak Type") +
+    scale_fill_manual(values=rainbow(4), 
+                      breaks= c("atac", "chip", "BOTH_Separate", "BOTH"),
+                      labels = c("ATAC", "ChIP", "Both\nSeparate", "Both")) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "bottom",
+          panel.background = element_rect(fill = "transparent",colour = NA), legend.title = element_blank(), 
+          axis.line = element_line(colour = "black"), legend.text =  element_text(size = 5),
+          plot.background = element_rect(fill = "transparent",colour = NA), axis.title.x = element_text(size = 6),
+          axis.title.y = element_text(size = 6), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5)))
+  dev.off()
+}
+
+#Call Function
+make_both_peak_enrichment_bar(1/3, "tercile", target_df = target_df_no_exon_cs_prox)
+make_both_peak_enrichment_bar(1/4, "quartile", target_df = target_df_no_exon_cs_prox)
+make_both_peak_enrichment_bar(1/5, "quintile", target_df = target_df_no_exon_cs_prox)
+
