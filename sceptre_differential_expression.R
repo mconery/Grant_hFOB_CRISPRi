@@ -39,7 +39,7 @@ library(tibble)
 #Set directories and file locations
 qced_results_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/aggr/aggr.post_qc.h5ad"
 guides_per_cell_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/protospacer_calls_per_cell.csv"
-gencode_genes_loc <- "/mnt/isilon/sfgi/suc1/customerized_geneome_annotation/hg19/gencode_v19/gencode.v19.annotation.gene_only.bed"
+gencode_genes_loc <- "/mnt/isilon/sfgi/suc1/customerized_geneome_annotation/hg19/genecode_v19/gencode.v19.annotation.gene_only.bed"
 sgrna_target_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/all_targeting_guides.bed"
 marker_genes_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/hFOB_marker_genes.csv"
 implicate_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/gene_implications.tsv"
@@ -186,14 +186,16 @@ rownames(covariate_hfob_lowmoi) <- NULL
 colnames(covariate_hfob_lowmoi) <- c("response_n_umis", "response_n_nonzero", "bio_rep", "p_mito")
 covariate_hfob_lowmoi$bio_rep <- as.factor(covariate_hfob_lowmoi$bio_rep)
 covariate_hfob_lowmoi$p_mito <- covariate_hfob_lowmoi$p_mito/100 #rescale percentages to decimal
-#Calculate PCAs on Seurat Object and add top 15 to covariate matrix
+#Append on number of gRNA UMIs per cells
+covariate_hfob_lowmoi[,"grna_n_umis"] <- colSums(grna_hfob_lowmoi)
+#Calculate PCAs on Seurat Object and add top 50 to covariate matrix (We can use fewer later)
 qced_results_seurat <- FindVariableFeatures(qced_results_seurat, selection.method = "vst", nfeatures = 2000)
 all.genes <- rownames(qced_results_seurat)
 qced_results_seurat <- ScaleData(qced_results_seurat, features = all.genes)
 qced_results_seurat <- RunPCA(qced_results_seurat, rev.pca=TRUE)
 qced_results_seurat <- ProjectDim(qced_results_seurat, reduction="pca")
 temp <- Embeddings(qced_results_seurat, reduction="pca")[cells_with_guide,]
-covariate_hfob_lowmoi <- cbind.data.frame(covariate_hfob_lowmoi, temp[,1:15])
+covariate_hfob_lowmoi <- cbind.data.frame(covariate_hfob_lowmoi, temp[,1:50])
 
 ### Make gRNA group table ###
 grna_group_hfob_lowmoi <- rbind.data.frame(cbind.data.frame(grna_id=test_sgrnas, grna_group=str_replace(test_sgrnas, "_[0-9]+","")),
@@ -284,14 +286,28 @@ check_genes_for_guide <- function(grna_group, grna_group_hfob_lowmoi, sgrna_targ
 response_grna_group_pairs_hfob <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = check_genes_for_guide, 
                                                                            grna_group_hfob_lowmoi=grna_group_hfob_lowmoi, sgrna_target_filter=sgrna_target_filter, 
                                                                            gencode_genes_filter=gencode_genes_filter)))
-#Append on the positive controls
+#Create a dataframe that captures the trans test pairings
+get_trans_genes_for_guide <- function(grna_group, gencode_genes_filter, response_grna_group_pairs_hfob){
+  cis_genes <- response_grna_group_pairs_hfob[which(response_grna_group_pairs_hfob$grna_group == grna_group),"response_id"]
+  trans_genes <- rownames(gencode_genes_filter)[!(rownames(gencode_genes_filter) %in% cis_genes)]
+  temp2 <- cbind.data.frame(response_id=trans_genes, grna_group=rep(grna_group, length(trans_genes)))
+  return(temp2)
+}
+response_grna_group_pairs_hfob_trans <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = get_trans_genes_for_guide, 
+                                                                                 gencode_genes_filter=gencode_genes_filter,
+                                                                                 response_grna_group_pairs_hfob=response_grna_group_pairs_hfob)))
+
+#Append on the positive controls to the cis test
 response_grna_group_pairs_hfob <- rbind.data.frame(response_grna_group_pairs_hfob,
                                                    cbind.data.frame(response_id=symbol_to_ensg[pos_control_sgrnas], grna_group=pos_control_sgrnas))
 rownames(response_grna_group_pairs_hfob) <- NULL
-#Make columns factors
-#response_grna_group_pairs_hfob$response_id <- as.factor(response_grna_group_pairs_hfob$response_id)
-#response_grna_group_pairs_hfob$grna_group <- as.factor(response_grna_group_pairs_hfob$grna_group)
+#Append on the positive controls to the trans test
+response_grna_group_pairs_hfob_trans <- rbind.data.frame(response_grna_group_pairs_hfob_trans,
+                                                   cbind.data.frame(response_id=symbol_to_ensg[pos_control_sgrnas], grna_group=pos_control_sgrnas))
+rownames(response_grna_group_pairs_hfob_trans) <- NULL
 
+#Set aside a response matrix for the trans gene test
+response_hfob_lowmoi_trans <- response_hfob_lowmoi[unique(response_grna_group_pairs_hfob_trans$response_id),]
 #Do a final filter on the response matrix for genes that are actually being tested for some guide
 response_hfob_lowmoi <- response_hfob_lowmoi[unique(response_grna_group_pairs_hfob$response_id),]
 
@@ -299,16 +315,18 @@ response_hfob_lowmoi <- response_hfob_lowmoi[unique(response_grna_group_pairs_hf
 
 #Remove the cells with multiple sgRNAs from consideration
 response_hfob_lowmoi <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
+response_hfob_lowmoi_trans <- response_hfob_lowmoi_trans[,colSums(grna_hfob_lowmoi != 0) == 1]
 covariate_hfob_lowmoi <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi != 0) == 1,]
 grna_hfob_lowmoi <- grna_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
 #Remove any guides no longer represented
 grna_hfob_lowmoi <- grna_hfob_lowmoi[rowSums(grna_hfob_lowmoi) > 0,]
 grna_group_hfob_lowmoi <- grna_group_hfob_lowmoi[grna_group_hfob_lowmoi$grna_id %in% rownames(grna_hfob_lowmoi),]
 response_grna_group_pairs_hfob <- response_grna_group_pairs_hfob[response_grna_group_pairs_hfob$grna_group %in% grna_group_hfob_lowmoi$grna_group,]
+response_grna_group_pairs_hfob_trans <- response_grna_group_pairs_hfob_trans[response_grna_group_pairs_hfob_trans$grna_group %in% grna_group_hfob_lowmoi$grna_group,]
 
 # 7) Set the Formula Object ====
 
-#Set the formula object for use with pcas
+#Set the formula object for use with pcas in the cis analysis
 formula_object <- formula(~log(response_n_umis) + 
                             log(response_n_nonzero) +
                             bio_rep + 
@@ -317,9 +335,26 @@ formula_object <- formula(~log(response_n_umis) +
                               PC_6 + PC_7 + PC_8 + PC_9 + PC_10 +
                               PC_11 + PC_12 + PC_13 + PC_14 + PC_15)
 
+#Set a different formula object for the trans analysis
+formula_object_trans <- formula(~log(response_n_umis) + 
+                                  log(response_n_nonzero) +
+                                  bio_rep + 
+                                  p_mito + 
+                                  log(grna_n_umis) +
+                                  PC_1 + PC_2 + PC_3 + PC_4 + PC_5 + 
+                                  PC_6 + PC_7 + PC_8 + PC_9 + PC_10 +
+                                  PC_11 + PC_12 + PC_13 + PC_14 + PC_15 + 
+                                  PC_16 + PC_17 + PC_18 + PC_19 + PC_20 + 
+                                  PC_21 + PC_22 + PC_23 + PC_24 + PC_25 + 
+                                  PC_26 + PC_27 + PC_28 + PC_29 + PC_30 + 
+                                  PC_31 + PC_32 + PC_33 + PC_34 + PC_35 + 
+                                  PC_36 + PC_37 + PC_38 + PC_39 + PC_40 + 
+                                  PC_41 + PC_42 + PC_43 + PC_44 + PC_45 + 
+                                  PC_46 + PC_47 + PC_48 + PC_49 + PC_50)
+
 # 8) Run and Assess Calibration Check ====
 
-#Run basic check
+#Run basic cis check
 calibration_result <- run_sceptre_lowmoi(
   response_matrix = response_hfob_lowmoi,
   grna_matrix = grna_hfob_lowmoi,
@@ -329,13 +364,30 @@ calibration_result <- run_sceptre_lowmoi(
   response_grna_group_pairs = response_grna_group_pairs_hfob,
   calibration_check = TRUE # calibration_check TRUE
 ) 
+#Run basic trans check
+calibration_result_trans <- run_sceptre_lowmoi(
+  response_matrix = response_hfob_lowmoi_trans,
+  grna_matrix = grna_hfob_lowmoi,
+  covariate_data_frame = covariate_hfob_lowmoi,
+  grna_group_data_frame = grna_group_hfob_lowmoi,
+  formula_object = formula_object_trans,
+  response_grna_group_pairs = response_grna_group_pairs_hfob_trans,
+  calibration_check = TRUE # calibration_check TRUE
+) 
 
-#Plot calibration result
+#Plot cis calibration result
 jpeg(paste0(out_dir, "sceptre_calibration.hfob.jpeg"))
 plot_calibration_result(calibration_result)
 dev.off()
-#Write calibration results to file
+#Write cis calibration results to file
 write.table(calibration_result, file = paste0(out_dir, "non_targeting_test_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+#Plot trans calibration result
+jpeg(paste0(out_dir, "sceptre_calibration.hfob.trans.jpeg"))
+plot_calibration_result(calibration_result_trans)
+dev.off()
+#Write trans calibration results to file
+write.table(calibration_result_trans, file = paste0(out_dir, "non_targeting_test_results.trans.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 # 9) Run Discovery Analyses ====
 
@@ -354,13 +406,22 @@ discovery_result <- run_sceptre_lowmoi(
 jpeg(paste0(out_dir, "sceptre_discovery_calibration_compare.hfob.jpeg"))
 compare_calibration_and_discovery_results(
   calibration_result = calibration_result,
-  discovery_result = discovery_result
-)
+  discovery_result = discovery_result) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_blank(),
+        panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(color="black", size=16), axis.title=element_text(size=20), 
+        legend.position = "bottom", axis.text.y = element_text(color="black", size=16), 
+        legend.text = element_text(size=15)) 
 dev.off()
 
 #Make volcano
 jpeg(paste0(out_dir, "discovery_volcano.hfob.jpeg"))
-make_volcano_plot(discovery_result = discovery_result)
+make_volcano_plot(discovery_result = discovery_result) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_blank(),
+        panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(color="black", size=16), axis.title=element_text(size=20), 
+        legend.position = "bottom", axis.text.y = element_text(color="black", size=16), 
+        legend.text = element_text(size=15)) 
 dev.off()
 
 #obtain discovery set and write to file
