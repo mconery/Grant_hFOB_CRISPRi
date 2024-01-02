@@ -26,23 +26,35 @@ plot_dir <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figure
 cell_types_file=paste0(work_dir, "complete_cell_types.tsv")
 bmd_enrich_file=paste0(work_dir, "ldsc_BMD.txt")
 bf_enrich_file=paste0(work_dir, "ldsc_BF.txt")
+pdb_enrich_file=paste0(work_dir, "RoadmapEpi&Bone_summary_PDB.txt")
 
-# 1) Read in files ====
+# 1) Read in files (and reformat PDB file) ====
 
+#Read in files
 cell_types_raw <- read.table(cell_types_file, header = TRUE, sep = "\t")
 bmd_enrich_raw <- read.table(bmd_enrich_file, header = TRUE, sep = "\t")
 bf_enrich_raw <- read.table(bf_enrich_file, header = TRUE, sep = "\t")
+pdb_enrich_raw <- read.table(pdb_enrich_file, header = TRUE, sep = "\t")
+
+#Modify format of pdb file to work with function
+colnames(pdb_enrich_raw) <- str_replace(colnames(pdb_enrich_raw), "Celltype", "bedfile")
 
 # 2) Make Enrichment Plots ====
 
 #Make a thin version of the cell-types dataframe
-cell_types_thin <- cell_types_raw %>% select(bedfile, Cell.type.group)
+cell_types_thin <- cell_types_raw %>% select(bedfile, Cell.type.group, E.Mnemonic, MARK)
 
 #Create a function to make plots for each enrichment
 make_enrichment_plot <- function(enrich_raw, cell_types_thin, plot_dir, file_prefix){
   #Append on cell types to heritability enrichment data and adjust p-values
   enrich_append <- enrich_raw %>% inner_join(cell_types_thin, by="bedfile") %>%
-    mutate(neg_log_adj_pval=(-log10(p.adjust(Enrichment_p, method="bonferroni"))))
+    mutate(bonf_adj_pval = p.adjust(Enrichment_p, method="bonferroni"), 
+           neg_log_adj_pval=(-log10(p.adjust(Enrichment_p, method="bonferroni"))))
+  write.table(enrich_append, paste0(plot_dir, file_prefix, ".with_tissues_bonf.tsv"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+  #Check if E.Mnemonic column was already present
+  if ("E.Mnemonic.x" %in% colnames(enrich_append)) {
+    colnames(enrich_append) <- str_replace_all(colnames(enrich_append), "[.]x", "")
+  }
   #Make cell-type grouped box-plot
   enrich_append$Cell.type.group <- as.factor(enrich_append$Cell.type.group)
   type_violin <- ggplot(enrich_append, aes(x=Cell.type.group, y=neg_log_adj_pval, color=Cell.type.group)) + geom_boxplot() + 
@@ -62,7 +74,7 @@ make_enrichment_plot <- function(enrich_raw, cell_types_thin, plot_dir, file_pre
   enrich_append$E.Mnemonic <- as.factor(enrich_append$E.Mnemonic)
   enrich_append$bedfile <- factor(enrich_append$bedfile, levels = enrich_append$bedfile)
   #Calculate break points for bar plot axis labels and append them to the enrich_append dataframe
-  temp <- enrich_append %>% group_by(Cell.type.group) %>% summarize(count=n()) %>% mutate(axis_break=floor(cumsum(count)-count/2))
+  temp <- enrich_append %>% group_by(Cell.type.group) %>% dplyr::summarize(count=n()) %>% mutate(axis_break=floor(cumsum(count)-count/2))
   temp <- temp %>% mutate(discrete_break=enrich_append$bedfile[axis_break], label_color = hue_pal()(nrow(temp)))
   temp2 <- temp$label_color
   names(temp2) <- temp$discrete_break
@@ -88,3 +100,4 @@ make_enrichment_plot <- function(enrich_raw, cell_types_thin, plot_dir, file_pre
 #Call function
 make_enrichment_plot(bmd_enrich_raw, cell_types_thin=cell_types_thin, plot_dir=plot_dir, "bmd")
 make_enrichment_plot(bf_enrich_raw, cell_types_thin=cell_types_thin, plot_dir=plot_dir, "fracture")
+make_enrichment_plot(pdb_enrich_raw, cell_types_thin=cell_types_thin, plot_dir=plot_dir, "pagets_disease")
