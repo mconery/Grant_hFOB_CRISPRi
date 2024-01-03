@@ -62,9 +62,9 @@ make_enrichment_plot <- function(enrich_raw, cell_types_thin, plot_dir, file_pre
     geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 2) + 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
           panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
-          axis.text.x = element_text(color="black", size=16, angle=90, hjust = 1, vjust = 0.5), axis.title=element_text(size=16), 
-          legend.position = "none", axis.text.y = element_text(color="black", size=16), axis.title.x = element_blank()) 
-  jpeg(paste0(plot_dir,file_prefix, ".grouped_cell_type.violin.jpeg"), width = 720, height=480)
+          axis.text.x = element_text(color="black", size=12, angle=90, hjust = 1, vjust = 0.5), axis.title=element_text(size=12), 
+          legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
+  jpeg(paste0(plot_dir,file_prefix, ".grouped_cell_type.violin.jpeg"), width = 7200, height=4800, res = 1000)
     print(type_violin)
   dev.off()
   #Prep data frame for making cell-type separated bar plot
@@ -90,10 +90,10 @@ make_enrichment_plot <- function(enrich_raw, cell_types_thin, plot_dir, file_pre
     geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed", linewidth = 2) + 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
           panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
-          axis.text.x = element_markdown(size = 20, angle=90, hjust = 1, vjust = 0.75), 
-          axis.title=element_text(size=20), 
-          legend.position = "none", axis.text.y = element_text(color="black", size=16), axis.title.x = element_blank()) 
-  jpeg(paste0(plot_dir,file_prefix, ".split_cell_type.bar.jpeg"), width = 1080, height=400)
+          axis.text.x = element_markdown(size = 14, angle=90, hjust = 1, vjust = 0.75), 
+          axis.title=element_text(size=14), 
+          legend.position = "none", axis.text.y = element_text(color="black", size=14), axis.title.x = element_blank()) 
+  jpeg(paste0(plot_dir,file_prefix, ".split_cell_type.bar.jpeg"), width = 10800, height=4000, res=1000)
   print(separate_bar)
   dev.off()
 }
