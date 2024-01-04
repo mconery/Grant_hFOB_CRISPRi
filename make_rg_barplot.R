@@ -17,7 +17,7 @@ library(tidyverse)
 library(tools)
 
 #Set file locations
-global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_561pairs.txt"
+global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_630pairs.txt"
 plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.bar.jpeg"
 no_second_bmd_plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.no_panukbb_bmd.bar.jpeg"
 
@@ -28,8 +28,11 @@ global_raw <- read.table(global_correlations, header = TRUE)
 
 #Filter for the BMD results and Benjamini-Hochberg adjust the BMD genetic correlation p-values
 global_bmd <- global_raw %>% filter(p1=="BMD" | p2 == "BMD") %>%
-  mutate(non_bmd_trait=ifelse(p1=="BMD", p2, p1), p_bh=p.adjust(p, method="BH")) %>%
-  select(non_bmd_trait, rg, p_bh) %>% mutate(v_adj=ifelse(rg>0, -0, 1))
+  mutate(non_bmd_trait=ifelse(p1=="BMD", p2, p1)) %>%
+  filter(non_bmd_trait != "PDB") %>% #Remove non-UKBB Paget's Disease
+  mutate(p_bh=p.adjust(p, method="BH"), non_bmd_trait = ifelse(non_bmd_trait == "phecode-251.1-both_sexes", "Hypoglycemia", non_bmd_trait)) %>%
+  select(non_bmd_trait, rg, p_bh) %>% mutate(v_adj=ifelse(rg>0, 0.4, 1.1))
+
 
 #Adjust Trait names
 global_bmd <- global_bmd %>% mutate(non_bmd_trait_clean=toTitleCase(str_replace_all(non_bmd_trait, "_", " "))) %>% 
@@ -66,10 +69,10 @@ p <- p + geom_hline(yintercept = 0, color="black", linewidth=1)
 # Customize the appearance of the asterisks
 p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
                panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
-               axis.text.x = element_text(size = 20, angle=45, hjust = 1, vjust = 1), 
-               axis.title=element_text(size=20), 
-               legend.position = "none", axis.text.y = element_text(color="black", size=16), axis.title.x = element_blank()) 
-jpeg(plot_loc, width = 1080, height=400)
+               axis.text.x = element_text(size = 12, angle=45, hjust = 1, vjust = 1), 
+               axis.title=element_text(size=12), 
+               legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
+jpeg(plot_loc, width = 10800, height=4000, res=1000)
 print(p)
 dev.off()
 
@@ -90,9 +93,9 @@ p <- p + geom_hline(yintercept = 0, color="black", linewidth=1)
 # Customize the appearance of the asterisks
 p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
                panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
-               axis.text.x = element_text(size = 20, angle=45, hjust = 1, vjust = 1), 
-               axis.title=element_text(size=20), 
-               legend.position = "none", axis.text.y = element_text(color="black", size=16), axis.title.x = element_blank()) 
-jpeg(no_second_bmd_plot_loc, width = 1080, height=400)
+               axis.text.x = element_text(size = 12, angle=45, hjust = 1, vjust = 1), 
+               axis.title=element_text(size=12), 
+               legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
+jpeg(no_second_bmd_plot_loc, width = 10800, height=4000, res=1000)
 print(p)
 dev.off()
