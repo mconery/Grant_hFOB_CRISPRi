@@ -17,7 +17,7 @@ library(tidyverse)
 library(tools)
 
 #Set file locations
-global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_630pairs.txt"
+global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_820pairs.txt"
 plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.bar.jpeg"
 no_second_bmd_plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.no_panukbb_bmd.bar.jpeg"
 
