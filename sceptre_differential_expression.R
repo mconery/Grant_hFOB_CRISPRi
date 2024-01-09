@@ -376,7 +376,7 @@ calibration_result_trans <- run_sceptre_lowmoi(
 ) 
 
 #Plot cis calibration result
-jpeg(paste0(out_dir, "sceptre_calibration.hfob.jpeg"))
+jpeg(paste0(out_dir, "sceptre_calibration.hfob.jpeg"), width = 10800, height=10800, res=1000)
 plot_calibration_result(calibration_result)
 dev.off()
 #Write cis calibration results to file
@@ -403,7 +403,7 @@ discovery_result <- run_sceptre_lowmoi(
 ) 
 
 #Compare calibration and discovery results
-jpeg(paste0(out_dir, "sceptre_discovery_calibration_compare.hfob.jpeg"))
+jpeg(paste0(out_dir, "sceptre_discovery_calibration_compare.hfob.jpeg"), width = 10800, height=10800, res=1000)
 compare_calibration_and_discovery_results(
   calibration_result = calibration_result,
   discovery_result = discovery_result) + 
@@ -415,7 +415,7 @@ compare_calibration_and_discovery_results(
 dev.off()
 
 #Make volcano
-jpeg(paste0(out_dir, "discovery_volcano.hfob.jpeg"))
+jpeg(paste0(out_dir, "discovery_volcano.hfob.jpeg"), width = 10800, height=10800, res=1000)
 make_volcano_plot(discovery_result = discovery_result) + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_blank(),
         panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
