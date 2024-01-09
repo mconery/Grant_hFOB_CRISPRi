@@ -22,7 +22,7 @@
 library(dplyr)
 library(cowplot)
 library(katlabutils)
-library(sceptre)
+library(sceptre) #v0.3.0
 library(Seurat)
 library(SeuratObject)
 library(SeuratDisk)
@@ -35,6 +35,7 @@ library(SingleCellExperiment)
 library(Matrix)
 library(ggplot2)
 library(tibble)
+library(ggrepel)
 
 #Set directories and file locations
 qced_results_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/aggr/aggr.post_qc.h5ad"
@@ -429,7 +430,179 @@ discovery_set <- obtain_discovery_set(discovery_result)
 discovery_set$response_id <- ensg_to_symbol[discovery_set$response_id]
 write.table(discovery_set, file = paste0(out_dir, "discovery_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
-# 10) Examine Results for V2G-Mapped Connections ====
+# 10) Make publication grade figures ====
+#Much of this is reproduced code from sceptre v.0.9.0
+
+#Set theme function
+get_my_theme <- function(element_text_size = 24) {
+  ggplot2::theme_bw() + ggplot2::theme(axis.line = ggplot2::element_line(color = "black"),
+                                       axis.text.x = ggplot2::element_text(color="black", size=element_text_size),
+                                       axis.text.y = ggplot2::element_text(color="black", size=element_text_size),
+                                       axis.title = ggplot2::element_text(color = "black", size = element_text_size),
+                                       panel.grid.major = ggplot2::element_blank(),
+                                       panel.grid.minor = ggplot2::element_blank(),
+                                       panel.border = ggplot2::element_blank(),
+                                       panel.background = ggplot2::element_blank(),
+                                       plot.title = ggplot2::element_blank())
+}
+
+### Make the QQ-Plot First ###
+#Set code for qqplot bands
+StatQQBand <- ggplot2::ggproto("StatQQBand", ggplot2::Stat,
+                               required_aes = c("y"), # the sample will come through the y aesthetic
+                               # code below implements logic that you only want to have one band per panel,
+                               # rather than having one band per group
+                               setup_data = function(data, params) {
+                                 if ("group" %in% names(data)) {
+                                   # calculate the maximum across panels of the number of unique numbers of
+                                   # points there are in each group
+                                   max_unique_pts_per_group <- data |>
+                                     dplyr::group_by(PANEL, group) |>
+                                     dplyr::summarise(pts_per_group = dplyr::n()) |>
+                                     dplyr::summarise(unique_pts_per_group = length(unique(pts_per_group))) |>
+                                     dplyr::summarise(max(unique_pts_per_group)) |>
+                                     dplyr::pull()
+                                   if (max_unique_pts_per_group > 1) {
+                                     # throw an error if there is a panel with differing numbers of points per group
+                                     stop("Within each panel, you must have the same number of points per QQ plot!")
+                                   } else {
+                                     data |>
+                                       dplyr::select(y, PANEL, group) |> # remove attributes like color, shape, etc.
+                                       dplyr::filter(group == min(group)) # keep only one of the groups to plot
+                                   }
+                                 } else {
+                                   data
+                                 }
+                               },
+                               compute_group = function(data, scales, distribution = "unif", max_pts_to_plot = 500, ci_level = 0.95) {
+                                 # get the quantile function from the stats package
+                                 quantile_fun <- eval(parse(text = sprintf("stats::q%s", distribution)))
+                                 # set x and y transformations to identity if they are not given
+                                 if (is.null(scales$x$trans)) {
+                                   scales$x$trans <- scales::identity_trans()
+                                 }
+                                 if (is.null(scales$y$trans)) {
+                                   scales$y$trans <- scales::identity_trans()
+                                 }
+                                 # compute the upper and lower confidence bands
+                                 data |>
+                                   # the given y is already transformed, so transform it back first
+                                   dplyr::mutate(y = scales$y$trans$inverse(y)) |>
+                                   # apply the formulas for the confidence bands
+                                   dplyr::mutate(
+                                     r = rank(y, ties.method = "first"),
+                                     x = quantile_fun(stats::ppoints(dplyr::n())[r]),
+                                     ymin = quantile_fun(stats::qbeta(p = (1 - ci_level) / 2, shape1 = r, shape2 = dplyr::n() + 1 - r)),
+                                     ymax = quantile_fun(stats::qbeta(p = (1 + ci_level) / 2, shape1 = r, shape2 = dplyr::n() + 1 - r))
+                                   ) |>
+                                   # transform
+                                   dplyr::mutate(
+                                     x = scales$x$trans$transform(x),
+                                     y = scales$y$trans$transform(y),
+                                     ymin = scales$y$trans$transform(ymin),
+                                     ymax = scales$y$trans$transform(ymax)
+                                   ) |>   # downsample
+                                   dplyr::mutate(x_int = ggplot2::cut_interval(x, n = max_pts_to_plot),
+                                                 y_int = ggplot2::cut_interval(y, n = max_pts_to_plot)) |>
+                                   dplyr::group_by(x_int, y_int) |>
+                                   dplyr::slice_sample(n = 1) |>
+                                   dplyr::ungroup()
+                               }
+)
+stat_qq_band <- function(mapping = NULL, data = NULL, geom = "ribbon",
+                         position = "identity", show.legend = FALSE,
+                         inherit.aes = TRUE, distribution = "unif",
+                         max_pts_to_plot = 500,
+                         ci_level = 0.95, ...) {
+  ggplot2::layer(
+    stat = StatQQBand, data = data, mapping = mapping, geom = geom,
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(alpha = 0.25, distribution = distribution,
+                  max_pts_to_plot = max_pts_to_plot, ci_level = ci_level, ...)
+  )
+}
+
+#Set publication-grade figure making function and call it
+make_publication_qq <- function(calibration_result, discovery_result, p_thresh = max(discovery_set$p_value),
+                                                      transform_scale = TRUE, include_legend = TRUE,
+                                                      include_y_axis_text = TRUE, point_size = 2,
+                                                      transparency = 0.8) {
+  lab <- c(rep(factor("Negative control"), nrow(calibration_result)),
+           rep(factor("Target sgRNA"), nrow(discovery_result))) |>
+    factor(levels = c("Target sgRNA", "Negative control"))
+  df <- data.frame(p_value = c(calibration_result$p_value, discovery_result$p_value), lab = lab)
+  
+  p_out <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(y = p_value, col = lab)) +
+    stat_qq_points(size = point_size, alpha = transparency) +
+    stat_qq_band(data = df[df$lab == "Negative control",], mapping = ggplot2::aes(y = p_value, col = lab)) +
+    ggplot2::labs(x = "Expected null p-value", y = "Observed p-value") +
+    ggplot2::geom_abline(col = "black") +
+    get_my_theme() +
+    ggplot2::theme(legend.title = ggplot2::element_blank(),
+                   legend.position = if (include_legend) "bottom" else "none",
+                   axis.title.y = if (include_y_axis_text) ggplot2::element_text() else ggplot2::element_blank()) +
+    ggplot2::scale_color_manual(values = c("dodgerblue3", "firebrick2"))
+  
+  if (!transform_scale) {
+    p_out <- p_out +
+      ggplot2::scale_x_reverse() +
+      ggplot2::scale_y_reverse() +
+      ggplot2::ggtitle("QQ plot (bulk)")
+  } else {
+    p_out <- p_out +
+      ggplot2::scale_x_continuous(trans = revlog_trans(10)) +
+      ggplot2::scale_y_continuous(trans = revlog_trans(10)) +
+      ggplot2::ggtitle("QQ plot (tail)") +
+      (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL)
+  }
+  
+  if (include_legend) {
+    p_out <- p_out +
+      ggplot2::theme(legend.position = c(0.8, 0.05),
+                     legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
+                     legend.title = ggplot2::element_blank(),
+                     legend.text = element_text(size = 20)) +
+      ggplot2::guides(color = ggplot2::guide_legend(
+        keywidth = 0.0,
+        keyheight = 0.3,
+        default.unit = "inch",
+        override.aes = list(size = 3)))
+  }
+  
+  return(p_out)
+}
+jpeg(paste0(out_dir, "dicovery_qq.publication_grade.hfob.jpeg"), width = 10800, height=10800, res=1000)
+make_publication_qq(calibration_result = calibration_result,
+                    discovery_result = discovery_result)
+dev.off()
+
+### Make the Volcano Plot ###
+make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5), transparency = 0.5, point_size = 3) {
+  p_lower_lim <- 1e-20
+  temp_df <- discovery_result |> dplyr::mutate(reject = p_value <= p_thresh,
+                                               p_value = ifelse(p_value < p_lower_lim, p_lower_lim, p_value),
+                                               log_2_fold_change = ifelse(log_2_fold_change > x_limits[2], x_limits[2], log_2_fold_change),
+                                               log_2_fold_change = ifelse(log_2_fold_change < x_limits[1], x_limits[1], log_2_fold_change),
+                                               gene_lab = ifelse(p_value <= p_thresh & !(is.na(p_value)), ensg_to_symbol[response_id],"")) |>
+    dplyr::mutate(gene_lab = ifelse(gene_lab %in% pos_control_sgrnas, "", gene_lab))
+  out <- ggplot2::ggplot(data = temp_df,
+                         mapping = ggplot2::aes(x = log_2_fold_change, y = p_value, col = reject)) +
+    ggplot2::geom_point(alpha = transparency, size = point_size) +
+    ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 6) + 
+    ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0)) +
+    get_my_theme() + ggplot2::xlab("Log Fold Change") + ggplot2::ylab("P-Value") +
+    (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL) +
+    ggplot2::theme(legend.position = "none") + ggplot2::scale_color_manual(values = c("gray", "dodgerblue3")) +
+    ggplot2::ggtitle("Discovery volcano plot")
+  return(out)
+}
+
+#Call Volcano function
+jpeg(paste0(out_dir, "dicovery_volcano.publication_grade.hfob.jpeg"), width = 10800, height=10800, res=1000)
+make_volcano_plot(discovery_result = discovery_result, p_thresh = max(discovery_set$p_value))
+dev.off()
+
+# 11) Examine Results for V2G-Mapped Connections ====
 
 ### Make dataframe of grna pairs ###
 #create unique identifiers for each implicated connection
