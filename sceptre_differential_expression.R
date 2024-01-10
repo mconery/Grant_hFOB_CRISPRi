@@ -434,10 +434,10 @@ write.table(discovery_set, file = paste0(out_dir, "discovery_results.tsv"), sep 
 #Much of this is reproduced code from sceptre v.0.9.0
 
 #Set theme function
-get_my_theme <- function(element_text_size = 24) {
+get_my_theme <- function(element_text_size = 36) {
   ggplot2::theme_bw() + ggplot2::theme(axis.line = ggplot2::element_line(color = "black"),
-                                       axis.text.x = ggplot2::element_text(color="black", size=element_text_size),
-                                       axis.text.y = ggplot2::element_text(color="black", size=element_text_size),
+                                       axis.text.x = ggplot2::element_text(color="black", size=element_text_size*.75),
+                                       axis.text.y = ggplot2::element_text(color="black", size=element_text_size*.75),
                                        axis.title = ggplot2::element_text(color = "black", size = element_text_size),
                                        panel.grid.major = ggplot2::element_blank(),
                                        panel.grid.minor = ggplot2::element_blank(),
@@ -525,7 +525,7 @@ stat_qq_band <- function(mapping = NULL, data = NULL, geom = "ribbon",
 #Set publication-grade figure making function and call it
 make_publication_qq <- function(calibration_result, discovery_result, p_thresh = max(discovery_set$p_value),
                                                       transform_scale = TRUE, include_legend = TRUE,
-                                                      include_y_axis_text = TRUE, point_size = 2,
+                                                      include_y_axis_text = TRUE, point_size = 4,
                                                       transparency = 0.8) {
   lab <- c(rep(factor("Negative control"), nrow(calibration_result)),
            rep(factor("Target sgRNA"), nrow(discovery_result))) |>
@@ -561,12 +561,12 @@ make_publication_qq <- function(calibration_result, discovery_result, p_thresh =
       ggplot2::theme(legend.position = c(0.8, 0.05),
                      legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
                      legend.title = ggplot2::element_blank(),
-                     legend.text = element_text(size = 20)) +
+                     legend.text = element_text(size = 24)) +
       ggplot2::guides(color = ggplot2::guide_legend(
         keywidth = 0.0,
         keyheight = 0.3,
         default.unit = "inch",
-        override.aes = list(size = 3)))
+        override.aes = list(size = 5)))
   }
   
   return(p_out)
@@ -577,7 +577,7 @@ make_publication_qq(calibration_result = calibration_result,
 dev.off()
 
 ### Make the Volcano Plot ###
-make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5), transparency = 0.5, point_size = 3) {
+make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5), transparency = 0.5, point_size = 4) {
   p_lower_lim <- 1e-20
   temp_df <- discovery_result |> dplyr::mutate(reject = p_value <= p_thresh,
                                                p_value = ifelse(p_value < p_lower_lim, p_lower_lim, p_value),
@@ -588,7 +588,7 @@ make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5
   out <- ggplot2::ggplot(data = temp_df,
                          mapping = ggplot2::aes(x = log_2_fold_change, y = p_value, col = reject)) +
     ggplot2::geom_point(alpha = transparency, size = point_size) +
-    ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 6) + 
+    ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 7.5) + 
     ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0)) +
     get_my_theme() + ggplot2::xlab("Log Fold Change") + ggplot2::ylab("P-Value") +
     (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL) +
