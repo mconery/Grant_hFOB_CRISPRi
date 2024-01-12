@@ -456,7 +456,7 @@ combined_comparison_df$subplot <- factor(combined_comparison_df$subplot, levels 
 jpeg(paste0(out_dir, "main_assay_figure.box.jpeg"), width = 12000, height=12000, res=1000)
 ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
   geom_boxplot(linewidth=1.03, width=0.5) + 
-  stat_pvalue_manual(combined_comparison_df, x= "siRNA", y = "max_value_padded", label = "p.signif", label.size = 6, color = "signif", show.legend=FALSE) + 
+#  stat_pvalue_manual(combined_comparison_df, x= "siRNA", y = "max_value_padded", label = "p.signif", label.size = 6, color = "signif", show.legend=FALSE) + 
   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
   facet_grid(subplot ~ ., scales = "free", space = "free_x") +
   scale_color_manual(values = c("gray", "dodgerblue3"), labels=c("Not Significant", "Adj. P-Value < 0.05")) + 
