@@ -224,9 +224,10 @@ cellbender_merged_good_filtered = cellbender_merged_good[cellbender_merged_good.
 cellbender_merged_good_filtered = cellbender_merged_good_filtered[cellbender_merged_good_filtered.obs.pct_counts_mt < 10, :]
 #Create a version to save for export
 cellbender_export = cellbender_merged_good_filtered[:]
+cellbender_export_copy = cellbender_export[:]
 
 #Append on the information about whether the cell has been retained thus far
-grna_ref_raw['passed_secondary_qc'] = [True if x in cellbender_merged_good_filtered.obs_names.to_list() else False for x in grna_ref_raw['cell_barcode']]
+grna_ref_raw['passed_secondary_qc'] = [True if x in cellbender_export.obs_names.to_list() else False for x in grna_ref_raw['cell_barcode']]
 #Create lists of guide RNAs present in cells with 1 sgRNA and those with multiples
 secondary_single_sgRNAs = grna_ref_raw[(grna_ref_raw['num_features'] == 1) & (grna_ref_raw['passed_secondary_qc'])]['feature_call']
 secondary_single_sgRNAs_unique, secondary_single_sgRNAs_counts = np.unique(secondary_single_sgRNAs, return_counts=True)
@@ -238,20 +239,28 @@ secondary_multi_sgRNAs_unique, secondary_multi_sgRNAs_counts = np.unique(seconda
 fig, ax = plt.subplots()
 ax.hist(secondary_single_sgRNAs_counts, bins=20)
 ax.axvline(np.median(secondary_single_sgRNAs_counts), color='k', linestyle='dashed', linewidth=1)
+plt.xlabel("Cells per sgRNA")
+plt.ylabel("Count of sgRNAs")
+plt.grid(False)
 fig.tight_layout()
-plt.savefig(qc_dir + 'aggr/single_sgRNA_counts.post_secondary_qc.hist.png')
+plt.savefig(qc_dir + 'aggr/single_sgRNA_counts.final.hist.png')
 plt.close()
 fig, ax = plt.subplots()
 ax.hist(secondary_multi_sgRNAs_counts, bins=20)
 ax.axvline(np.median(secondary_multi_sgRNAs_counts), color='k', linestyle='dashed', linewidth=1)
+plt.xlabel("Cells per sgRNA")
+plt.ylabel("Count of sgRNAs")
+plt.grid(False)
 fig.tight_layout()
-plt.savefig(qc_dir + 'aggr/multi_sgRNA_counts.post_secondary_qc.hist.png')
+plt.savefig(qc_dir + 'aggr/multi_sgRNA_counts.final.hist.png')
 plt.close()
 #Calculate basic statistics
 np.median(secondary_single_sgRNAs_counts)
 np.min(secondary_single_sgRNAs_counts)
+np.max(secondary_single_sgRNAs_counts)
 np.median(secondary_multi_sgRNAs_counts)
 np.min(secondary_multi_sgRNAs_counts)
+np.max(secondary_multi_sgRNAs_counts)
 
 #Run qc process on post-secondary qc data
 sc.pp.filter_cells(cellbender_merged_good_filtered, min_genes=500)
@@ -267,3 +276,18 @@ sc.pl.umap(cellbender_merged_good_filtered, color=['n_genes_by_counts', 'total_c
 #Write exportable annData object to file for use in Seurat/R
 cellbender_export.write_h5ad(qc_dir + 'aggr/aggr.post_qc.h5ad')
 cellbender_export.write_csvs(qc_dir + 'aggr/aggr.post_qc.csv', skip_data=False)
+
+#Filter the exported copy version for the single-sgRNA cells in order to make final qc plots
+secondary_single_sgRNA_cells = grna_ref_raw[(grna_ref_raw['num_features'] == 1) & (grna_ref_raw['passed_secondary_qc'])]['cell_barcode']
+cellbender_export_single_sgRNA = cellbender_export_copy[secondary_single_sgRNA_cells]
+#Make a final set of plots for visualizing the completely qced results
+sc.pp.normalize_total(cellbender_export_single_sgRNA, target_sum=1e4)
+sc.pp.log1p(cellbender_export_single_sgRNA)
+sc.pp.highly_variable_genes(cellbender_export_single_sgRNA, min_mean=0.0125, max_mean=3, min_disp=0.5)
+sc.tl.pca(cellbender_export_single_sgRNA, svd_solver='arpack')
+sc.pl.pca_variance_ratio(cellbender_export_single_sgRNA, log=True,show=False, save=".final.single_sgrna")
+sc.pp.neighbors(cellbender_export_single_sgRNA, n_neighbors=10, n_pcs=40)
+sc.tl.umap(cellbender_export_single_sgRNA)
+sc.pl.umap(cellbender_export_single_sgRNA, color=['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'Pool'], show=False, save=".final.single_sgrna")
+sc.pl.violin(cellbender_export_single_sgRNA, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'], 
+             stripplot=False, multi_panel=True, show=False, save='.final.single_sgrna')
