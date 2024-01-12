@@ -43,6 +43,7 @@ guides_per_cell_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/p
 gencode_genes_loc <- "/mnt/isilon/sfgi/suc1/customerized_geneome_annotation/hg19/genecode_v19/gencode.v19.annotation.gene_only.bed"
 sgrna_target_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/all_targeting_guides.bed"
 marker_genes_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/hFOB_marker_genes.csv"
+guide_sequence_ref_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/feature_reference.csv"
 implicate_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/gene_implications.tsv"
 vep_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/target.vep_annotations.txt"
 out_dir <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/differential_expression/sceptre_single_sgrna/"
@@ -77,7 +78,10 @@ colnames(gencode_genes_raw) <- c("chr", "start", "end", "ENSG+name", "gene_type"
 marker_genes_raw <- read.table(marker_genes_loc, sep = ",", header = TRUE)
 
 #Read in list of implicated genes
-implicate_raw <- read.table(implicate_loc, header = TRUE, stringsAsFactors = FALSE, sep = )
+implicate_raw <- read.table(implicate_loc, header = TRUE, stringsAsFactors = FALSE, sep = "\t")
+
+#Read in guide sequence reference
+guide_sequence_ref_raw <- read.csv(guide_sequence_ref_loc, header = TRUE, stringsAsFactors = FALSE, sep = ",")
 
 #Read in vep annotations file
 vep_raw <- read.csv(vep_loc, sep = "\t", header = TRUE)
@@ -287,28 +291,12 @@ check_genes_for_guide <- function(grna_group, grna_group_hfob_lowmoi, sgrna_targ
 response_grna_group_pairs_hfob <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = check_genes_for_guide, 
                                                                            grna_group_hfob_lowmoi=grna_group_hfob_lowmoi, sgrna_target_filter=sgrna_target_filter, 
                                                                            gencode_genes_filter=gencode_genes_filter)))
-#Create a dataframe that captures the trans test pairings
-get_trans_genes_for_guide <- function(grna_group, gencode_genes_filter, response_grna_group_pairs_hfob){
-  cis_genes <- response_grna_group_pairs_hfob[which(response_grna_group_pairs_hfob$grna_group == grna_group),"response_id"]
-  trans_genes <- rownames(gencode_genes_filter)[!(rownames(gencode_genes_filter) %in% cis_genes)]
-  temp2 <- cbind.data.frame(response_id=trans_genes, grna_group=rep(grna_group, length(trans_genes)))
-  return(temp2)
-}
-response_grna_group_pairs_hfob_trans <- as.data.frame(rbind.fill.matrix(pblapply(unique(str_replace(test_sgrnas, "_[0-9]+", "")), FUN = get_trans_genes_for_guide, 
-                                                                                 gencode_genes_filter=gencode_genes_filter,
-                                                                                 response_grna_group_pairs_hfob=response_grna_group_pairs_hfob)))
 
 #Append on the positive controls to the cis test
 response_grna_group_pairs_hfob <- rbind.data.frame(response_grna_group_pairs_hfob,
                                                    cbind.data.frame(response_id=symbol_to_ensg[pos_control_sgrnas], grna_group=pos_control_sgrnas))
 rownames(response_grna_group_pairs_hfob) <- NULL
-#Append on the positive controls to the trans test
-response_grna_group_pairs_hfob_trans <- rbind.data.frame(response_grna_group_pairs_hfob_trans,
-                                                   cbind.data.frame(response_id=symbol_to_ensg[pos_control_sgrnas], grna_group=pos_control_sgrnas))
-rownames(response_grna_group_pairs_hfob_trans) <- NULL
 
-#Set aside a response matrix for the trans gene test
-response_hfob_lowmoi_trans <- response_hfob_lowmoi[unique(response_grna_group_pairs_hfob_trans$response_id),]
 #Do a final filter on the response matrix for genes that are actually being tested for some guide
 response_hfob_lowmoi <- response_hfob_lowmoi[unique(response_grna_group_pairs_hfob$response_id),]
 
@@ -316,14 +304,12 @@ response_hfob_lowmoi <- response_hfob_lowmoi[unique(response_grna_group_pairs_hf
 
 #Remove the cells with multiple sgRNAs from consideration
 response_hfob_lowmoi <- response_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
-response_hfob_lowmoi_trans <- response_hfob_lowmoi_trans[,colSums(grna_hfob_lowmoi != 0) == 1]
 covariate_hfob_lowmoi <- covariate_hfob_lowmoi[colSums(grna_hfob_lowmoi != 0) == 1,]
 grna_hfob_lowmoi <- grna_hfob_lowmoi[,colSums(grna_hfob_lowmoi != 0) == 1]
 #Remove any guides no longer represented
 grna_hfob_lowmoi <- grna_hfob_lowmoi[rowSums(grna_hfob_lowmoi) > 0,]
 grna_group_hfob_lowmoi <- grna_group_hfob_lowmoi[grna_group_hfob_lowmoi$grna_id %in% rownames(grna_hfob_lowmoi),]
 response_grna_group_pairs_hfob <- response_grna_group_pairs_hfob[response_grna_group_pairs_hfob$grna_group %in% grna_group_hfob_lowmoi$grna_group,]
-response_grna_group_pairs_hfob_trans <- response_grna_group_pairs_hfob_trans[response_grna_group_pairs_hfob_trans$grna_group %in% grna_group_hfob_lowmoi$grna_group,]
 
 # 7) Set the Formula Object ====
 
@@ -335,23 +321,6 @@ formula_object <- formula(~log(response_n_umis) +
                             PC_1 + PC_2 + PC_3 + PC_4 + PC_5 + 
                               PC_6 + PC_7 + PC_8 + PC_9 + PC_10 +
                               PC_11 + PC_12 + PC_13 + PC_14 + PC_15)
-
-#Set a different formula object for the trans analysis
-formula_object_trans <- formula(~log(response_n_umis) + 
-                                  log(response_n_nonzero) +
-                                  bio_rep + 
-                                  p_mito + 
-                                  log(grna_n_umis) +
-                                  PC_1 + PC_2 + PC_3 + PC_4 + PC_5 + 
-                                  PC_6 + PC_7 + PC_8 + PC_9 + PC_10 +
-                                  PC_11 + PC_12 + PC_13 + PC_14 + PC_15 + 
-                                  PC_16 + PC_17 + PC_18 + PC_19 + PC_20 + 
-                                  PC_21 + PC_22 + PC_23 + PC_24 + PC_25 + 
-                                  PC_26 + PC_27 + PC_28 + PC_29 + PC_30 + 
-                                  PC_31 + PC_32 + PC_33 + PC_34 + PC_35 + 
-                                  PC_36 + PC_37 + PC_38 + PC_39 + PC_40 + 
-                                  PC_41 + PC_42 + PC_43 + PC_44 + PC_45 + 
-                                  PC_46 + PC_47 + PC_48 + PC_49 + PC_50)
 
 # 8) Run and Assess Calibration Check ====
 
@@ -365,16 +334,6 @@ calibration_result <- run_sceptre_lowmoi(
   response_grna_group_pairs = response_grna_group_pairs_hfob,
   calibration_check = TRUE # calibration_check TRUE
 ) 
-#Run basic trans check
-calibration_result_trans <- run_sceptre_lowmoi(
-  response_matrix = response_hfob_lowmoi_trans,
-  grna_matrix = grna_hfob_lowmoi,
-  covariate_data_frame = covariate_hfob_lowmoi,
-  grna_group_data_frame = grna_group_hfob_lowmoi,
-  formula_object = formula_object_trans,
-  response_grna_group_pairs = response_grna_group_pairs_hfob_trans,
-  calibration_check = TRUE # calibration_check TRUE
-) 
 
 #Plot cis calibration result
 jpeg(paste0(out_dir, "sceptre_calibration.hfob.jpeg"), width = 10800, height=10800, res=1000)
@@ -382,13 +341,6 @@ plot_calibration_result(calibration_result)
 dev.off()
 #Write cis calibration results to file
 write.table(calibration_result, file = paste0(out_dir, "non_targeting_test_results.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
-
-#Plot trans calibration result
-jpeg(paste0(out_dir, "sceptre_calibration.hfob.trans.jpeg"))
-plot_calibration_result(calibration_result_trans)
-dev.off()
-#Write trans calibration results to file
-write.table(calibration_result_trans, file = paste0(out_dir, "non_targeting_test_results.trans.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 # 9) Run Discovery Analyses ====
 
@@ -656,3 +608,35 @@ discovery_result_implicated <- cbind.data.frame(discovery_result_implicated,
 discovery_result_implicated$response_id <- ensg_to_symbol[discovery_result_implicated$response_id]
 write.table(discovery_result_implicated, file = paste0(out_dir, "discovery_results.implicated_connections_only.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
+# 12) Create a supplemental table of sgRNAs ====
+
+#Split up sequence column on targeted guide file
+sgrna_target_split <-  cbind.data.frame(sgrna_target_raw, matrix(unlist(str_split(sgrna_target_raw[,"name+seq"], pattern = "[+]")), byrow = TRUE, ncol = 2))
+colnames(sgrna_target_split) <- c(colnames(sgrna_target_raw), "name", "seq")
+#Get gRNA group into dataframe
+sgrna_target_split <- sgrna_target_split %>% mutate(grna_group=str_replace(name, pattern = "_[0-9]+", ""))
+#Take the data frame of gRNA group-gene pairs and add on info for the positive 
+#controls as we prepare the df for joining with prior df
+implicate_append <- implicate_raw %>% mutate(grna_group = proxies)
+implicate_append <- rbind.data.frame(implicate_append, c("RAB1A", "RAB1A", "RAB1A"), c("SYVN1", "SYVN1", "SYVN1"))
+#Merge the implicated genes onto the list of target guide RNAs
+sgrna_target_split <- sgrna_target_split %>% left_join(implicate_append, by="grna_group")
+#Remove unnecessary columns and reorder
+sgrna_target_split <- sgrna_target_split %>% dplyr::select(name, grna_group, chr, start, end, seq, genes_any)
+
+#Add on the non-targeting guides
+#First extract the non-targeting guides and their sequences from the sequence reference
+non_target_guide_ref <- guide_sequence_ref_raw %>% dplyr::filter(str_detect(id, "non-targeting_")) %>%
+  dplyr::select(id, sequence) %>% mutate(grna_group = "Non-Targeting", chr = NA, start = NA, end = NA, genes_any = NA) %>%
+  dplyr::select(id, grna_group, chr, start, end, sequence, genes_any)
+colnames(non_target_guide_ref) <- c("name", "grna_group", "chr", "start", "end", "seq", "genes_any")
+#Append information to targeting guides
+all_sgrna_info_df <- rbind.data.frame(sgrna_target_split, non_target_guide_ref)
+
+#Next add on info about number of cells per guide onto the export dataframe
+all_sgrna_info_df <- all_sgrna_info_df %>%
+  mutate(num_cells = rowSums(grna_hfob_lowmoi != 0)[name]) %>%
+  mutate(num_cells = ifelse(is.na(num_cells), 0, num_cells))
+
+#Write table to file
+write.table(all_sgrna_info_df, file = paste0(out_dir, "sgrna_supplemental_table.tsv"), sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
