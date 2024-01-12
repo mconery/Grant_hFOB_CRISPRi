@@ -43,6 +43,7 @@ guides_per_cell_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/p
 gencode_genes_loc <- "/mnt/isilon/sfgi/suc1/customerized_geneome_annotation/hg19/genecode_v19/gencode.v19.annotation.gene_only.bed"
 sgrna_target_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/all_targeting_guides.bed"
 marker_genes_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/hFOB_marker_genes.csv"
+lentiviral_pool_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/lentiviral_rna_seq_raw_read_counts.tsv"
 guide_sequence_ref_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/cellranger_outputs/aggr/crispr_analysis/feature_reference.csv"
 implicate_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/gene_implications.tsv"
 vep_loc <- "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/target.vep_annotations.txt"
@@ -82,6 +83,9 @@ implicate_raw <- read.table(implicate_loc, header = TRUE, stringsAsFactors = FAL
 
 #Read in guide sequence reference
 guide_sequence_ref_raw <- read.csv(guide_sequence_ref_loc, header = TRUE, stringsAsFactors = FALSE, sep = ",")
+
+#Read in file of lentiviral read counts
+lentiviral_pool_raw <- read.csv(lentiviral_pool_loc, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 
 #Read in vep annotations file
 vep_raw <- read.csv(vep_loc, sep = "\t", header = TRUE)
@@ -635,8 +639,16 @@ all_sgrna_info_df <- rbind.data.frame(sgrna_target_split, non_target_guide_ref)
 
 #Next add on info about number of cells per guide onto the export dataframe
 all_sgrna_info_df <- all_sgrna_info_df %>%
-  mutate(num_cells = rowSums(grna_hfob_lowmoi != 0)[name]) %>%
+  mutate(num_cells = rowSums(grna_hfob_lowmoi != 0)[str_replace_all(name, pattern = ",", replacement = "-")]) %>%
   mutate(num_cells = ifelse(is.na(num_cells), 0, num_cells))
+
+#Add on the number of counts per sgRNA in the lentiviral pool
+all_sgrna_info_df <- cbind.data.frame(lentiviral_pool_raw, name=vapply(lentiviral_pool_raw$CloneId, FUN = split_plus_take_one, FUN.VALUE = character(1))) %>% 
+  dplyr::select(name, Hit.Count) %>%  
+  mutate(name = ifelse(str_detect(name, pattern = "RAB1A"), "RAB1A", name)) %>%
+  mutate(name = ifelse(str_detect(name, pattern = "SYVN1"), "SYVN1", name)) %>%
+  right_join(all_sgrna_info_df, by = "name")
+all_sgrna_info_df <- all_sgrna_info_df[,c("name", "grna_group", "chr", "start", "end", "seq", "genes_any", "Hit.Count", "num_cells")]
 
 #Write table to file
 write.table(all_sgrna_info_df, file = paste0(out_dir, "sgrna_supplemental_table.tsv"), sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
