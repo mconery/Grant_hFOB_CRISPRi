@@ -381,6 +381,8 @@ make_volcano_plot(discovery_result = discovery_result) +
         legend.text = element_text(size=15)) 
 dev.off()
 
+#Append BH-Adjusted p-values to the output
+discovery_result <- discovery_result %>% mutate(p_value_BH=p.adjust(p_value, method = "BH"))
 #obtain discovery set and write to file
 discovery_set <- obtain_discovery_set(discovery_result)
 discovery_set$response_id <- ensg_to_symbol[discovery_set$response_id]
@@ -610,7 +612,8 @@ discovery_result_implicated <- cbind.data.frame(discovery_result_implicated,
                                                 p_value_BH=p.adjust(discovery_result_implicated$p_value, method = "BH"))
 #Write to file
 discovery_result_implicated$response_id <- ensg_to_symbol[discovery_result_implicated$response_id]
-write.table(discovery_result_implicated, file = paste0(out_dir, "discovery_results.implicated_connections_only.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+discovery_set_implicated <- obtain_discovery_set(discovery_result_implicated)
+write.table(discovery_set_implicated, file = paste0(out_dir, "discovery_results.implicated_connections_only.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 # 12) Create a supplemental table of sgRNAs ====
 
