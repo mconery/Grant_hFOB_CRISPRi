@@ -32,6 +32,7 @@ sc.settings.set_figure_params(dpi=80, facecolor="white")
 hfob_ref_raw = pd.read_table(hfob_loc, sep=",")
 #Make dictionary mapping and get maturation and mineralization genes
 osteo_mapping = {hfob_ref_raw['ENSG'][x] : hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw))}
+proliferation_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Proliferation"]
 maturation_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Maturation"]
 mineralization_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Mineralization"]
 
@@ -291,3 +292,16 @@ sc.tl.umap(cellbender_export_single_sgRNA)
 sc.pl.umap(cellbender_export_single_sgRNA, color=['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'Pool'], show=False, save=".final.single_sgrna")
 sc.pl.violin(cellbender_export_single_sgRNA, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'], 
              stripplot=False, multi_panel=True, show=False, save='.final.single_sgrna')
+
+#Make UMAPs colored by osteoblast genes
+cellbender_export_single_sgRNA_osteo = cellbender_export_single_sgRNA[:,cellbender_export_single_sgRNA.var_names.isin(hfob_ref_raw['ENSG'])]
+cellbender_export_single_sgRNA_osteo.var_names = [osteo_mapping[x] for x in cellbender_export_single_sgRNA_osteo.var_names.to_list()]
+sc.pl.umap(cellbender_export_single_sgRNA_osteo, color=proliferation_genes, show=False, save=".final.single_sgrna.proliferation_genes")
+sc.pl.violin(cellbender_export_single_sgRNA_osteo, proliferation_genes, 
+             stripplot=False, multi_panel=True, show=False, save='.final.single_sgrna.proliferation_genes')
+sc.pl.umap(cellbender_export_single_sgRNA_osteo, color=maturation_genes, show=False, save=".final.single_sgrna.maturation_genes")
+sc.pl.violin(cellbender_export_single_sgRNA_osteo, maturation_genes, 
+             stripplot=False, multi_panel=True, show=False, save='.final.single_sgrna.maturation_genes')
+sc.pl.umap(cellbender_export_single_sgRNA_osteo, color=mineralization_genes, show=False, save=".final.single_sgrna.mineralization_genes")
+sc.pl.violin(cellbender_export_single_sgRNA_osteo, mineralization_genes, 
+             stripplot=False, multi_panel=True, show=False, save='.final.single_sgrna.mineralization_genes')
