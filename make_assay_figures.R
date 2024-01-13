@@ -475,3 +475,35 @@ ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
     default.unit = "inch",
     override.aes = list(size = 5)))
 dev.off()
+
+# 6) Make Supplemental Tables of Results ====
+
+### Start with hfob alp ###
+hfob_alp_supplement <- combined_hfob_alp_plot %>% dplyr::group_by(siRNA) %>% 
+  dplyr::summarize(mean_fold_change=mean(Value)) %>% 
+  inner_join(hfob_alp_comparison_df, by = "siRNA") %>% 
+  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+write.table(hfob_alp_supplement, file = paste0(inp_dir, "hfob_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+### hMSC alp ###
+hmsc_alp_supplement <- combined_hmsc_alp_plot %>% dplyr::group_by(siRNA) %>% 
+  dplyr::summarize(mean_fold_change=mean(Value)) %>% 
+  inner_join(hmsc_alp_comparison_df_main, by = "siRNA") %>% 
+  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+write.table(hmsc_alp_supplement, file = paste0(inp_dir, "hmsc_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+### hMSC alizarin ###
+hmsc_ars_supplement <- combined_hmsc_ars_plot %>% dplyr::group_by(siRNA) %>% 
+  dplyr::summarize(mean_fold_change=mean(Value)) %>% 
+  inner_join(hmsc_ars_comparison_df_main, by = "siRNA") %>% 
+  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+write.table(hmsc_ars_supplement, file = paste0(inp_dir, "hmsc_ars.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+### hMSC adipo###
+hmsc_adipo_supplement <- combined_hmsc_adipo_plot %>% dplyr::group_by(siRNA) %>% 
+  dplyr::summarize(mean_fold_change=mean(Value)) %>% 
+  inner_join(hmsc_adipo_comparison_df_main, by = "siRNA") %>% 
+  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+write.table(hmsc_adipo_supplement, file = paste0(inp_dir, "hmsc_adipo.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+
