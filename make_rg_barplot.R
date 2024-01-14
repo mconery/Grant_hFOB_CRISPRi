@@ -129,11 +129,13 @@ global_raw %>% filter(p1=="BMD" | p2 == "BMD") %>%
 
 #Filter for impedance/weight traits
 impede_weight_traits <- c("basal_metabolic_rate", "body_fat_percentage", "impedance_whole_body", 
-                          "trunk_fat_percentage", "weight", "whole_body_fat-free_mass", "whole_body_fat_mass", "whole_body_water_mass")
+                          "trunk_fat_percentage", "weight", "whole_body_fat-free_mass", "whole_body_fat_mass", "whole_body_water_mass", "bmi")
 global_impede_weight <- global_raw %>% 
   dplyr::filter(p1 %in% impede_weight_traits & p2 %in% impede_weight_traits) %>%
   mutate(p_bh=p.adjust(p, method="BH")) %>% 
   mutate(p1=toTitleCase(str_replace_all(p1, "_", " "))) %>%
+  mutate(p1=str_replace(p1,"Bmi", "BMI")) %>% 
+  mutate(p2=str_replace(p2,"Bmi", "BMI")) %>% 
   mutate(p2=toTitleCase(str_replace_all(p2, "_", " "))) 
 
 #Output plot
