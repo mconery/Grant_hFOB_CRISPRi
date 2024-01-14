@@ -3,9 +3,9 @@
 #make_rg_barplot.R
 
 #The purpose of this script is to make a bar-plot of the genetic correlation 
-#results 
+#results and any related supplementary tables.
 
-#This code runs with the R/4.2 module
+#This code runs with R/4.2 on my local.
 
 ################################################################################
 
@@ -17,11 +17,14 @@ library(tidyverse)
 library(tools)
 
 #Set file locations
+data_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/"
 global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_820pairs.txt"
 plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.bar.jpeg"
 no_second_bmd_plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.no_panukbb_bmd.bar.jpeg"
+impede_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/impedance_traits_genetic_correlations.heatmap.jpeg"
 
-# 1) Make Bar-Plot ====
+
+# 1) Make Main Figure Bar-Plot ====
 
 #Read in file
 global_raw <- read.table(global_correlations, header = TRUE) 
@@ -98,3 +101,55 @@ p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
 jpeg(no_second_bmd_plot_loc, width = 10800, height=4000, res=1000)
 print(p)
 dev.off()
+
+#Write table to file for use in supplement
+global_raw %>% filter(p1=="BMD" | p2 == "BMD") %>%
+  mutate(non_bmd_trait=ifelse(p1=="BMD", p2, p1)) %>%
+  filter(non_bmd_trait != "PDB") %>% #Remove non-UKBB Paget's Disease
+  mutate(p_bh=p.adjust(p, method="BH"), non_bmd_trait = ifelse(non_bmd_trait == "phecode-251.1-both_sexes", "Hypoglycemia", non_bmd_trait)) %>%
+  dplyr::select(non_bmd_trait, rg, se, p, p_bh) %>% mutate(v_adj=ifelse(rg>0, 0.4, 1.1)) %>% 
+  mutate(non_bmd_trait_clean=toTitleCase(str_replace_all(non_bmd_trait, "_", " "))) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Alp", "ALP")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Alt", "ALT")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"BF", "Bone Fracture")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bmi", "BMI")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Ldl", "LDL")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Hdl", "HDL")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Egfr Creat", "eGFR Creatinine")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Ggt", "GGT")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Hba1c", "HbA1c")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Vitamin d", "Vitamin D")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Smoking Ever Never", "Smoking Ever/Never")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Lbs", "(lbs)")) %>% 
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bone Mineral Density", "BMD (Pan-UKBB)")) %>%
+  dplyr::select(non_bmd_trait_clean, rg, se, p, p_bh) %>% 
+  write.table(file=paste0(data_loc, "bmd_genetic_correlations.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+# 2) Make a Matrix of Genetic-correlations Between the Impedance-Derived Traits ====
+
+#Filter for impedance/weight traits
+impede_weight_traits <- c("basal_metabolic_rate", "body_fat_percentage", "impedance_whole_body", 
+                          "trunk_fat_percentage", "weight", "whole_body_fat-free_mass", "whole_body_fat_mass", "whole_body_water_mass")
+global_impede_weight <- global_raw %>% 
+  dplyr::filter(p1 %in% impede_weight_traits & p2 %in% impede_weight_traits) %>%
+  mutate(p_bh=p.adjust(p, method="BH")) %>% 
+  mutate(p1=toTitleCase(str_replace_all(p1, "_", " "))) %>%
+  mutate(p2=toTitleCase(str_replace_all(p2, "_", " "))) 
+
+#Output plot
+jpeg(impede_loc, width = 10800, height=10800, res=1000)
+ggplot(global_impede_weight, aes(x = p1, y = p2)) +
+  geom_tile(aes(fill = rg)) +
+  geom_text(aes(label = round(rg, 2)), size = 8) +
+  scale_fill_gradient(low = "blue", high = "red") + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(size = 24, angle=45, hjust = 1, vjust = 1), 
+        axis.title=element_blank(), 
+        legend.position = "none", axis.text.y = element_text(color="black", size=24), axis.title.x = element_blank()) 
+dev.off()
+
+#Write table to file
+global_impede_weight %>% dplyr::select(p1, p2, rg, se, p, p_bh) %>% 
+  write.table(file=paste0(data_loc, "impedance_weight_genetic_correlations.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
