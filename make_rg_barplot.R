@@ -48,8 +48,7 @@ global_bmd <- global_bmd %>% mutate(non_bmd_trait_clean=toTitleCase(str_replace_
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Vitamin d", "Vitamin D")) %>%
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Smoking Ever Never", "Smoking Ever/Never")) %>%
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Lbs", "(lbs)")) %>% 
-  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bone Mineral Density", "BMD (Pan-UKBB)")) %>%
-  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"BMD", "eBMD"))
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bone Mineral Density", "BMD (Pan-UKBB)"))
 
 # Create a bar plot
 p <- ggplot(global_bmd, aes(x = non_bmd_trait_clean, y = rg)) +
