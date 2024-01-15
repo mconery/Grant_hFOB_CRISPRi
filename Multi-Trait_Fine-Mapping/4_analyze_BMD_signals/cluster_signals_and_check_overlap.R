@@ -32,7 +32,7 @@ out_dir <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/mu
 plot_dir <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/multi-trait_fine-mapping/clustering/"
 
 #Set target bed file
-target_file <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/all_targeting_guides.bed"
+target_file <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/target_selection/all_targeting_guides.bed"
 #Set sceptre results file
 sceptre_file <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/sceptre_results/discovery_results.pca_corrected.15_pcs.tsv"
 
@@ -64,24 +64,73 @@ lapply(file_prefixes, count_bmd_signals, inp_dir=inp_dir)
 #Read in files and cluster
 inp_raw <- read.table(paste0(inp_dir, activity_files[file_prefixes == file_prefix]), header = TRUE, row.names = 1)
 #Remove completely empty columns
-inp_filt <- inp_raw[,colSums(inp_raw) != 0]
+inp_filt <- inp_raw[,colSums(inp_raw) != 0] 
+colnames(inp_filt) <- colnames(inp_filt) %>% toTitleCase() %>%
+  str_replace_all(pattern = "_", replacement = " ") %>% 
+  str_replace_all(pattern = "[.]", replacement = "-") %>%
+  str_replace(pattern = "Alp", "ALP") %>% 
+  str_replace(pattern = "Alt", "ALT") %>% 
+  str_replace(pattern = "BF", "Bone Fracture") %>% 
+  str_replace(pattern = "Bmi", "BMI") %>% 
+  str_replace(pattern = "Ldl", "LDL") %>% 
+  str_replace(pattern = "Hdl", "HDL") %>%
+  str_replace(pattern = "Egfr Creat", "eGFR Creatinine") %>%
+  str_replace(pattern = "Ggt", "GGT") %>% 
+  str_replace(pattern = "Hba1c", "HbA1c") %>%
+  str_replace(pattern = "Vitamin d", "Vitamin D") %>%
+  str_replace(pattern = "Smoking Ever Never", "Smoking Ever/Never") %>%
+  str_replace(pattern = "Lbs", "(lbs)") %>% 
+  str_replace(pattern = "Bone Mineral Density", "BMD (Pan-UKBB)") %>%
+  str_replace(pattern = "Whole body", replacement = "Whole-body")
 
 #Output the number of signals per trait
-colSums(inp_filt > 0.5)
-#Output the number of traits per signal
-jpeg(paste0(plot_dir, file_prefix, ".traits_per_signal.trait.jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
-hist(rowSums(inp_filt > 0.5), main = "Traits per Signal", xlab = "Number of Traits", ylab = "Count of Signals")
+temp <- cbind.data.frame(y = colSums(inp_filt > 0.5), name = colnames(inp_filt))
+jpeg(paste0(plot_dir, file_prefix, ".signals_per_trait.jpeg"), width = 10800, height=6000, res=1000)
+temp %>% ggplot(aes(x = name, y = y)) + geom_col() + 
+  ylab("Count of Signals") + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(size = 16, angle=45, hjust = 1, vjust = 1), 
+        legend.position = "none", axis.text.y = element_text(color="black", size=24), 
+        axis.title.y = element_text(size = 24), axis.title.x = element_blank())
 dev.off()
+#Output the number of traits per signal
+temp <- cbind.data.frame(y = rowSums(inp_filt > 0.5))
+jpeg(paste0(plot_dir, file_prefix, ".traits_per_signal.trait.jpeg"), width = 10800, height=10800, res=1000)
+temp %>% ggplot(aes(x = y)) + geom_histogram(binwidth = 1) + 
+  xlab("Number of Non-BMD Traits") + ylab("Count of Signals") + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(size = 24, angle=45, hjust = 1, vjust = 1), 
+        legend.position = "none", axis.text.y = element_text(color="black", size=24), axis.title = element_text(size = 24))
+dev.off()
+#Calc number of BMD only-traits and traits with highest counts
+sum(rowSums(inp_filt > 0.5) != 0)
+sort(colSums(inp_filt > 0.5), decreasing = TRUE)[1:5]
+
+#Clean up trait names
+colnames(inp_filt) <- toTitleCase(colnames(inp_filt)) %>% str_replace_all(pattern = "_", replacement = " ") %>% 
+  str_replace_all(pattern = "[.]", replacement = "-") %>%
+  str_replace(pattern = "Alp", replacement = "ALP") %>% 
+  str_replace(pattern = "Alt", replacement = "ALT") %>%
+  str_replace(pattern = "BF", replacement = "Bone Fracture") %>% 
+  str_replace(pattern = "Bmi", replacement = "BMI") %>% 
+  str_replace(pattern = "Ldl", replacement = "LDL") %>% 
+  str_replace(pattern = "Hdl", replacement = "HDL") %>%
+  str_replace(pattern = "Egfr Creat", replacement = "eGFR Creatinine") %>%
+  str_replace(pattern = "Ggt", replacement = "GGT") %>% 
+  str_replace(pattern = "Hba1c", replacement = "HbA1c") %>%
+  str_replace(pattern = "Vitamin d", replacement = "Vitamin D") %>%
+  str_replace(pattern = "Smoking Ever Never", replacement = "Smoking Ever/Never") %>%
+  str_replace(pattern = "Lbs", replacement = "(lbs)") %>% 
+  str_replace(pattern = "Bone Mineral Density", replacement = "BMD (Pan-UKBB)") %>%
+  str_replace(pattern = "Whole body", replacement = "Whole-body")
 
 #Make heatmaps
-jpeg(paste0(plot_dir, file_prefix, ".heatmap.jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
+jpeg(paste0(plot_dir, file_prefix, ".heatmap.jpeg"), width = 7200, height = 10800, res = 1000)
 pheatmap(t(inp_filt), 
-         show_colnames = FALSE, color=colorRampPalette(c("navy", "white", "red"))(50))
-dev.off()
-inp_double_filt <- inp_filt[,c("bmi","impedance_whole_body", "height")]
-jpeg(paste0(plot_dir, file_prefix, ".3-way.heatmap.jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
-pheatmap(t(inp_double_filt), 
-         show_colnames = FALSE, color=colorRampPalette(c("navy", "white", "red"))(50))
+         show_colnames = FALSE, color=colorRampPalette(c("navy", "white", "red"),)(50), fontsize_row = 16,
+         clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean")
 dev.off()
 
 pca_result <- prcomp(inp_filt, scale. = TRUE)
@@ -98,14 +147,19 @@ set.seed(5)
 umap_result <- umap(inp_filt, n_neighbors = 15, n_components = 2)
 # Plot the UMAP results with KNN clusters
 plot_umap_colored_trait <- function(trait, umap_result, inp_filt, plot_dir, file_prefix){
+  file_trait <- trait %>% str_replace_all(pattern = " ", replacement = "_") %>% str_replace_all(pattern = "/", replacement = "_")
   trait_color = inp_filt %>% mutate(trait_col = ifelse(inp_filt[,trait] > 0.5, 1, 0)) %>% select(trait_col)
-  jpeg(paste0(plot_dir, "umap.", trait, ".", file_prefix, ".jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
+  jpeg(paste0(plot_dir, "umap.", file_trait, ".", file_prefix, ".jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
     plot(umap_result$layout, col = as.numeric(trait_color$trait_col) + 1, pch = 16, main = paste0(trait, " UMAP"), xlab = "UMAP 1", ylab = "UMAP 2")
   dev.off()
 }
 lapply(colnames(inp_filt), plot_umap_colored_trait, umap_result=umap_result, inp_filt=inp_filt, plot_dir=plot_dir, file_prefix=file_prefix)
 
-# 2) Check for signal intersections with the file of targets ====
+#Output a supplemental table
+write.table(inp_filt, file=paste0(inp_dir, "supplement.multi-trait_results.", file_prefix, ".tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
+
+
+# 3) Check for signal intersections with the file of targets ====
 
 #Read in the target file
 target_bed <- read.csv(target_file, header = FALSE, sep = "\t")
