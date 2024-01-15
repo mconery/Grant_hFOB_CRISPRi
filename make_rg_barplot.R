@@ -51,7 +51,8 @@ global_bmd <- global_bmd %>% mutate(non_bmd_trait_clean=toTitleCase(str_replace_
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Vitamin d", "Vitamin D")) %>%
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Smoking Ever Never", "Smoking Ever/Never")) %>%
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Lbs", "(lbs)")) %>% 
-  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bone Mineral Density", "BMD (Pan-UKBB)"))
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bone Mineral Density", "BMD (Pan-UKBB)")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean, pattern = "Whole Body", replacement = "Whole-Body"))
 
 # Create a bar plot
 p <- ggplot(global_bmd, aes(x = non_bmd_trait_clean, y = rg)) +
@@ -122,6 +123,7 @@ global_raw %>% filter(p1=="BMD" | p2 == "BMD") %>%
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Smoking Ever Never", "Smoking Ever/Never")) %>%
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Lbs", "(lbs)")) %>% 
   mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean,"Bone Mineral Density", "BMD (Pan-UKBB)")) %>%
+  mutate(non_bmd_trait_clean=str_replace(non_bmd_trait_clean, pattern = "Whole Body", replacement = "Whole-Body")) %>% 
   dplyr::select(non_bmd_trait_clean, rg, se, p, p_bh) %>% 
   write.table(file=paste0(data_loc, "bmd_genetic_correlations.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
