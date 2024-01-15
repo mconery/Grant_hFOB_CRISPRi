@@ -138,6 +138,8 @@ global_impede_weight <- global_raw %>%
   mutate(p1=toTitleCase(str_replace_all(p1, "_", " "))) %>%
   mutate(p1=str_replace(p1,"Bmi", "BMI")) %>% 
   mutate(p2=str_replace(p2,"Bmi", "BMI")) %>% 
+  mutate(p1=str_replace(p1, pattern = "Whole Body", replacement = "Whole-Body")) %>% 
+  mutate(p2=str_replace(p2, pattern = "Whole Body", replacement = "Whole-Body")) %>% 
   mutate(p2=toTitleCase(str_replace_all(p2, "_", " "))) 
 
 #Output plot
