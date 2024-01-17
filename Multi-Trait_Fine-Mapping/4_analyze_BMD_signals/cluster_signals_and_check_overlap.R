@@ -25,6 +25,7 @@ library(reticulate)
 library(umap)
 library(igraph)
 library(pbapply)
+library(tools)
 
 #Set directory
 inp_dir <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/summary_files/"
@@ -65,7 +66,7 @@ lapply(file_prefixes, count_bmd_signals, inp_dir=inp_dir)
 inp_raw <- read.table(paste0(inp_dir, activity_files[file_prefixes == file_prefix]), header = TRUE, row.names = 1)
 #Remove completely empty columns
 inp_filt <- inp_raw[,colSums(inp_raw) != 0] 
-colnames(inp_filt) <- colnames(inp_filt) %>% toTitleCase() %>%
+colnames(inp_filt) <- colnames(inp_filt) %>%
   str_replace_all(pattern = "_", replacement = " ") %>% 
   str_replace_all(pattern = "[.]", replacement = "-") %>%
   str_replace(pattern = "Alp", "ALP") %>% 
@@ -81,7 +82,8 @@ colnames(inp_filt) <- colnames(inp_filt) %>% toTitleCase() %>%
   str_replace(pattern = "Smoking Ever Never", "Smoking Ever/Never") %>%
   str_replace(pattern = "Lbs", "(lbs)") %>% 
   str_replace(pattern = "Bone Mineral Density", "BMD (Pan-UKBB)") %>%
-  str_replace(pattern = "Whole body", replacement = "Whole-body")
+  str_replace(pattern = "Whole body", replacement = "Whole-body") %>% 
+  toTitleCase
 
 #Output the number of signals per trait
 temp <- cbind.data.frame(y = colSums(inp_filt > 0.5), name = colnames(inp_filt))
