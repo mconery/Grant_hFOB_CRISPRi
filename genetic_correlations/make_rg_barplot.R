@@ -144,13 +144,14 @@ global_impede_weight <- global_raw %>%
 
 #Output plot
 jpeg(impede_loc, width = 10800, height=10800, res=1000)
-ggplot(global_impede_weight, aes(x = p1, y = p2)) +
+ggplot(global_impede_weight, aes(x = p2, y = p1)) +
+  scale_y_discrete(position = "right") + 
   geom_tile(aes(fill = rg)) +
   geom_text(aes(label = round(rg, 2)), size = 8) +
   scale_fill_gradient(low = "blue", high = "red") + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
-        axis.text.x = element_text(size = 24, angle=45, hjust = 1, vjust = 1), 
+        axis.text.x = element_text(size = 24, angle=-45, hjust = 0, vjust = 1), 
         axis.title=element_blank(), 
         legend.position = "none", axis.text.y = element_text(color="black", size=24), axis.title.x = element_blank()) 
 dev.off()
