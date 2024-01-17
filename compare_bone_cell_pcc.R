@@ -1,3 +1,14 @@
+################################################################################
+
+#compare_bone_cell_pcc.R
+
+#This script is designed to identify the fine-mapped BMD signals from Morris et 
+#al. (2019) that lie within promoter-interacting open chromatin regions but not 
+#the promoters of expressed genes.
+
+################################################################################
+
+
 # 1) Load libraries ====
 
 #Load libraries
