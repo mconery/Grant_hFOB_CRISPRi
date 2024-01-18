@@ -229,7 +229,7 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
                 assoc_array[np.isin(cafehs.snp_ids, remain_snps)],
                 color="#DEDEDE",
                 zorder = 1)
-            axs[plot_position].set_title(trait.replace("_"," ").title())
+            axs[plot_position].set_title(trait.replace("_"," ").replace("whole body","whole-body").title())
             if(plot_position == len(plottable_traits)-1): #Add x-axis title for bottom subplot
                 axs[plot_position].set_xlabel('chr' + str(np.max(cafehs.chr)))
         else:
@@ -238,7 +238,7 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
                 assoc_array[np.isin(cafehs.snp_ids, remain_snps)],
                 color="#DEDEDE",
                 zorder = 1)
-            axs.set_title(trait.replace("_"," ").title())
+            axs.set_title(trait.replace("_"," ").replace("whole body","whole-body").title())
             if(plot_position == len(plottable_traits)-1): #Add x-axis title for bottom subplot
                 axs.set_xlabel('chr' + str(np.max(cafehs.chr)))
     #Add shared y-label to figure
