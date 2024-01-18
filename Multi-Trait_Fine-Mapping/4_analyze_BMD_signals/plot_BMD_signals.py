@@ -113,7 +113,7 @@ def main(argv):
 ################################  TEST LOCATIONS ##############################
 ###############################################################################
 
-pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr1.10000001.11750000.pkl"
+pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr11.10500001.11250000.pkl"
 out_dir="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping"
 purity=0.5
 active_thresh=0.5
@@ -199,34 +199,51 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
         #Set an array of SNPs that aren't in any credible sets for the trait
         remain_snps = cafehs.snp_ids
         #Get active components for the given trait
-        active_components = np.array([x for x in BMD_pure_active_signals if cafehs.active[trait_id,x] > active_thresh]) #Components active in any trait
+        active_components = np.array([x for x in BMD_sig_pure_active_signals if cafehs.active[trait_id,x] > active_thresh]) #Components active in any trait
         assoc_array = cafehs.neglogP[trait_id,]
         for k in np.arange(cafehs.dims['K'])[active_components]:
             #Get signal color
             signal_color = color_map(k % num_k_colors)
             #Remove credible set SNPs from remaining snps
             remain_snps = np.delete(remain_snps, np.argwhere(np.isin(remain_snps,cafehs.snp_ids[credible_sets[k]])))
-            #Plot the cred set
+            #Plot the cred set after checking how to handle the index
+            if len(plottable_traits) > 1:
+                axs[plot_position].scatter(
+                    cafehs.bp[credible_sets[k]],
+                    assoc_array[credible_sets[k]],
+                    label='k{}'.format(k),
+                    zorder = num_k_colors+1-k,
+                    color = signal_color)
+                axs[plot_position].set_ylabel('')
+            else:
+                axs.scatter(
+                    cafehs.bp[credible_sets[k]],
+                    assoc_array[credible_sets[k]],
+                    label='k{}'.format(k),
+                    zorder = num_k_colors+1-k,
+                    color = signal_color)
+                axs.set_ylabel('')
+        if len(plottable_traits) > 1:
             axs[plot_position].scatter(
-                cafehs.bp[credible_sets[k]],
-                assoc_array[credible_sets[k]],
-                label='k{}'.format(k),
-                zorder = num_k_colors+1-k,
-                color = signal_color)
-        axs[plot_position].scatter(
-            cafehs.bp[np.isin(cafehs.snp_ids, remain_snps)],
-            assoc_array[np.isin(cafehs.snp_ids, remain_snps)],
-            color="#DEDEDE",
-            zorder = 1)
-        axs[plot_position].set_title(trait.title())
-        if(plot_position == len(plottable_traits)-1): #Add x-axis title for bottom subplot
-            axs[plot_position].set_xlabel('chr' + str(np.max(cafehs.chr)))
+                cafehs.bp[np.isin(cafehs.snp_ids, remain_snps)],
+                assoc_array[np.isin(cafehs.snp_ids, remain_snps)],
+                color="#DEDEDE",
+                zorder = 1)
+            axs[plot_position].set_title(trait.replace("_"," ").title())
+            if(plot_position == len(plottable_traits)-1): #Add x-axis title for bottom subplot
+                axs[plot_position].set_xlabel('chr' + str(np.max(cafehs.chr)))
+        else:
+            axs.scatter(
+                cafehs.bp[np.isin(cafehs.snp_ids, remain_snps)],
+                assoc_array[np.isin(cafehs.snp_ids, remain_snps)],
+                color="#DEDEDE",
+                zorder = 1)
+            axs.set_title(trait.replace("_"," ").title())
+            if(plot_position == len(plottable_traits)-1): #Add x-axis title for bottom subplot
+                axs.set_xlabel('chr' + str(np.max(cafehs.chr)))
     #Add shared y-label to figure
-    fig.text(0.04, 0.5, '-log(P-value)', va='center', rotation='vertical')
-    #Add shared  and adjust spacing
-    fig.suptitle(file_prefix, fontsize=40)
+    fig.text(0, 0.5, '-log(P-value)', va='center', rotation='vertical')
     fig.tight_layout()
-    fig.subplots_adjust(top=0.968)
     #Print info that will only go once on the figure
     plt.savefig(f'{out_dir}{file_prefix}.purity-{purity}.{max_assoc}.pvalue.png', bbox_inches='tight')
         
