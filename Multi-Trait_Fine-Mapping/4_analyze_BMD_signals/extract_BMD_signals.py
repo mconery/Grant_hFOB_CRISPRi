@@ -143,7 +143,7 @@ def main(argv):
 pickle_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/cafeh_results"
 out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related"
 trait_sizes_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv"
-purity=0.1
+purity=0.5
 min_assoc=5e-8
 assoc_type="gwas"
 active_thresh=0.5
@@ -208,47 +208,57 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
             bmd_assoc = cafehs.neglogP[bmd_index,:]
             sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(bmd_assoc[cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0]
         elif assoc_type == 'absolute_residual':
-            assoc_array = cafehs.abs_neglogp_resid['BMD']
-            sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(assoc_array[x,cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0]
+            assoc_array = cafehs.abs_neglogp_resid
+            bmd_assoc = assoc_array['BMD']
+            sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(bmd_assoc[x,cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0]
         else:
-            assoc_array = cafehs.precede_neglogp_resid['BMD']
-            sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(assoc_array[x,cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0]
+            assoc_array = cafehs.abs_neglogp_resid
+            bmd_assoc = assoc_array['BMD']
+            sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(bmd_assoc[x,cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0]
         if sig_pure_bmd_signals == []:
             continue
         #Get the trait indices
         trait_indices = [int(np.where(cafehs.study_ids == x)[0]) if x in cafehs.study_ids else -1 for x in traits]
+        #Get the trait indices for the significant traits
+        sig_trait_index_map = {}
+        if assoc_type == 'gwas':
+            for signal in sig_pure_bmd_signals:
+                temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
+                sig_trait_index_map[signal] = [x for x in trait_indices if x == -1 or np.any(temp[x,:] > -np.log10(min_assoc))]
+        else:
+            for signal in sig_pure_bmd_signals:
+                temp = {x : assoc_array[x][signal,cafehs.credible_sets[signal]] for x in list(assoc_array.keys())}
+                sig_trait_index_map[signal] = [x if (x == -1) else x if (np.any(temp[cafehs.study_ids[x]] > -np.log10(min_assoc))) else -1 for x in trait_indices]
         #Reset the weights using the hard-coded stored valued independent of LD matrices
         cafehs.weight_means = cafehs.realweight_means
-        #Get the active values
-        temp = np.vstack([cafehs.active[:,x] for x in sig_pure_bmd_signals])
-        bmd_signals_activity.append(np.vstack([temp[:,x] if x != -1 else np.zeros(temp.shape[0],) for x in trait_indices]).T)
-        #Get the weight values
-        temp = np.vstack([cafehs.get_expected_weights()[:,x] for x in sig_pure_bmd_signals])
-        bmd_signals_weights.append(np.vstack([temp[:,x] if x != -1 else np.zeros(temp.shape[0],) for x in trait_indices]).T)
-        #Extract the signal info for a data frame
-        temp = np.vstack([pd.Series([locus + '.' + str(x), locus, x, 
-                           len(cafehs.credible_sets[x]), 
-                           ','.join(cafehs.ID[cafehs.credible_sets[x]].tolist()), 
-                           ','.join(cafehs.rsid[cafehs.credible_sets[x]].tolist()),
-                           cafehs.realpure[x],
-                           np.max(cafehs.get_pip()[cafehs.credible_sets[x]]), 
-                           ','.join(cafehs.study_ids[cafehs.active[:,x] > active_thresh].tolist()), 
-                           ','.join([str(x) for x in np.max(cafehs.neglogP[cafehs.active[:,x] > active_thresh,:][:,cafehs.credible_sets[x]], axis=1).tolist()]),
-                           ','.join([str(u) for u in np.max(np.vstack([z[x,cafehs.credible_sets[x]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[cafehs.active[:,x] > active_thresh].tolist()]]), axis = 1)])
-                           ]) 
-                for x in sig_pure_bmd_signals])
-        bmd_signals_out.append(temp)
-        #Extract the bed file info
-        temp = np.vstack([np.vstack([cafehs.chr[cafehs.credible_sets[x]],
-                          cafehs.bp[cafehs.credible_sets[x]],
-                          cafehs.bp[cafehs.credible_sets[x]] + 1,
-                          locus + '.' + str(x) + '.' + cafehs.ID[cafehs.credible_sets[x]], 
-                          cafehs.rsid[cafehs.credible_sets[x]],
-                          cafehs.get_pip()[cafehs.credible_sets[x]],
-                          np.tile(','.join(list(cafehs.study_ids[cafehs.active[:,x] > active_thresh])),cafehs.credible_sets[x].shape),
-                          np.array([','.join(list(cafehs.neglogP[cafehs.active[:,x] > active_thresh,:][:,cafehs.credible_sets[x]][:,y].astype(str))) for y in range(len(cafehs.credible_sets[x]))])]).T
-                          for x in sig_pure_bmd_signals])
-        bmd_bed.append(temp)
+        #Get the active values and weight values
+        for signal in sig_pure_bmd_signals:
+            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            #Extract the signal info for a data frame
+            temp = []
+            sig_trait_indices = [x for x in sig_trait_index_map[signal] if x != -1]
+            temp = pd.Series([locus + '.' + str(signal), locus, signal, 
+                               len(cafehs.credible_sets[signal]), 
+                               ','.join(cafehs.ID[cafehs.credible_sets[signal]].tolist()), 
+                               ','.join(cafehs.rsid[cafehs.credible_sets[signal]].tolist()),
+                               cafehs.realpure[signal],
+                               np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
+                               ','.join(cafehs.study_ids[sig_trait_indices].tolist()), 
+                               ','.join([str(x) for x in np.max(cafehs.neglogP[sig_trait_indices,:][:,cafehs.credible_sets[signal]], axis=1).tolist()]),
+                               ','.join([str(u) for u in np.max(np.vstack([z[signal,cafehs.credible_sets[signal]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]]), axis = 1)])
+                               ])
+            bmd_signals_out.append(temp)
+            #Extract the bed file info
+            temp = np.vstack([cafehs.chr[cafehs.credible_sets[signal]],
+                              cafehs.bp[cafehs.credible_sets[signal]],
+                              cafehs.bp[cafehs.credible_sets[signal]] + 1,
+                              locus + '.' + str(signal) + '.' + cafehs.ID[cafehs.credible_sets[signal]], 
+                              cafehs.rsid[cafehs.credible_sets[signal]],
+                              cafehs.get_pip()[cafehs.credible_sets[signal]],
+                              np.tile(','.join(list(cafehs.study_ids[sig_trait_indices])),cafehs.credible_sets[signal].shape),
+                              np.array([','.join(list(cafehs.neglogP[sig_trait_indices,:][:,cafehs.credible_sets[signal]][:,y].astype(str))) for y in range(len(cafehs.credible_sets[signal]))])]).T
+            bmd_bed.append(temp)
         
     #Make matrices 
     bmd_signals_matrix = pd.DataFrame(np.vstack(bmd_signals_out), 
