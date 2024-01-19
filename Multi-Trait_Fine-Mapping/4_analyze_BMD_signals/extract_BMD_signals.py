@@ -186,6 +186,7 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     bmd_signals_out = [] #Empty list to hold the writeable dataframe
     bmd_bed = [] #Empty list to hold the bed file formatted data
     for locus in loci:
+        print('NOTE: Beginning locus ' + locus)
         #Read in pickle file
         with open(pickle_dir + locus + '.pkl', 'rb') as f:
             cafehs = pickle.load(f)
