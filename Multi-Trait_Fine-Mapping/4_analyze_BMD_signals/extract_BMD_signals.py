@@ -225,7 +225,7 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         if assoc_type == 'gwas':
             for signal in sig_pure_bmd_signals:
                 temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
-                sig_trait_index_map[signal] = [x for x in trait_indices if x == -1 or np.any(temp[x,:] > -np.log10(min_assoc))]
+                sig_trait_index_map[signal] = [x if (x == -1) or np.any(temp[x,:] > -np.log10(min_assoc)) else -1 for x in trait_indices ]
         else:
             for signal in sig_pure_bmd_signals:
                 temp = {x : assoc_array[x][signal,cafehs.credible_sets[signal]] for x in list(assoc_array.keys())}
