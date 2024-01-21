@@ -113,7 +113,7 @@ def main(argv):
 ################################  TEST LOCATIONS ##############################
 ###############################################################################
 
-pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr11.10500001.11250000.pkl"
+pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr2.85000001.86000000.pkl"
 out_dir="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping"
 purity=0.5
 active_thresh=0.5
@@ -144,8 +144,8 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
     out_dir = add_slash(out_dir)
     
     #Read in pickle file
-    with open(pickle_file, 'rb') as f:
-        cafehs = pickle.load(f)
+with open(pickle_file, 'rb') as f:
+    cafehs = pickle.load(f)
     
     #Check if the pickle file is empty
     if cafehs is None:
@@ -176,8 +176,13 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
     #Make plot
     #Identify BMD signals passing signficance thresholds
     BMD_sig_pure_active_signals = [x for x in BMD_pure_active_signals if np.any(cafehs.neglogP[BMD_trait_id, cafehs.credible_sets[x]] >= -(np.log10(max_assoc)))]
-    #Identify traits ids and trait names that are active for at least one of the signals
-    plottable_trait_ids = [x for x in list(range(len(cafehs.study_ids))) if np.any(cafehs.active[x,BMD_sig_pure_active_signals] > active_thresh)]
+    #Identify traits ids and trait names that are active and significant for at least one of the signals
+    #Get the trait indices for the significant traits
+    sig_trait_index_map = {}
+    for signal in BMD_sig_pure_active_signals:
+        temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
+        sig_trait_index_map[signal] = [list(cafehs.study_ids)[x] for x in range(len(cafehs.study_ids)) if np.any(temp[x,:] > -np.log10(max_assoc)) ]
+    plottable_trait_ids = [x for x in range(len(cafehs.study_ids)) if np.any([True if cafehs.study_ids[x] in z else False for z in sig_trait_index_map.values()])]
     plottable_traits = cafehs.study_ids[plottable_trait_ids]
     plottable_traits_sorted = np.sort(plottable_traits).tolist()
     plottable_traits_sorted.remove('BMD') #Removing to reorder for plot ordering purposes
@@ -198,10 +203,12 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
         plot_position = position_map[trait]
         #Set an array of SNPs that aren't in any credible sets for the trait
         remain_snps = cafehs.snp_ids
-        #Get active components for the given trait
-        active_components = np.array([x for x in BMD_sig_pure_active_signals if cafehs.active[trait_id,x] > active_thresh]) #Components active in any trait
+        #Get association array for the trait
         assoc_array = cafehs.neglogP[trait_id,]
-        for k in np.arange(cafehs.dims['K'])[active_components]:
+        for k in BMD_sig_pure_active_signals:
+            #Skip signal if not relevant to the trait
+            if trait not in sig_trait_index_map[k]:
+                continue
             #Get signal color
             signal_color = color_map(k % num_k_colors)
             #Remove credible set SNPs from remaining snps
