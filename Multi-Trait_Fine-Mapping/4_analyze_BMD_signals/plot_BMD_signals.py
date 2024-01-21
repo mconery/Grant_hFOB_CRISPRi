@@ -144,8 +144,8 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
     out_dir = add_slash(out_dir)
     
     #Read in pickle file
-with open(pickle_file, 'rb') as f:
-    cafehs = pickle.load(f)
+    with open(pickle_file, 'rb') as f:
+        cafehs = pickle.load(f)
     
     #Check if the pickle file is empty
     if cafehs is None:
