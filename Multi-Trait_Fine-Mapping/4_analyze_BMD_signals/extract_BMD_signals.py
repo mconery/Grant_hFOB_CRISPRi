@@ -239,16 +239,32 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
             #Extract the signal info for a data frame
             temp = []
             sig_trait_indices = [x for x in sig_trait_index_map[signal] if x != -1]
-            temp = pd.Series([locus + '.' + str(signal), locus, signal, 
-                               len(cafehs.credible_sets[signal]), 
-                               ','.join(cafehs.ID[cafehs.credible_sets[signal]].tolist()), 
-                               ','.join(cafehs.rsid[cafehs.credible_sets[signal]].tolist()),
-                               cafehs.realpure[signal],
-                               np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
-                               ','.join(cafehs.study_ids[sig_trait_indices].tolist()), 
-                               ','.join([str(x) for x in np.max(cafehs.neglogP[sig_trait_indices,:][:,cafehs.credible_sets[signal]], axis=1).tolist()]),
-                               ','.join([str(u) for u in np.max(np.vstack([z[signal,cafehs.credible_sets[signal]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]]), axis = 1)])
-                               ])
+            if sig_trait_indices == []:
+                temp = pd.Series([locus + '.' + str(signal), locus, signal, 
+                                   len(cafehs.credible_sets[signal]), 
+                                   ','.join(cafehs.ID[cafehs.credible_sets[signal]].tolist()), 
+                                   ','.join(cafehs.rsid[cafehs.credible_sets[signal]].tolist()),
+                                   cafehs.realpure[signal],
+                                   cafehs.active[bmd_index,signal],
+                                   np.max(cafehs.neglogP[bmd_index,cafehs.credible_sets[signal]]),
+                                   np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
+                                   'None', 
+                                   'NA',
+                                   'NA'
+                                   ])
+            else:
+                temp = pd.Series([locus + '.' + str(signal), locus, signal, 
+                                   len(cafehs.credible_sets[signal]), 
+                                   ','.join(cafehs.ID[cafehs.credible_sets[signal]].tolist()), 
+                                   ','.join(cafehs.rsid[cafehs.credible_sets[signal]].tolist()),
+                                   cafehs.realpure[signal],
+                                   cafehs.active[bmd_index,signal],
+                                   np.max(cafehs.neglogP[bmd_index,cafehs.credible_sets[signal]]),
+                                   np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
+                                   ','.join(cafehs.study_ids[sig_trait_indices].tolist()), 
+                                   ','.join([str(x) for x in np.max(cafehs.neglogP[sig_trait_indices,:][:,cafehs.credible_sets[signal]], axis=1).tolist()]),
+                                   ','.join([str(u) for u in np.max(np.vstack([z[signal,cafehs.credible_sets[signal]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]]), axis = 1)])
+                                   ])
             bmd_signals_out.append(temp)
             #Extract the bed file info
             temp = np.vstack([cafehs.chr[cafehs.credible_sets[signal]],
@@ -263,7 +279,7 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         
     #Make matrices 
     bmd_signals_matrix = pd.DataFrame(np.vstack(bmd_signals_out), 
-                                      columns=["signal_id", "locus", "signal", "num_snps", "snp_ids", "rsids", "purity", "max_pip", "traits", "max_neglog_gwas", "max_neglog_residual"])
+                                      columns=["signal_id", "locus", "signal", "num_snps", "snp_ids", "rsids", "purity", "bmd_activity", "max_bmd_neglog_gwas","max_pip", "traits", "max_other_neglog_gwas", "max_other_neglog_residual"])
     bmd_bed_matrix = pd.DataFrame(np.vstack(bmd_bed),
                                   columns = ["chr","start","end","signal.snp_id","rsid","total_pip","active_traits","active_traits_gwas_neglogp"])
     bmd_activity_matrix = pd.DataFrame(np.vstack(bmd_signals_activity), columns=traits)
