@@ -17,7 +17,7 @@ plot_dir=$finemap_dir/bmd_signal_plots
 temp_script_dir=$finemap_dir/temp_script_files
 
 #Set global variables
-min_purity=0.1
+min_purity=0.5
 p_thresh=5e-8
 activity_thresh=0.5
 
