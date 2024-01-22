@@ -108,6 +108,8 @@ temp %>% ggplot(aes(x = y)) + geom_histogram(binwidth = 1) +
 dev.off()
 #Calc number of BMD only-traits and traits with highest counts
 sum(rowSums(inp_filt > 0.5) != 0)
+sum(rowSums(inp_filt > 0.5) == 0)
+sum(rowSums(inp_filt > 0.5) == 1)
 sort(colSums(inp_filt > 0.5), decreasing = TRUE)[1:5]
 
 #Clean up trait names
