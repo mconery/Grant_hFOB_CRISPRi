@@ -21,7 +21,7 @@ temp_script_dir=$finemap_dir/temp_script_files
 #Set parameters for testing
 assoc_threshes=(1 1e-6 5e-8)
 assoc_types=(gwas absolute_residual)
-purity_threshes=(0.1 0.5)
+purity_threshes=(0.95)
 
 #Change the directory to the temp directory
 cd $temp_script_dir
