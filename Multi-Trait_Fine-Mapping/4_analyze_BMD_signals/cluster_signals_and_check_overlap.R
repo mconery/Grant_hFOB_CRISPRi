@@ -49,6 +49,7 @@ input_files <- list.files(inp_dir)
 #Separate file types
 weight_files <- input_files[grepl("bmd_signal_weights", input_files)]
 activity_files <- input_files[grepl("bmd_signal_activity", input_files)]
+signal_files <- input_files[grepl("bmd_signals", input_files)]
 bed_files <- input_files[grepl("bmd_variants", input_files)]
 
 #Get file prefixes
@@ -66,6 +67,9 @@ lapply(file_prefixes, count_bmd_signals, inp_dir=inp_dir)
 inp_raw <- read.table(paste0(inp_dir, activity_files[file_prefixes == file_prefix]), header = TRUE, row.names = 1)
 #Remove completely empty columns
 inp_filt <- inp_raw[,colSums(inp_raw) != 0] 
+#Manually remove signals at 8p23 inversion
+inp_filt <- inp_filt %>% dplyr::filter(!(str_detect(row.names(inp_filt), pattern="chr8.7750001.12250000")))
+#Rename column names
 colnames(inp_filt) <- colnames(inp_filt) %>%
   str_replace_all(pattern = "_", replacement = " ") %>% 
   str_replace_all(pattern = "[.]", replacement = "-") %>%
@@ -162,6 +166,19 @@ lapply(colnames(inp_filt), plot_umap_colored_trait, umap_result=umap_result, inp
 #Output a supplemental table
 write.table(inp_filt, file=paste0(inp_dir, "supplement.multi-trait_results.", file_prefix, ".tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
 
+# 2) Read in Signal Files and Process for Supplement ====
+
+#Read in the signal-level results file and the bed file of varaint-level info about signals
+bed_raw <- read.table(paste0(inp_dir, bed_files[file_prefixes == file_prefix]), header = TRUE, sep = "\t", row.names = 1)
+signal_raw <- read.table(paste0(inp_dir, signal_files[file_prefixes == file_prefix]), header = TRUE, sep = "\t", row.names = 1)
+
+#Filter the files for the 8p23.1 locus
+signal_filt <- signal_raw %>% dplyr::filter(locus != "chr8.7750001.12250000")
+bed_filt <- bed_raw %>% dplyr::filter(!(str_detect(signal.snp_id, pattern = "chr8.7750001.12250000")))
+
+#Write files
+write.table(signal_filt, file = paste0(inp_dir, "supplement.signals.", file_prefix), quote = FALSE, row.names = FALSE, col.names = TRUE)
+write.table(bed_filt, file = paste0(inp_dir, "supplement.variants.", file_prefix), quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 # 3) Check for signal intersections with the file of targets ====
 
@@ -171,18 +188,15 @@ colnames(target_bed) <- c("chr", "start", "end", "target")
 #Filter out the positive controls
 target_bed <- target_bed %>% filter(str_count(target, "rs") > 0)
 
-#Read in the bed file of signals
-bed_raw <- read.table(paste0(inp_dir, bed_files[file_prefixes == file_prefix]), header = TRUE, sep = "\t", row.names = 1)
-
 #Intersect the bed files to see if any fine-mapped variants were found in the repressed targeted regions
-intersect_target_bed <- function(target_bed_row, bed_raw, repression_range=1000){
+intersect_target_bed <- function(target_bed_row, bed_filt, repression_range=1000){
   #Get position of repression range
   target_chr = as.numeric(str_replace(target_bed_row[1], "chr", ""))
   target_start = as.numeric(target_bed_row[2])
   target_end = as.numeric(target_bed_row[3])
   target_name = target_bed_row[4]
   #Filter for SNPs in target repression range
-  temp <- bed_raw[which(bed_raw$chr == target_chr & target_start - repression_range <= bed_raw$start & target_end + repression_range >= bed_raw$end),]
+  temp <- bed_filt[which(bed_filt$chr == target_chr & target_start - repression_range <= bed_filt$start & target_end + repression_range >= bed_filt$end),]
   #Check if any fine-mapped variants were found in the repressed region
   if (nrow(temp) == 0) {
     return(NULL)
@@ -192,7 +206,7 @@ intersect_target_bed <- function(target_bed_row, bed_raw, repression_range=1000)
   }
 }
 #Apply the function over the targeting sgRNAs and then remove any non-intersections before forming into a dataframe
-intersection_list <- pbapply(target_bed, FUN = intersect_target_bed, bed_raw=bed_raw, MARGIN = 1)
+intersection_list <- pbapply(target_bed, FUN = intersect_target_bed, bed_filt=bed_filt, MARGIN = 1)
 intersection_list <- intersection_list[lapply(intersection_list, FUN = is.null) == FALSE]
 targeted_signal_df <- bind_rows(intersection_list)
 colnames(targeted_signal_df) <- c("target_chr", "target_start", "target_end", "target_name", colnames(bed_raw))
