@@ -13,19 +13,19 @@ files. It outputs 4 files as follows:
 '''
 
 ###############################################################################
-
-#Load libraries
-import getopt
-import numpy as np
-import pandas as pd
-import sys
-import os
-from os.path import exists
-import matplotlib
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pickle
-import cafeh
+    
+    #Load libraries
+    import getopt
+    import numpy as np
+    import pandas as pd
+    import sys
+    import os
+    from os.path import exists
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import pickle
+    import cafeh
 
 #Define help function to be called if there is a problem
 def help(exit_num=1):
@@ -146,7 +146,7 @@ trait_sizes_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mappi
 purity=0.5
 min_assoc=5e-8
 assoc_type="gwas"
-active_thresh=0.5
+active_thresh=0.95
 
 ###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
@@ -220,16 +220,16 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
             continue
         #Get the trait indices
         trait_indices = [int(np.where(cafehs.study_ids == x)[0]) if x in cafehs.study_ids else -1 for x in traits]
-        #Get the trait indices for the significant traits
+        #Get the trait indices for the significant, active traits
         sig_trait_index_map = {}
         if assoc_type == 'gwas':
             for signal in sig_pure_bmd_signals:
                 temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
-                sig_trait_index_map[signal] = [x if (x == -1) or np.any(temp[x,:] > -np.log10(min_assoc)) else -1 for x in trait_indices ]
+                sig_trait_index_map[signal] = [x if (x == -1) else x if np.any(temp[x,:] > -np.log10(min_assoc)) and cafehs.active[x,signal] > active_thresh else -1 for x in trait_indices ]
         else:
             for signal in sig_pure_bmd_signals:
                 temp = {x : assoc_array[x][signal,cafehs.credible_sets[signal]] for x in list(assoc_array.keys())}
-                sig_trait_index_map[signal] = [x if (x == -1) else x if (np.any(temp[cafehs.study_ids[x]] > -np.log10(min_assoc))) else -1 for x in trait_indices]
+                sig_trait_index_map[signal] = [x if (x == -1) else x if np.any(temp[cafehs.study_ids[x]] > -np.log10(min_assoc)) and cafehs.active[x,signal] > active_thresh else -1 for x in trait_indices]
         #Reset the weights using the hard-coded stored valued independent of LD matrices
         cafehs.weight_means = cafehs.realweight_means
         #Get the active values and weight values
@@ -248,7 +248,9 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
                                    cafehs.active[bmd_index,signal],
                                    np.max(cafehs.neglogP[bmd_index,cafehs.credible_sets[signal]]),
                                    np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
+                                   0,
                                    'None', 
+                                   'NA',
                                    'NA',
                                    'NA'
                                    ])
@@ -261,7 +263,9 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
                                    cafehs.active[bmd_index,signal],
                                    np.max(cafehs.neglogP[bmd_index,cafehs.credible_sets[signal]]),
                                    np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
+                                   len(sig_trait_indices),
                                    ','.join(cafehs.study_ids[sig_trait_indices].tolist()), 
+                                   ','.join([str(x) for x in cafehs.active[sig_trait_indices,signal]]),
                                    ','.join([str(x) for x in np.max(cafehs.neglogP[sig_trait_indices,:][:,cafehs.credible_sets[signal]], axis=1).tolist()]),
                                    ','.join([str(u) for u in np.max(np.vstack([z[signal,cafehs.credible_sets[signal]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]]), axis = 1)])
                                    ])
@@ -279,7 +283,7 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         
     #Make matrices 
     bmd_signals_matrix = pd.DataFrame(np.vstack(bmd_signals_out), 
-                                      columns=["signal_id", "locus", "signal", "num_snps", "snp_ids", "rsids", "purity", "bmd_activity", "max_bmd_neglog_gwas","max_pip", "traits", "max_other_neglog_gwas", "max_other_neglog_residual"])
+                                      columns=["signal_id", "locus", "signal", "num_snps", "snp_ids", "rsids", "purity", "bmd_activity", "max_bmd_neglog_gwas","max_pip", "num_traits", "traits", "trait_activities","max_other_neglog_gwas", "max_other_neglog_residual"])
     bmd_bed_matrix = pd.DataFrame(np.vstack(bmd_bed),
                                   columns = ["chr","start","end","signal.snp_id","rsid","total_pip","active_traits","active_traits_gwas_neglogp"])
     bmd_activity_matrix = pd.DataFrame(np.vstack(bmd_signals_activity), columns=traits)
