@@ -113,7 +113,7 @@ def main(argv):
 ################################  TEST LOCATIONS ##############################
 ###############################################################################
 
-pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr2.85000001.86000000.pkl"
+pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr11.45500001.52000000.pkl"
 out_dir="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping"
 purity=0.5
 active_thresh=0.5
@@ -181,7 +181,7 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
     sig_trait_index_map = {}
     for signal in BMD_sig_pure_active_signals:
         temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
-        sig_trait_index_map[signal] = [list(cafehs.study_ids)[x] for x in range(len(cafehs.study_ids)) if np.any(temp[x,:] > -np.log10(max_assoc)) ]
+        sig_trait_index_map[signal] = [list(cafehs.study_ids)[x] for x in range(len(cafehs.study_ids)) if np.any(temp[x,:] > -np.log10(max_assoc)) and cafehs.active[x,signal] > active_thresh]
     plottable_trait_ids = [x for x in range(len(cafehs.study_ids)) if np.any([True if cafehs.study_ids[x] in z else False for z in sig_trait_index_map.values()])]
     plottable_traits = cafehs.study_ids[plottable_trait_ids]
     plottable_traits_sorted = np.sort(plottable_traits).tolist()
