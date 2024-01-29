@@ -13,7 +13,7 @@ plot_script=$script_dir/Multi-Trait_Fine-Mapping/3_fine-mapping/plot_CAFEH.py
 #Define other file paths
 finemap_dir=/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related
 cafeh_dir=$finemap_dir/cafeh_results
-plot_dir=$finemap_dir/signal_plots
+plot_dir=$finemap_dir/residual_plots
 temp_script_dir=$finemap_dir/temp_script_files
 
 ###########################################################################################################################################################
