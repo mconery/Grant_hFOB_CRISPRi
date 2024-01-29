@@ -38,6 +38,8 @@ ARGUMENTS
     -c => <num> activity threshold for calling a trait active (default is 0.5) OPTIONAL
     -u => <num> purity threshold for thresholding (default is 0.5) OPTIONAL
     -m => <num> Necessary min association p-value for thresholding (default is 1) OPTIONAL
+    -r => <boo> Filter for high-quality signals only when using GWAS Association for significance filtering.
+                High quality signals carry peak of own residual association (default is False) Optional
 """)
     sys.exit(exit_num)
 
@@ -51,7 +53,7 @@ ARGUMENTS
 
 def main(argv): 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "p:o:t:a:c:u:m:nh")
+        opts, args = getopt.getopt(sys.argv[1:], "p:o:t:a:c:u:m:r:nh")
     except getopt.GetoptError:
         print("ERROR: Incorrect usage of getopts flags!")
         help()
@@ -78,6 +80,7 @@ def main(argv):
     active_thresh = options_dict.get('-c', 0.5)
     purity = options_dict.get('-u', 0.5)
     min_assoc = options_dict.get('-m', 1)
+    filt_high_flag = options_dict.get('-r', False)
     #Confirm that the file/folder locs exist
     if exists(out_dir) == False:
         print("ERROR: Output directory does not exist.")
@@ -132,9 +135,27 @@ def main(argv):
     except ValueError:
         print("ERROR: Minimum association level is not coercible to a float. It should be a p-value in (0,1].")
         sys.exit(1)
+    #Recast High-quality signal filtering flag
+    if(type(filt_high_flag)) == str:
+        if(filt_high_flag.lower() == 'false' or filt_high_flag.lower() == 'f' or filt_high_flag.lower() == 'no' or filt_high_flag.lower() == 'n'):
+            filt_high_flag = False
+        elif(filt_high_flag.lower() == 'true' or filt_high_flag.lower() == 't' or filt_high_flag.lower() == 'yes' or filt_high_flag.lower() == 'y'):
+            filt_high_flag = True
+        else:
+            print("ERROR: Unrecognized option selected for whether to filter for signals where credible set captures peak of residual association. Select True/False.")
+            sys.exit(1)
+    elif(type(filt_high_flag) == bool):
+        #In this case the indicator is already a boolean, so there's no need to recast.
+        #Verify that there isn't a conflict betweent the association type and the high-quality signal filtering flag
+        if filt_high_flag == True and assoc_type != 'gwas':
+            print("ERROR: Filtering for signals that contain peak of own absolute residual is only compatible with initial filtering by gwas p-value.")
+            sys.exit(1)
+    else:
+        print("ERROR: Unrecognized option selected for whether to filter for signals where credible set captures peak of residual association. Select True/False.")
+        sys.exit(1)
     print("Acceptable Inputs Given")
     #Call driver function
-    driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc)
+    driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc, filt_high_flag)
 
 ###############################################################################
 ################################  TEST LOCATIONS ##############################
@@ -147,6 +168,7 @@ purity=0.5
 min_assoc=5e-8
 assoc_type="gwas"
 active_thresh=0.95
+filt_high_flag=True
 
 ###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
@@ -163,7 +185,7 @@ def add_slash(directory):
 #############################  DRIVER  ########################################
 ###############################################################################
 
-def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc): 
+def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc, filt_high_flag): 
 
     #Add slashes to directories if needed    
     out_dir = add_slash(out_dir)
@@ -181,8 +203,10 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     loci = [x.replace(".pkl", "") for x in pickle_files]
     
     #Loop over the loci and extract all the BMD signals at the given thresholds
-    bmd_signals_weights = [] #Empty list to hold the weights
-    bmd_signals_activity = [] #Empty list to hold the activity
+    bmd_signals_weights = [] #Empty list to hold the unbinarized weights
+    bmd_signals_weights_binarized = [] #Empty list to hold the unbinarized weights
+    bmd_signals_activity = [] #Empty list to hold the unbinarized activity scores
+    bmd_signals_activity_binarized = [] #Empty list to hold the binarized activity scores
     bmd_signals_out = [] #Empty list to hold the writeable dataframe
     bmd_bed = [] #Empty list to hold the bed file formatted data
     for locus in loci:
@@ -205,7 +229,11 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         #Identify pure, active BMD signals
         pure_bmd_signals = [x for x in bmd_signals if cafehs.realpure[x] > purity]
         #Check significance thresholds (first check the association type used for thresholding)
-        if assoc_type == 'gwas':
+        if filt_high_flag == True:
+            bmd_assoc = cafehs.neglogP[bmd_index,:]
+            bmd_residual_assoc = cafehs.abs_neglogp_resid['BMD']
+            sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(bmd_assoc[cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0 and np.argmax(bmd_residual_assoc[x,]) in cafehs.credible_sets[x]]
+        elif assoc_type == 'gwas':
             bmd_assoc = cafehs.neglogP[bmd_index,:]
             sig_pure_bmd_signals = [x for x in pure_bmd_signals if np.sum(bmd_assoc[cafehs.credible_sets[x]] > -np.log10(min_assoc)) > 0]
         elif assoc_type == 'absolute_residual':
@@ -222,7 +250,11 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         trait_indices = [int(np.where(cafehs.study_ids == x)[0]) if x in cafehs.study_ids else -1 for x in traits]
         #Get the trait indices for the significant, active traits
         sig_trait_index_map = {}
-        if assoc_type == 'gwas':
+        if filt_high_flag == True:
+            for signal in sig_pure_bmd_signals:
+                temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
+                sig_trait_index_map[signal] = [trait_indices[x] if (trait_indices[x] == -1) else trait_indices[x] if np.any(temp[trait_indices[x],:] > -np.log10(min_assoc)) and cafehs.active[trait_indices[x],signal] > active_thresh and np.argmax(cafehs.abs_neglogp_resid[traits[x]][signal,:]) in cafehs.credible_sets[signal] else -1 for x in range(len(trait_indices)) ]
+        elif assoc_type == 'gwas':
             for signal in sig_pure_bmd_signals:
                 temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
                 sig_trait_index_map[signal] = [x if (x == -1) else x if np.any(temp[x,:] > -np.log10(min_assoc)) and cafehs.active[x,signal] > active_thresh else -1 for x in trait_indices ]
@@ -234,8 +266,10 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         cafehs.weight_means = cafehs.realweight_means
         #Get the active values and weight values
         for signal in sig_pure_bmd_signals:
-            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
-            bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_activity_binarized.append(np.vstack([1 if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_weights_binarized.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             #Extract the signal info for a data frame
             temp = []
             sig_trait_indices = [x for x in sig_trait_index_map[signal] if x != -1]
@@ -290,14 +324,22 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     bmd_activity_matrix = bmd_activity_matrix.set_index(bmd_signals_matrix['signal_id'])
     bmd_weights_matrix = pd.DataFrame(np.vstack(bmd_signals_weights), columns=traits)
     bmd_weights_matrix = bmd_weights_matrix.set_index(bmd_signals_matrix['signal_id'])
+    bmd_activity_matrix_binarized = pd.DataFrame(np.vstack(bmd_signals_activity), columns=traits)
+    bmd_activity_matrix_binarized = bmd_activity_matrix_binarized.set_index(bmd_signals_matrix['signal_id'])
+    bmd_weights_matrix_binarized = pd.DataFrame(np.vstack(bmd_signals_weights), columns=traits)
+    bmd_weights_matrix_binarized = bmd_weights_matrix_binarized.set_index(bmd_signals_matrix['signal_id'])
     
-    #Write matrices to file
+    #Write matrices to file after checking for high-quality filtering for naming conventions
     out_file_suffix = '.purity_' + str(purity) + '.activity_' + str(active_thresh) + '.' + assoc_type + '_' + str(min_assoc) + '.'
+    if filt_high_flag == True:
+        out_file_suffix = out_file_suffix + 'highest_residual_filtered.' 
     bmd_signals_matrix.to_csv(out_dir + 'bmd_signals' + out_file_suffix + 'tsv', index=True, sep='\t')
     bmd_bed_matrix.to_csv(out_dir + 'bmd_variants' + out_file_suffix + 'bed', index=True, sep='\t')
     bmd_activity_matrix.to_csv(out_dir + 'bmd_signal_activity' + out_file_suffix + 'tsv', index=True, sep='\t')
     bmd_weights_matrix.to_csv(out_dir + 'bmd_signal_weights' + out_file_suffix + 'tsv', index=True, sep='\t')    
-            
+    bmd_activity_matrix_binarized.to_csv(out_dir + 'bmd_signal_activity' + out_file_suffix + 'binarized.tsv', index=True, sep='\t')
+    bmd_weights_matrix_binarized.to_csv(out_dir + 'bmd_signal_weights' + out_file_suffix + 'binarized.tsv', index=True, sep='\t')    
+    
 ###############################################################################
 
 #cProfile.run('main(sys.argv[1:])')
