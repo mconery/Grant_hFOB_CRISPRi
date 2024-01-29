@@ -33,9 +33,9 @@ for active_thresh in ${active_threshes[@]}; do
 	for assoc_thresh in ${assoc_threshes[@]}; do
 		for purity_thresh in ${purity_threshes[@]}; do
 			for flag in ${filt_high_flags[@]}; do
-				echo "source activate cafeh; python $extract_script -p $cafeh_dir -o $out_dir -a $assoc_type -c $active_thresh -u $purity_thresh -m $assoc_thresh" > $temp_script_dir/$assoc_type.$purity_thresh.$assoc_thresh.extract.sh
-				sed -i '1i#!/bin/bash' $temp_script_dir/$assoc_type.$purity_thresh.$assoc_thresh.extract.sh
-				sbatch --mem=20G -t 2:00:00 --job-name $assoc_type.$purity_thresh.$assoc_thresh.extract $temp_script_dir/$assoc_type.$purity_thresh.$assoc_thresh.extract.sh
+				echo "source activate cafeh; python $extract_script -p $cafeh_dir -o $out_dir -a $assoc_type -c $active_thresh -u $purity_thresh -m $assoc_thresh -r $flag" > $temp_script_dir/$assoc_type.$purity_thresh.$assoc_thresh.$flag.extract.sh
+				sed -i '1i#!/bin/bash' $temp_script_dir/$assoc_type.$purity_thresh.$assoc_thresh.$flag.extract.sh
+				sbatch --mem=20G -t 2:00:00 --job-name $assoc_type.$purity_thresh.$assoc_thresh.$flag.extract $temp_script_dir/$assoc_type.$purity_thresh.$assoc_thresh.$flag.extract.sh
 			done
 		done
 	done
