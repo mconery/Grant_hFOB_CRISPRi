@@ -39,7 +39,7 @@ ARGUMENTS
     -u => <num> purity threshold for thresholding (default is 0.5) OPTIONAL
     -m => <num> Necessary min association p-value for thresholding (default is 1) OPTIONAL
     -r => <boo> Filter for high-quality signals only when using GWAS Association for significance filtering.
-                High quality signals carry peak of own residual association (default is False) Optional
+                High quality signals carry peak of own residual association (default is False) OPTIONAL
 """)
     sys.exit(exit_num)
 
