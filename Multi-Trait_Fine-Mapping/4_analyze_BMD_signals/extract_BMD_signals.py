@@ -263,7 +263,7 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         cafehs.weight_means = cafehs.realweight_means
         #Get the active values and weight values
         for signal in sig_pure_bmd_signals:
-            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] if x != -1 else 0 for x in trait_indices]).T)
             bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             bmd_signals_activity_binarized.append(np.vstack([1 if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             #Extract the signal info for a data frame
