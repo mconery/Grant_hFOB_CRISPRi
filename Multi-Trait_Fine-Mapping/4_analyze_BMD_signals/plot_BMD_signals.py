@@ -33,6 +33,8 @@ ARGUMENTS
     -u => <num> purity threshold for plotting non-residual plots (default is 0.5) OPTIONAL
     -c => <num> activity threshold for calling a trait active (default is 0.5) OPTIONAL
     -m => <num> Necessary min association p-value for plotting credible sets on non-residual plots (default is 1) OPTIONAL
+    -r => <boo> Filter for high-quality signals only when using GWAS Association for significance filtering.
+                High quality signals carry peak of own residual association (default is False) Optional
 """)
     sys.exit(exit_num)
 
@@ -46,7 +48,7 @@ ARGUMENTS
 
 def main(argv): 
     try: 
-        opts, args = getopt.getopt(sys.argv[1:], "p:o:u:c:m:nh")
+        opts, args = getopt.getopt(sys.argv[1:], "p:o:u:c:m:r:nh")
     except getopt.GetoptError:
         print("ERROR: Incorrect usage of getopts flags!")
         help()
@@ -71,6 +73,7 @@ def main(argv):
     purity = options_dict.get('-u', 0.5)
     active_thresh = options_dict.get('-c', 0.5)
     max_assoc = options_dict.get('-m', 1)
+    filt_high_flag = options_dict.get('-r', False)
     #Confirm that the file/folder locs exist
     if exists(out_dir) == False:
         print("ERROR: Output directory does not exist.")
@@ -105,19 +108,32 @@ def main(argv):
     except ValueError:
         print("ERROR: Maximum association level is not coercible to a float. It should be a p-value in (0,1].")
         sys.exit(1)
+    #Recast High-quality signal filtering flag
+    if(type(filt_high_flag)) == str:
+        if(filt_high_flag.lower() == 'false' or filt_high_flag.lower() == 'f' or filt_high_flag.lower() == 'no' or filt_high_flag.lower() == 'n'):
+            filt_high_flag = False
+        elif(filt_high_flag.lower() == 'true' or filt_high_flag.lower() == 't' or filt_high_flag.lower() == 'yes' or filt_high_flag.lower() == 'y'):
+            filt_high_flag = True
+        else:
+            print("ERROR: Unrecognized option selected for whether to filter for signals where credible set captures peak of residual association. Select True/False.")
+            sys.exit(1)
+    elif(type(filt_high_flag) == bool):
+        #In this case the indicator is already a boolean, so there's no need to recast.
+        pass
     print("Acceptable Inputs Given")
     #Call driver function
-    driver(pickle_file, out_dir, purity, active_thresh, max_assoc)
+    driver(pickle_file, out_dir, purity, active_thresh, max_assoc, filt_high_flag)
 
 ###############################################################################
 ################################  TEST LOCATIONS ##############################
 ###############################################################################
 
-pickle_file="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/pickle_files/chr11.45500001.52000000.pkl"
-out_dir="C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping"
+pickle_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/cafeh_results/chr1.21500001.24250000.pkl"
+out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/residual-filtered_signal_plots"
 purity=0.5
 active_thresh=0.5
 max_assoc=5e-8
+filt_high_flag=True
 
 ###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
@@ -134,7 +150,7 @@ def add_slash(directory):
 #############################  DRIVER  ########################################
 ###############################################################################
 
-def driver(pickle_file, out_dir, purity, active_thresh, max_assoc): 
+def driver(pickle_file, out_dir, purity, active_thresh, max_assoc, filt_high_flag): 
 
     #Extract file prefix from pickle_file
     file_prefix = pickle_file.split("/")[-1]
@@ -174,14 +190,24 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc):
     BMD_pure_active_signals = [x for x in BMD_active_signals if cafehs.realpure[x] > purity]
     
     #Make plot
-    #Identify BMD signals passing signficance thresholds
-    BMD_sig_pure_active_signals = [x for x in BMD_pure_active_signals if np.any(cafehs.neglogP[BMD_trait_id, cafehs.credible_sets[x]] >= -(np.log10(max_assoc)))]
+    #Identify BMD signals passing signficance thresholds after checking whether the residual filtering flag has been thrown
+    if filt_high_flag == False:
+        BMD_sig_pure_active_signals = [x for x in BMD_pure_active_signals if np.any(cafehs.neglogP[BMD_trait_id, cafehs.credible_sets[x]] >= -(np.log10(max_assoc)))]
+    else:
+        BMD_sig_pure_active_signals = [x for x in BMD_pure_active_signals if np.any(cafehs.neglogP[BMD_trait_id, cafehs.credible_sets[x]] >= -(np.log10(max_assoc))) and np.argmax(cafehs.abs_neglogp_resid['BMD'][x,:]) in cafehs.credible_sets[x]]
+    #Quit if there are no mappable signals
+    if BMD_sig_pure_active_signals == []:
+        print("NOTE: No mappable signals for " + file_prefix + '.')
+        sys.exit(0)
     #Identify traits ids and trait names that are active and significant for at least one of the signals
     #Get the trait indices for the significant traits
     sig_trait_index_map = {}
     for signal in BMD_sig_pure_active_signals:
         temp = cafehs.neglogP[:,cafehs.credible_sets[signal]]
-        sig_trait_index_map[signal] = [list(cafehs.study_ids)[x] for x in range(len(cafehs.study_ids)) if np.any(temp[x,:] > -np.log10(max_assoc)) and cafehs.active[x,signal] > active_thresh]
+        if filt_high_flag == False:
+            sig_trait_index_map[signal] = [list(cafehs.study_ids)[x] for x in range(len(cafehs.study_ids)) if np.any(temp[x,:] > -np.log10(max_assoc)) and cafehs.active[x,signal] > active_thresh]
+        else:
+            sig_trait_index_map[signal] = [list(cafehs.study_ids)[x] for x in range(len(cafehs.study_ids)) if np.any(temp[x,:] > -np.log10(max_assoc)) and cafehs.active[x,signal] > active_thresh and np.argmax(cafehs.abs_neglogp_resid[cafehs.study_ids[x]][signal,:]) in cafehs.credible_sets[signal]]
     plottable_trait_ids = [x for x in range(len(cafehs.study_ids)) if np.any([True if cafehs.study_ids[x] in z else False for z in sig_trait_index_map.values()])]
     plottable_traits = cafehs.study_ids[plottable_trait_ids]
     plottable_traits_sorted = np.sort(plottable_traits).tolist()
