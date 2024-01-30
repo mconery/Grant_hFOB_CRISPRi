@@ -278,8 +278,10 @@ def driver(pickle_file, out_dir, purity, active_thresh, max_assoc, filt_high_fla
     fig.text(0, 0.5, '-log(P-value)', va='center', rotation='vertical')
     fig.tight_layout()
     #Print info that will only go once on the figure
-    plt.savefig(f'{out_dir}{file_prefix}.purity-{purity}.{max_assoc}.pvalue.png', bbox_inches='tight')
-        
+    if filt_high_flag == False:
+        plt.savefig(f'{out_dir}{file_prefix}.purity-{purity}.{max_assoc}.pvalue.png', bbox_inches='tight')
+    else:
+        plt.savefig(f'{out_dir}{file_prefix}.purity-{purity}.{max_assoc}.residual-filtered.pvalue.png', bbox_inches='tight')
                 
 ###############################################################################
 
