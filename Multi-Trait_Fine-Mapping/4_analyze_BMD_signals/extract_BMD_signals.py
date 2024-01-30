@@ -190,12 +190,10 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     #Add slashes to directories if needed    
     out_dir = add_slash(out_dir)
     pickle_dir = add_slash(pickle_dir)
-    
     #Get list of traits from sample sizes file
     trait_sizes = pd.read_table(trait_sizes_file, sep="\t")
     traits = trait_sizes.loc[:,'trait'].to_list()
     traits = [trait for trait in traits if trait != 'BMD']
-    
     #Get list of pickled outputs
     pickle_files = os.listdir(pickle_dir)
     pickle_files = [x for x in pickle_files if x[-4:] == '.pkl']
@@ -204,7 +202,6 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     
     #Loop over the loci and extract all the BMD signals at the given thresholds
     bmd_signals_weights = [] #Empty list to hold the unbinarized weights
-    bmd_signals_weights_binarized = [] #Empty list to hold the unbinarized weights
     bmd_signals_activity = [] #Empty list to hold the unbinarized activity scores
     bmd_signals_activity_binarized = [] #Empty list to hold the binarized activity scores
     bmd_signals_out = [] #Empty list to hold the writeable dataframe
@@ -266,10 +263,9 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         cafehs.weight_means = cafehs.realweight_means
         #Get the active values and weight values
         for signal in sig_pure_bmd_signals:
-            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] for x in sig_trait_index_map[signal]]).T)
-            bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             bmd_signals_activity_binarized.append(np.vstack([1 if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
-            bmd_signals_weights_binarized.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             #Extract the signal info for a data frame
             temp = []
             sig_trait_indices = [x for x in sig_trait_index_map[signal] if x != -1]
@@ -324,10 +320,8 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     bmd_activity_matrix = bmd_activity_matrix.set_index(bmd_signals_matrix['signal_id'])
     bmd_weights_matrix = pd.DataFrame(np.vstack(bmd_signals_weights), columns=traits)
     bmd_weights_matrix = bmd_weights_matrix.set_index(bmd_signals_matrix['signal_id'])
-    bmd_activity_matrix_binarized = pd.DataFrame(np.vstack(bmd_signals_activity), columns=traits)
+    bmd_activity_matrix_binarized = pd.DataFrame(np.vstack(bmd_signals_activity_binarized), columns=traits)
     bmd_activity_matrix_binarized = bmd_activity_matrix_binarized.set_index(bmd_signals_matrix['signal_id'])
-    bmd_weights_matrix_binarized = pd.DataFrame(np.vstack(bmd_signals_weights), columns=traits)
-    bmd_weights_matrix_binarized = bmd_weights_matrix_binarized.set_index(bmd_signals_matrix['signal_id'])
     
     #Write matrices to file after checking for high-quality filtering for naming conventions
     out_file_suffix = '.purity_' + str(purity) + '.activity_' + str(active_thresh) + '.' + assoc_type + '_' + str(min_assoc) + '.'
@@ -338,7 +332,6 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
     bmd_activity_matrix.to_csv(out_dir + 'bmd_signal_activity' + out_file_suffix + 'tsv', index=True, sep='\t')
     bmd_weights_matrix.to_csv(out_dir + 'bmd_signal_weights' + out_file_suffix + 'tsv', index=True, sep='\t')    
     bmd_activity_matrix_binarized.to_csv(out_dir + 'bmd_signal_activity' + out_file_suffix + 'binarized.tsv', index=True, sep='\t')
-    bmd_weights_matrix_binarized.to_csv(out_dir + 'bmd_signal_weights' + out_file_suffix + 'binarized.tsv', index=True, sep='\t')    
     
 ###############################################################################
 
