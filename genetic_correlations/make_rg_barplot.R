@@ -136,11 +136,11 @@ global_impede_weight <- global_raw %>%
   dplyr::filter(p1 %in% impede_weight_traits & p2 %in% impede_weight_traits) %>%
   mutate(p_bh=p.adjust(p, method="BH")) %>% 
   mutate(p1=toTitleCase(str_replace_all(p1, "_", " "))) %>%
+  mutate(p2=toTitleCase(str_replace_all(p2, "_", " "))) %>%
   mutate(p1=str_replace(p1,"Bmi", "BMI")) %>% 
   mutate(p2=str_replace(p2,"Bmi", "BMI")) %>% 
   mutate(p1=str_replace(p1, pattern = "Whole Body", replacement = "Whole-Body")) %>% 
-  mutate(p2=str_replace(p2, pattern = "Whole Body", replacement = "Whole-Body")) %>% 
-  mutate(p2=toTitleCase(str_replace_all(p2, "_", " "))) 
+  mutate(p2=str_replace(p2, pattern = "Whole Body", replacement = "Whole-Body"))
 
 #Output plot
 jpeg(impede_loc, width = 10800, height=10800, res=1000)
