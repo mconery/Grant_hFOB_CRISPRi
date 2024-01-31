@@ -261,10 +261,12 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
                 sig_trait_index_map[signal] = [x if (x == -1) else x if np.any(temp[cafehs.study_ids[x]] > -np.log10(min_assoc)) and cafehs.active[x,signal] > active_thresh else -1 for x in trait_indices]
         #Reset the weights using the hard-coded stored valued independent of LD matrices
         cafehs.weight_means = cafehs.realweight_means
+        #Reorient the weights so that the BMD signal always has a positive weight for all signals
+        bmd_normalized_weights = ([1 if x > 0 else -1 for x in cafehs.get_expected_weights()[bmd_index,:]] * cafehs.get_expected_weights())
         #Get the active values and weight values
         for signal in sig_pure_bmd_signals:
             bmd_signals_activity.append(np.vstack([cafehs.active[x,signal] if x != -1 else 0 for x in trait_indices]).T)
-            bmd_signals_weights.append(np.vstack([cafehs.get_expected_weights()[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
+            bmd_signals_weights.append(np.vstack([bmd_normalized_weights[x,signal] if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             bmd_signals_activity_binarized.append(np.vstack([1 if x != -1 else 0 for x in sig_trait_index_map[signal]]).T)
             #Extract the signal info for a data frame
             temp = []
