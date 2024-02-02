@@ -134,7 +134,7 @@ cluster_by_activity <- function(activity_file, out_plot_dir=paste0(plot_dir, "cl
   #Make heatmaps
   jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".heatmap.jpeg"), width = 7200, height = 10800, res = 1000)
   print(pheatmap(t(inp_filt), 
-           show_colnames = FALSE, color=colorRampPalette(c("navy", "red"),)(50), fontsize_row = 16,
+           show_colnames = FALSE, color=colorRampPalette(c("#C5C6D0", "red"),)(50), fontsize_row = 16,
            clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean"))
   dev.off()
   
@@ -181,7 +181,7 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
   #Make heatmaps
   jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".weight.heatmap.jpeg"), width = 7200, height = 10800, res = 1000)
   print(pheatmap(t(weight_filt), 
-                 show_colnames = FALSE, color=colorRampPalette(c("navy", "white", "red"),)(50), fontsize_row = 16,
+                 show_colnames = FALSE, color=colorRampPalette(c("navy", "#C5C6D0", "red"),)(50), fontsize_row = 16,
                  clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean"))
   dev.off()
   
