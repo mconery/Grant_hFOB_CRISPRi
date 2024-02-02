@@ -134,7 +134,7 @@ cluster_by_activity <- function(activity_file, out_plot_dir=paste0(plot_dir, "cl
   #Make heatmaps
   jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".heatmap.jpeg"), width = 7200, height = 10800, res = 1000)
   print(pheatmap(t(inp_filt), 
-           show_colnames = FALSE, color=colorRampPalette(c("#C5C6D0", "red"),)(50), fontsize_row = 16,
+           show_colnames = FALSE, color=colorRampPalette(c("#C5C6D0", "black"),)(50), fontsize_row = 16,
            clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean"))
   dev.off()
   
@@ -193,6 +193,25 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
   jpeg(paste0(out_plot_dir, out_file_folder, "umap.weight.jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
   plot(umap_result$layout, pch = 16, main = "", xlab = "UMAP 1", ylab = "UMAP 2")
   dev.off()
+  
+  #Make a barplot of the signals by trait split by positive and negative effects
+  t_plot <- weight_filt %>% mutate(signal=rownames(weight_filt)) %>% pivot_longer(!signal, names_to = "trait", values_to = "activity") %>%
+    group_by(trait, activity) %>% summarize(count=n()) %>% filter(activity != 0) %>% mutate(count=activity*count) %>%
+    ggplot(aes(x = trait, y = count, fill = activity)) + geom_bar(position = "stack", stat="identity") + 
+    ylab("Count of Signals") + 
+    scale_fill_gradientn(colours = colorRampPalette(c("navy", "red"),)(100)) + 
+    scale_y_continuous(breaks = c(-20,-10,0,10,20), labels = c(20,10,0,10,20)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+          axis.text.x = element_text(size = 16, angle=45, hjust = 1, vjust = 1), 
+          legend.position = "none", axis.text.y = element_text(color="black", size=16), 
+          axis.title.y = element_text(size = 16), axis.title.x = element_blank())
+  jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".signals_per_trait.weighted.jpeg"), width = 10800, height=6000, res=1000)
+  print(t_plot)
+  dev.off()
+  
+  #Write table to file
+  write.table(weight_filt, file=paste0(inp_dir, "supplement.multi-trait_results.", out_file_prefix, ".weights.tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
 }
 lapply(weight_files, cluster_by_weight)
 
