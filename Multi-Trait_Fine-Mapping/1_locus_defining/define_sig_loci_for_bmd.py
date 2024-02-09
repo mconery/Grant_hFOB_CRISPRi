@@ -132,7 +132,7 @@ def driver(gwas_file, output_loc, prime_p_thresh, sec_p_thresh, stagger_bp, chro
     filt_file = cur_file[cur_file['P'] <= sec_p_thresh] #May need to modify row if file changes
     #Figure out which multiple of the stagger_bp each SNP is in
     temp = filt_file.index.str.split(":")
-    sig_tiles = [int(x[0]) + (int(x[1])//stagger_bp)/1000 for x in temp]
+    sig_tiles = [int(x[0]) + (int(x[1])//stagger_bp)/1000000000 for x in temp]
     #Sort the list of significant tiles and remove duplicates
     sig_tiles_no_dups = list(set(sig_tiles))
     sig_tiles_no_dups = np.sort(sig_tiles_no_dups)
@@ -145,7 +145,7 @@ def driver(gwas_file, output_loc, prime_p_thresh, sec_p_thresh, stagger_bp, chro
     for i in range(len(sig_tiles_no_dups)):
         cur_tile = sig_tiles_no_dups[i]
         chromo = int(cur_tile//1)
-        start_bp = int(round(1000*(cur_tile%1)) * stagger_bp) #This gets the start position of the current tile (ending in 0)
+        start_bp = int(round(1000000000*(cur_tile%1)) * stagger_bp) #This gets the start position of the current tile (ending in 0)
         if cur_locus == []: #Handle the first interval
             cur_locus = [chromo, start_bp+1, start_bp+stagger_bp]
         elif start_bp == cur_locus[2] and chromo == cur_locus[0]: #Extend the current locus
