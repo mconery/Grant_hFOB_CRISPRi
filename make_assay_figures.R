@@ -38,7 +38,7 @@ hmsc_adipo_raw <- read.csv(hmsc_adipo_file, sep = "\t", stringsAsFactors = FALSE
 hfob_alp_raw$siRNA = ifelse(hfob_alp_raw$siRNA == "Control", "CON", hfob_alp_raw$siRNA)
 #Add Name column
 hfob_alp_raw <- hfob_alp_raw %>% mutate(Name = siRNA)
-#Remove non-targeting test
+#Remove no siRNA test
 hfob_alp_raw <- hfob_alp_raw %>% dplyr::filter(siRNA != "NT" & siRNA != "Not Treated")
 
 # 2) Normalize Data to Control Level of Each Plate ====
@@ -55,32 +55,21 @@ normalize_hfob_replicate <- function(replicate, inp_raw){
 }
 hfob_alp_normal <- normalize_hfob(hfob_alp_raw)
 
-#Make a function that normalizes each plate relative to its control for the hMSC ALP/ARS and call it
-normalize_hmsc_alp_ars <- function(inp_raw){
+#Make a function that normalizes each plate relative to its control for the hMSC assays and call it
+normalize_hmsc <- function(inp_raw, treat_name){
   #Bind on a column representing unique plate
-  inp_raw <- inp_raw %>% mutate(Unique_plate = paste(Donor, Plate, sep = "."))
+  inp_raw <- inp_raw %>% mutate(Unique_plate = paste(Donor, Plate, Passage, sep = "."))
   unique_plates = unique(inp_raw$Unique_plate)
-  bind_rows(lapply(unique_plates, normalize_hmsc_alp_ars_plate, inp_raw=inp_raw))
+  bind_rows(lapply(unique_plates, normalize_hmsc_plate, inp_raw=inp_raw, treat_name=treat_name))
 }
-normalize_hmsc_alp_ars_plate <- function(unique_plate, inp_raw){
+normalize_hmsc_plate <- function(unique_plate, inp_raw, treat_name){
   temp <- inp_raw %>% dplyr::filter(Unique_plate == unique_plate)
-  temp$Value <- temp$Value/temp[temp$siRNA == "CON" & temp$Treatment == "BMP2","Value"]
+  temp$Value <- temp$Value/temp[temp$siRNA == "CON" & temp$Treatment == treat_name,"Value"]
   return(temp)
 }
-hmsc_alp_normal <- normalize_hmsc_alp_ars(hmsc_alp_raw)
-hmsc_ars_normal <- normalize_hmsc_alp_ars(hmsc_ars_raw)
-
-#Make a function that normalizes the adipocyte results relative to the plate controls and call it
-normalize_hmsc_adipo <- function(inp_raw){
-  donors = unique(inp_raw$Donor)
-  bind_rows(lapply(donors, normalize_hmsc_adipo_donor, inp_raw=inp_raw))
-}
-normalize_hmsc_adipo_donor <- function(donor, inp_raw){
-  temp <- inp_raw %>% dplyr::filter(Donor == donor)
-  temp$Value <- temp$Value/temp[temp$siRNA == "CON" & temp$Treatment == "Adipo","Value"]
-  return(temp)
-}
-hmsc_adipo_normal <- normalize_hmsc_adipo(hmsc_adipo_raw)
+hmsc_alp_normal <- normalize_hmsc(hmsc_alp_raw, treat_name = "BMP2")
+hmsc_ars_normal <- normalize_hmsc(hmsc_ars_raw, treat_name = "BMP2")
+hmsc_adipo_normal <- normalize_hmsc(hmsc_adipo_raw, treat_name = "Adipo")
 
 # 3) Make functions for generating comparison df ====
 
@@ -98,10 +87,10 @@ calc_comparison_df <- function(inp_raw){
     treats = unique(inp_raw$Treatment)
     if("Plate" %in% colnames(inp_raw)){
       #Need to test multiple plates worth of controls
-      temp <- vapply(unique(inp_raw$Plate), calc_treat_test_control, FUN.VALUE = numeric(1), inp_raw=inp_raw)
+      temp <- t(vapply(unique(inp_raw$Plate), calc_treat_test_control, FUN.VALUE = numeric(2), inp_raw=inp_raw))
       make_plate_name <- function(name){paste0("CON", name, "-", treats)}
       temp <- cbind.data.frame(t(vapply(unique(inp_raw$Plate), make_plate_name, FUN.VALUE = character(2))), temp)
-      colnames(temp) <- c("group1", "group2", "p")
+      colnames(temp) <- c("group1", "group2", "reps", "p")
       sirna_df <- rbind.data.frame(sirna_df, temp)
     }
     else{
@@ -124,24 +113,29 @@ calc_comparison_sirna <- function(sirna, inp_raw){
   if ("Measurement" %in% colnames(temp)) {
     temp <- temp %>% dplyr::group_by(siRNA, Replicate) %>% dplyr::summarize(Value=mean(Value))
   }
+  #Check if Multiple passages are present for donors (Passage is mutually exclusive with Measurement in input file)
+  if ("Passage" %in% colnames(temp)){
+    temp <- temp %>% dplyr::group_by(siRNA, Donor, Treatment) %>% dplyr::summarize(Value=mean(Value)) %>% as.data.frame
+  }
   #Check if treatment conditions present
   if ("Treatment" %in% colnames(temp)) {
     treats <- temp %>% select(Treatment) %>% unique
     treats <- treats[,1]
     #Execute test of comparing siRNA knockdown to control in each treatment state
-    treat_p_vals <- vapply(treats, FUN = calc_sirna_test_treat, FUN.VALUE = numeric(1), temp=temp, sirna=sirna)
+    treat_p_vals <- t(vapply(treats, FUN = calc_sirna_test_treat, FUN.VALUE = numeric(2), temp=temp, sirna=sirna))
     #Execute test of comparing treated to untreated for the sirna and append to dataframe
     treat_untreat_p_val <- calc_treat_test_sirna(sirna, temp)
     #Create output df for the function after checking for whether plates need to be appended to the controls
     if ("Plate" %in% colnames(temp)) {
       plate = temp %>% dplyr::select("Plate") %>% unique %>% as.character
-      sirna_df <- cbind.data.frame(group1 = paste(sirna, treats, sep = "-"), group2 = paste0("CON", plate, "-", treats), p=treat_p_vals)
+      sirna_df <- cbind.data.frame(group1 = paste(sirna, treats, sep = "-"), group2 = paste0("CON", plate, "-", treats), reps=treat_p_vals[,1], p=treat_p_vals[,2])
     } else {
-      sirna_df <- cbind.data.frame(group1 = paste(sirna, treats, sep = "-"), group2 = paste("CON", treats, sep = "-"), p=treat_p_vals)
+      sirna_df <- cbind.data.frame(group1 = paste(sirna, treats, sep = "-"), group2 = paste("CON", treats, sep = "-"), reps=treat_p_vals[,1], p=treat_p_vals[,2])
     }
     sirna_df <- rbind.data.frame(sirna_df, c(paste(sirna, treats, sep = "-"), treat_untreat_p_val))
   } else { #handle event where there is no treated vs. untreated case
-    sirna_df <- cbind.data.frame(group1 = sirna, group2 = "CON", p=calc_sirna_test_no_treat(sirna = sirna, temp))
+    temp2 <- calc_sirna_test_no_treat(sirna = sirna, temp)
+    sirna_df <- cbind.data.frame(group1 = sirna, group2 = "CON", reps=temp2[1], p=temp2[2])
   }
   return(sirna_df)
 }
@@ -153,7 +147,7 @@ calc_sirna_test_treat <- function(treat, temp, sirna){
   sirna_vals <- temp_two %>% filter(siRNA == sirna) %>% select(Value)
   sirna_vals <- sirna_vals[,1]
   test_result <- t.test(sirna_vals, control_vals, alternative = "less")
-  return(test_result$p.value)
+  return(c(length(sirna_vals), test_result$p.value))
 }
 calc_treat_test_sirna <- function(sirna, temp){
   temp_two <- temp %>% filter(siRNA == sirna)
@@ -162,7 +156,7 @@ calc_treat_test_sirna <- function(sirna, temp){
   treat_vals <- temp_two %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(Value)
   treat_vals <- treat_vals[,1]
   test_result <- t.test(control_vals, treat_vals, alternative = "less")
-  return(test_result$p.value)
+  return(c(length(treat_vals), test_result$p.value))
 }
 #Make function for testing when no treatment present
 calc_sirna_test_no_treat <- function(sirna, temp){
@@ -171,11 +165,14 @@ calc_sirna_test_no_treat <- function(sirna, temp){
   sirna_vals <- temp %>% as.data.frame %>% dplyr::filter(siRNA == sirna) %>% dplyr::select(Value)
   sirna_vals <- sirna_vals[,1]
   test_result <- t.test(sirna_vals, control_vals, alternative = "less")
-  return(test_result$p.value)
+  return(c(length(sirna_vals), test_result$p.value))
 }
 #Make function that tests treatment relative to control for control siRNA
 calc_treat_test_control <- function(plate, inp_raw){
   temp <- inp_raw %>% dplyr::filter(Plate == plate)
+  if ("Passage" %in% colnames(temp)){
+    temp <- temp %>% dplyr::group_by(siRNA, Treatment, Donor) %>% dplyr::summarize(Value=mean(Value)) %>% as.data.frame
+  }
   return(calc_treat_test_sirna("CON", temp))
 }
 
@@ -438,10 +435,10 @@ hmsc_adipo_plot <- ggplot(hmsc_adipo_main_plot, aes(x=siRNA, y=Value,color = sig
         legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
 
 #Make stacked combined plot data frames
-combined_hfob_alp_plot <- hfob_alp_combined %>% dplyr::select(siRNA, signif, Value) %>% mutate(subplot = "hFOB ALP")
-combined_hmsc_alp_plot <- hmsc_alp_main_plot %>% dplyr::select(siRNA, signif, Value) %>% mutate(subplot = "hMSC ALP")
-combined_hmsc_ars_plot <- hmsc_ars_main_plot %>% dplyr::select(siRNA, signif, Value) %>% mutate(subplot = "hMSC ARS")
-combined_hmsc_adipo_plot <- hmsc_adipo_main_plot %>% dplyr::select(siRNA, signif, Value) %>% mutate(subplot = "hMSC Adipo")
+combined_hfob_alp_plot <- hfob_alp_combined %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(reps, subplot = "hFOB ALP")
+combined_hmsc_alp_plot <- hmsc_alp_main_plot %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(subplot = "hMSC ALP")
+combined_hmsc_ars_plot <- hmsc_ars_main_plot %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(subplot = "hMSC ARS")
+combined_hmsc_adipo_plot <- hmsc_adipo_main_plot %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(subplot = "hMSC Adipo")
 combined_plot_df <- rbind.data.frame(combined_hfob_alp_plot, combined_hmsc_alp_plot, combined_hmsc_ars_plot, combined_hmsc_adipo_plot)
 combined_plot_df$subplot <- factor(combined_plot_df$subplot, levels = c("hFOB ALP", "hMSC ALP", "hMSC ARS", "hMSC Adipo"))
 #And now make significance data frames
@@ -482,28 +479,28 @@ dev.off()
 hfob_alp_supplement <- combined_hfob_alp_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hfob_alp_comparison_df, by = "siRNA") %>% 
-  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
 write.table(hfob_alp_supplement, file = paste0(inp_dir, "hfob_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC alp ###
 hmsc_alp_supplement <- combined_hmsc_alp_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hmsc_alp_comparison_df_main, by = "siRNA") %>% 
-  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
 write.table(hmsc_alp_supplement, file = paste0(inp_dir, "hmsc_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC alizarin ###
 hmsc_ars_supplement <- combined_hmsc_ars_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hmsc_ars_comparison_df_main, by = "siRNA") %>% 
-  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
 write.table(hmsc_ars_supplement, file = paste0(inp_dir, "hmsc_ars.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC adipo###
 hmsc_adipo_supplement <- combined_hmsc_adipo_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hmsc_adipo_comparison_df_main, by = "siRNA") %>% 
-  dplyr::select(siRNA, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
 write.table(hmsc_adipo_supplement, file = paste0(inp_dir, "hmsc_adipo.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 
