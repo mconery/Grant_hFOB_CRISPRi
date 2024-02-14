@@ -12,6 +12,8 @@ osteoclast_day4_down_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/
 osteoclast_day8_down_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day8/downsample/atac/7252c593-db46-477a-9c81-b66b333d992d/call-reproducibility_idr/execution/idr.conservative_peak.narrowPeak.gz
 osteoclast_day0_full_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day0/atac/d79f8990-f683-4d7f-8b29-31cd3fdd94f6/call-reproducibility_idr/execution/idr.optimal_peak.narrowPeak.gz
 osteoclast_day4_full_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/atac/388a6af8-cbec-40eb-bf89-a72ee06d521c/call-reproducibility_idr/execution/idr.optimal_peak.narrowPeak.gz
+osteoclast_bae_atac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Bae_2022/atac/c77ca17a-0943-459b-901f-e14e8c3f022c/call-reproducibility_idr/execution/idr.optimal_peak.narrowPeak.gz
+osteoclast_bae_H3K27ac_peaks=/mnt/isilon/sfgi/conerym/analyses/grant/ChIPSeq/osteoclasts/Bae_2022/chip/e9ccfec0-dc8d-40cd-9c52-8c03e216dc47/call-reproducibility_overlap/execution/overlap.optimal_peak.narrowPeak.gz
 
 #Set marker gene promoter file
 marker_gene_prom=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/osteoclast_marker_gene_promoters.bed
@@ -20,8 +22,8 @@ marker_gene_prom=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/ost
 out_dir=/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/marker_gene_intersects
 
 #Set files and types (ADJUST IN FUTURE)
-raw_files=($osteoclast_day0_down_atac_peaks $osteoclast_day4_down_atac_peaks $osteoclast_day8_down_atac_peaks $osteoclast_day0_full_atac_peaks $osteoclast_day4_full_atac_peaks) 
-file_types=(osteoclast_day0_down osteoclast_day4_down osteoclast_day8_down osteoclast_day0_full osteoclast_day4_full)
+raw_files=($osteoclast_day0_down_atac_peaks $osteoclast_day4_down_atac_peaks $osteoclast_day8_down_atac_peaks $osteoclast_day0_full_atac_peaks $osteoclast_day4_full_atac_peaks $osteoclast_bae_atac_peaks $osteoclast_bae_H3K27ac_peaks) 
+file_types=(osteoclast_day0_down osteoclast_day4_down osteoclast_day8_down osteoclast_day0_full osteoclast_day4_full osteoclast_bae_atac osteoclast_bae_H3K27ac)
 
 ######################################################################################
 
