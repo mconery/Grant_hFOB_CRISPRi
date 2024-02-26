@@ -35,7 +35,7 @@ for file in $(ls $cafeh_dir); do
 	sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.plot.sh
 	sbatch --mem=4G -t 2:00:00 --job-name $file_prefix $temp_script_dir/$file_prefix.plot.sh
 	#Make residual-filtered signal plot
-	echo "source activate cafeh; python $plot_script -p $cafeh_dir/$file -o $plot_dir -u $min_purity -c $activity_thresh -m $p_thresh -r True" > $temp_script_dir/$file_prefix.residual-filtered.plot.sh
+	echo "source activate cafeh; python $plot_script -p $cafeh_dir/$file -o $residual_filtered_plot_dir -u $min_purity -c $activity_thresh -m $p_thresh -r True" > $temp_script_dir/$file_prefix.residual-filtered.plot.sh
 	sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.residual-filtered.plot.sh
 	sbatch --mem=4G -t 2:00:00 --job-name $file_prefix.filtered $temp_script_dir/$file_prefix.residual-filtered.plot.sh
 done
