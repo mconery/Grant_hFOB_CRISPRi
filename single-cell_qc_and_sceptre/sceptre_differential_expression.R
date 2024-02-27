@@ -270,6 +270,28 @@ non_random_assort_group_df <- non_random_assort_group_df[order(non_random_assort
 non_random_guides <- unique(non_random_assort_group_df[which(non_random_assort_group_df$pval_adj < 0.05),"ntc"])
 # 15 guides show non-random assortment which necessitates focusing on the single-guide RNA cells
 
+### Test relationship of sequencing depth and number of guides ###
+#Create testing dataframe
+temp <- colSums(counts_matrix) %>% as.data.frame %>% 
+  mutate(cell_barcode=colnames(counts_matrix)) 
+colnames(temp) <- c("response_n_umis", "cell_barcode")
+temp <- temp %>%
+  left_join(guides_per_cell_raw, by="cell_barcode") %>% 
+  dplyr::select(cell_barcode, response_n_umis, num_features) %>% 
+  mutate(num_features=ifelse(is.na(num_features), 0, num_features))
+#Run regression
+temp_lm <- lm(num_features ~ response_n_umis, temp)
+#Make plot
+jpeg(paste0(out_dir, "num_grnas_v_sequence_depth.jpeg"), width = 10800, height=10800, res=1000)
+  ggplot(temp, mapping = aes(x=response_n_umis, y=num_features)) + geom_point() + 
+    xlab("Gene UMIs") + ylab("Unique sgRNAs") + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_blank(),
+          panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+          axis.text.x = element_text(color="black", size=16), axis.title=element_text(size=20), 
+          axis.text.y = element_text(color="black", size=16))
+dev.off()
+
+
 # 5) Establish Pairs of Genes/sgRNAs to Test ====
 
 #Make a map for each guide to the list of genes we are testing it against
