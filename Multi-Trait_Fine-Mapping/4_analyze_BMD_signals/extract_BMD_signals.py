@@ -10,6 +10,7 @@ files. It outputs 4 files as follows:
 
 ***This needs to be run on Python 3.9 as there an incompatability with other ***
 ***versions of the .to_list() function  and the CAFEH package for python.    ***
+***This is also incompatible with the petagene module.                       ***
 '''
 
 ###############################################################################
@@ -164,11 +165,11 @@ def main(argv):
 pickle_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/cafeh_results"
 out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related"
 trait_sizes_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv"
-purity=0.5
-min_assoc=5e-8
+purity=0.1
+min_assoc=1
 assoc_type="gwas"
 active_thresh=0.95
-filt_high_flag=True
+filt_high_flag=False
 
 ###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
@@ -279,9 +280,11 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
                                    cafehs.realpure[signal],
                                    cafehs.active[bmd_index,signal],
                                    np.max(cafehs.neglogP[bmd_index,cafehs.credible_sets[signal]]),
+                                   str(cafehs.abs_neglogp_resid['BMD'][signal,:].argmax() in cafehs.credible_sets[signal]),
                                    np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
                                    0,
                                    'None', 
+                                   'NA',
                                    'NA',
                                    'NA',
                                    'NA'
@@ -294,12 +297,14 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
                                    cafehs.realpure[signal],
                                    cafehs.active[bmd_index,signal],
                                    np.max(cafehs.neglogP[bmd_index,cafehs.credible_sets[signal]]),
+                                   str(cafehs.abs_neglogp_resid['BMD'][signal,:].argmax() in cafehs.credible_sets[signal]),
                                    np.max(cafehs.get_pip()[cafehs.credible_sets[signal]]), 
                                    len(sig_trait_indices),
                                    ','.join(cafehs.study_ids[sig_trait_indices].tolist()), 
                                    ','.join([str(x) for x in cafehs.active[sig_trait_indices,signal]]),
                                    ','.join([str(x) for x in np.max(cafehs.neglogP[sig_trait_indices,:][:,cafehs.credible_sets[signal]], axis=1).tolist()]),
-                                   ','.join([str(u) for u in np.max(np.vstack([z[signal,cafehs.credible_sets[signal]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]]), axis = 1)])
+                                   ','.join([str(u) for u in np.max(np.vstack([z[signal,cafehs.credible_sets[signal]] for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]]), axis = 1)]),
+                                   ','.join([str(True) if z[signal,:].argmax() in cafehs.credible_sets[signal] else str(False) for z in [cafehs.abs_neglogp_resid[y] for y in cafehs.study_ids[sig_trait_indices].tolist()]])
                                    ])
             bmd_signals_out.append(temp)
             #Extract the bed file info
@@ -315,7 +320,7 @@ def driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, pur
         
     #Make matrices 
     bmd_signals_matrix = pd.DataFrame(np.vstack(bmd_signals_out), 
-                                      columns=["signal_id", "locus", "signal", "num_snps", "snp_ids", "rsids", "purity", "bmd_activity", "max_bmd_neglog_gwas","max_pip", "num_traits", "traits", "trait_activities","max_other_neglog_gwas", "max_other_neglog_residual"])
+                                      columns=["signal_id", "locus", "signal", "num_snps", "snp_ids", "rsids", "purity", "bmd_activity", "max_bmd_neglog_gwas","bmd_capture_max_residual", "max_pip", "num_traits", "traits", "trait_activities","max_other_neglog_gwas", "max_other_neglog_residual", "other_capture_max_residual"])
     bmd_bed_matrix = pd.DataFrame(np.vstack(bmd_bed),
                                   columns = ["chr","start","end","signal.snp_id","rsid","total_pip","active_traits","active_traits_gwas_neglogp"])
     bmd_activity_matrix = pd.DataFrame(np.vstack(bmd_signals_activity), columns=traits)
