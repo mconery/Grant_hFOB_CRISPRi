@@ -17,10 +17,10 @@ out_dir=$finemap_dir/summary_files
 temp_script_dir=$finemap_dir/temp_script_files
 
 #Set parameters for testing
-assoc_threshes=(5e-8)
+assoc_threshes=(1 5e-8)
 assoc_type=gwas
-purity_threshes=(0.5)
-active_threshes=(0.95)
+purity_threshes=(0 0.5)
+active_threshes=(0.5 0.95)
 filt_high_flags=(True False)
 
 ###########################################################################################################################################################
