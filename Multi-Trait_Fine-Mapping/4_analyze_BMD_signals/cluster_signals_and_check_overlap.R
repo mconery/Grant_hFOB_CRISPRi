@@ -161,7 +161,8 @@ cluster_by_activity <- function(activity_file, out_plot_dir=paste0(plot_dir, "cl
   
 }
 #Call function
-lapply(activity_files, cluster_by_activity)
+lapply(c("bmd_signal_activity.purity_0.5.activity_0.95.gwas_5e-08.highest_residual_filtered.binarized.tsv",
+         "bmd_signal_activity.purity_0.5.activity_0.95.gwas_5e-08.highest_residual_filtered.tsv"), cluster_by_activity)
 
 #Make a function to cluster and make plots for the various weight files
 cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "clustering/"), input_dir=inp_dir, activity_thresh=0.95){
@@ -213,7 +214,8 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
   #Write table to file
   write.table(weight_filt, file=paste0(inp_dir, "supplement.multi-trait_results.", out_file_prefix, ".weights.tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
 }
-lapply(weight_files, cluster_by_weight)
+lapply(c("bmd_signal_weights.purity_0.5.activity_0.95.gwas_5e-08.highest_residual_filtered.tsv")
+       , cluster_by_weight)
 
 # 2) Read in Signal Files and Process for Supplement ====
 
@@ -228,6 +230,11 @@ signal_raw$traits <- signal_raw$traits %>% str_replace_all(pattern = ",", replac
 #Write files
 write.table(signal_raw, file = paste0(inp_dir, "supplement.signals.", file_prefix, ".txt"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 write.table(bed_raw, file = paste0(inp_dir, "supplement.variants.", file_prefix, ".txt"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+#Read in unfiltered signals files
+unfiltered_signal_raw <- read.table(paste0(inp_dir, "bmd_signals.purity_0.0.activity_0.5.gwas_1.0.tsv"), header = TRUE, sep = "\t", row.names = 1)
+unfiltered_signal_raw$traits <- unfiltered_signal_raw$traits %>% str_replace_all(pattern = ",", replacement = ", ") %>% correct_trait_names
+write.table(unfiltered_signal_raw, file = paste0(inp_dir, "supplement.signals.purity_0.0.activity_0.5.gwas_1.0.txt"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
 
 # 3) Check for signal intersections with the file of targets ====
 
