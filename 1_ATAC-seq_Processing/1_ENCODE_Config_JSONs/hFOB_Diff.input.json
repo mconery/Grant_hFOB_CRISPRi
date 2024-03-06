@@ -1,0 +1,25 @@
+{
+    "atac.title" : "Differentiated_hFOB_Paired_End",
+    "atac.description" : "Grant-Lab Differentiated hFOBs",
+
+    "atac.pipeline_type" : "atac",
+    "atac.align_only" : false,
+    "atac.true_rep_only" : false,
+
+    "atac.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "atac.paired_end" : true,
+
+    "atac.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep1_S1_R1_001.fastq.gz" ],
+    "atac.fastqs_rep1_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep1_S1_R2_001.fastq.gz" ],
+    "atac.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep2_S2_R1_001.fastq.gz" ],
+    "atac.fastqs_rep2_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep2_S2_R2_001.fastq.gz" ],
+    "atac.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep3_S3_R1_001.fastq.gz" ],
+    "atac.fastqs_rep3_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep3_S3_R2_001.fastq.gz" ],
+    "atac.fastqs_rep4_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep4_S4_R1_001.fastq.gz" ],
+    "atac.fastqs_rep4_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFob1_19_5DD_ATAC_rep4_S4_R2_001.fastq.gz" ],
+
+    "atac.auto_detect_adapter" : true,
+
+    "atac.multimapping" : 4
+}

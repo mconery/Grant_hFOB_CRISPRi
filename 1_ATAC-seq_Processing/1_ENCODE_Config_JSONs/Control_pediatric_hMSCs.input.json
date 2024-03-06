@@ -1,0 +1,29 @@
+{
+    "atac.title" : "Control_Pediatric_hMSC-Osteoblasts_Paired_End",
+    "atac.description" : "Grant-Lab hMSC-Osteoblasts Mock-Differentiated 3 Days",
+
+    "atac.pipeline_type" : "atac",
+    "atac.align_only" : false,
+    "atac.true_rep_only" : false,
+
+    "atac.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "atac.paired_end" : true,
+
+    "atac.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/EAA_F15_C_Control_3D_S4_R1_001.fastq.gz" ],
+    "atac.fastqs_rep1_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/EAA_F15_C_Control_3D_S4_R2_001.fastq.gz" ],
+    "atac.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT1_M18_C_Control_3D_ATAC_S5_R1_001.fastq.gz" ],
+    "atac.fastqs_rep2_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT1_M18_C_Control_3D_ATAC_S5_R2_001.fastq.gz" ],
+    "atac.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT2_F18_Cp4_CONTROL_3D_ATAC_S18_R1_001.fastq.gz" ],
+    "atac.fastqs_rep3_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT2_F18_Cp4_CONTROL_3D_ATAC_S18_R2_001.fastq.gz" ],
+    "atac.fastqs_rep4_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT3_F16_C_Control_3D_ATAC_S1_R1_001.fastq.gz" ],
+    "atac.fastqs_rep4_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT3_F16_C_Control_3D_ATAC_S1_R2_001.fastq.gz" ],
+    "atac.fastqs_rep5_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT4_M16_6_p6_Control_3D_S8_R1_001.fastq.gz" ],
+    "atac.fastqs_rep5_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT4_M16_6_p6_Control_3D_S8_R2_001.fastq.gz" ],
+    "atac.fastqs_rep6_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT5_M17_Cp5_CONTROL_3D_ATAC_S22_R1_001.fastq.gz" ],
+    "atac.fastqs_rep6_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/MOTT5_M17_Cp5_CONTROL_3D_ATAC_S22_R2_001.fastq.gz" ],
+
+    "atac.auto_detect_adapter" : true,
+
+    "atac.multimapping" : 4
+}

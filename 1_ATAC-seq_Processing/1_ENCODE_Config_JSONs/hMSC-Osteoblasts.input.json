@@ -1,0 +1,23 @@
+{
+    "atac.title" : "hMSC-Osteoblasts_Paired_End",
+    "atac.description" : "Grant-Lab hMSC-Osteoblasts",
+
+    "atac.pipeline_type" : "atac",
+    "atac.align_only" : false,
+    "atac.true_rep_only" : false,
+
+    "atac.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "atac.paired_end" : true,
+
+    "atac.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/rawData/grant/atacSeq/Kurt/8004-p7_Bmp2/170801_I283_FCHKY7FBBXX_L8_8004-p7_Bmp2/170801_I283_FCHKY7FBBXX_L8_8004-p7_Bmp2_1.fq.gz" ],
+    "atac.fastqs_rep1_R2" : [ "/mnt/isilon/sfgi/rawData/grant/atacSeq/Kurt/8004-p7_Bmp2/170801_I283_FCHKY7FBBXX_L8_8004-p7_Bmp2/170801_I283_FCHKY7FBBXX_L8_8004-p7_Bmp2_2.fq.gz" ],
+    "atac.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/rawData/grant/atacSeq/Kurt/8013_P6_BMP-2-treated/170801_I283_FCHKY7FBBXX_L8_8013_P6_BMP-2-treated/170801_I283_FCHKY7FBBXX_L8_8013_P6_BMP-2-treated_1.fq.gz" ],
+    "atac.fastqs_rep2_R2" : [ "/mnt/isilon/sfgi/rawData/grant/atacSeq/Kurt/8013_P6_BMP-2-treated/170801_I283_FCHKY7FBBXX_L8_8013_P6_BMP-2-treated/170801_I283_FCHKY7FBBXX_L8_8013_P6_BMP-2-treated_2.fq.gz" ],
+    "atac.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/rawData/grant/atacSeq/Kurt/LON2-p6_Bmp2/170801_I283_FCHKY7FBBXX_L8_LON2-p6_Bmp2/170801_I283_FCHKY7FBBXX_L8_LON2-p6_Bmp2_1.fq.gz" ],
+    "atac.fastqs_rep3_R2" : [ "/mnt/isilon/sfgi/rawData/grant/atacSeq/Kurt/LON2-p6_Bmp2/170801_I283_FCHKY7FBBXX_L8_LON2-p6_Bmp2/170801_I283_FCHKY7FBBXX_L8_LON2-p6_Bmp2_2.fq.gz" ],
+
+    "atac.auto_detect_adapter" : true,
+
+    "atac.multimapping" : 4
+}

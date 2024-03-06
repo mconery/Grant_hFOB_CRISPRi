@@ -1,0 +1,23 @@
+{
+    "chip.title" : "hFOB_H3K27ac (single-end)",
+    "chip.description" : "This is ChIP-seq Data for hFOB H3K27ac Measured by Cottone et al.",
+
+    "chip.pipeline_type" : "histone",
+    "chip.aligner" : "bowtie2",
+    "chip.align_only" : false,
+    "chip.true_rep_only" : false,
+
+    "chip.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "chip.paired_end" : false,
+    "chip.ctl_paired_end" : false,
+
+    "chip.always_use_pooled_ctl" : true,
+
+    "chip.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/data/ChIP-seq/hFOBs/cottone_2022/hFOB_WT1_H3K27ac.fastq.gz" ], 
+    "chip.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/data/ChIP-seq/hFOBs/cottone_2022/hFOB_WT2_H3K27ac.fastq.gz" ], 
+    "chip.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/data/ChIP-seq/hFOBs/cottone_2022/hFOB_WT3_H3K27ac.fastq.gz" ],
+    "chip.ctl_fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/data/ChIP-seq/hFOBs/cottone_2022/hFOB_WT1_Input.fastq.gz" ], 
+    "chip.ctl_fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/data/ChIP-seq/hFOBs/cottone_2022/hFOB_WT2_Input.fastq.gz" ], 
+    "chip.ctl_fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/data/ChIP-seq/hFOBs/cottone_2022/hFOB_WT3_Input.fastq.gz" ]
+}

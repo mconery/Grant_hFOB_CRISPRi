@@ -1,0 +1,23 @@
+{
+    "atac.title" : "Permissive_hFOB_Paired_End",
+    "atac.description" : "Grant-Lab Permissive hFOBs",
+
+    "atac.pipeline_type" : "atac",
+    "atac.align_only" : false,
+    "atac.true_rep_only" : false,
+
+    "atac.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "atac.paired_end" : true,
+
+    "atac.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFOB_rep1_R1.fastq.gz" ],
+    "atac.fastqs_rep1_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFOB_rep1_R2.fastq.gz" ],
+    "atac.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFOB_rep2_R1.fastq.gz" ],
+    "atac.fastqs_rep2_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFOB_rep2_R2.fastq.gz" ],
+    "atac.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFOB_rep3_R1.fastq.gz" ],
+    "atac.fastqs_rep3_R2" : [ "/mnt/isilon/sfgi/conerym/data/GEO_Upload/ATAC-seq/raw_files/hFOB_rep3_R2.fastq.gz" ],
+
+    "atac.auto_detect_adapter" : true,
+
+    "atac.multimapping" : 4
+}

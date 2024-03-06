@@ -1,0 +1,23 @@
+{
+    "atac.title" : "Osteoclast_Day4_Paired_End",
+    "atac.description" : "Osteoclasts Differentiated for 4 Days",
+
+    "atac.pipeline_type" : "atac",
+    "atac.align_only" : false,
+    "atac.true_rep_only" : false,
+
+    "atac.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "atac.paired_end" : true,
+
+    "atac.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/hBM_MNC_Osteoclast_Donor1_Day4_S8_R1_001.fastq.gz" ],
+    "atac.fastqs_rep1_R2" : [ "/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/hBM_MNC_Osteoclast_Donor1_Day4_S8_R2_001.fastq.gz" ],
+    "atac.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/hBM_MNC_Osteoclast_Donor2_Day4_S12_R1_001.fastq.gz" ],
+    "atac.fastqs_rep2_R2" : [ "/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/hBM_MNC_Osteoclast_Donor2_Day4_S12_R2_001.fastq.gz" ],
+    "atac.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/hBM_MNC_Osteoclast_Donor3_Day4_S16_R1_001.fastq.gz" ],
+    "atac.fastqs_rep3_R2" : [ "/mnt/isilon/sfgi/conerym/analyses/grant/atacSeq/osteoclasts/Day4/hBM_MNC_Osteoclast_Donor3_Day4_S16_R2_001.fastq.gz" ],
+
+    "atac.auto_detect_adapter" : true,
+
+    "atac.multimapping" : 4
+}
