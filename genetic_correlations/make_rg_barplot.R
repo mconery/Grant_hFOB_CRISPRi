@@ -18,7 +18,7 @@ library(tools)
 
 #Set file locations
 data_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/"
-global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/globalRg_820pairs.txt"
+global_correlations <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/genetic_correlations/gR_alltraits.txt"
 plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.bar.jpeg"
 no_second_bmd_plot_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/BMD_genetic_correlations.no_panukbb_bmd.bar.jpeg"
 impede_loc <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/figures/genetic_correlations/impedance_traits_genetic_correlations.heatmap.jpeg"
@@ -33,9 +33,9 @@ global_raw <- read.table(global_correlations, header = TRUE)
 global_bmd <- global_raw %>% filter(p1=="BMD" | p2 == "BMD") %>%
   mutate(non_bmd_trait=ifelse(p1=="BMD", p2, p1)) %>%
   filter(non_bmd_trait != "PDB") %>% #Remove non-UKBB Paget's Disease
+  filter(!(is.na(rg))) %>% #NA values result from not enough signal in the data to estimate the genetic variance, so we'll remove these signals
   mutate(p_bh=p.adjust(p, method="BH"), non_bmd_trait = ifelse(non_bmd_trait == "phecode-251.1-both_sexes", "Hypoglycemia", non_bmd_trait)) %>%
   select(non_bmd_trait, rg, p_bh) %>% mutate(v_adj=ifelse(rg>0, 0.4, 1.1))
-
 
 #Adjust Trait names
 global_bmd <- global_bmd %>% mutate(non_bmd_trait_clean=toTitleCase(str_replace_all(non_bmd_trait, "_", " "))) %>% 
