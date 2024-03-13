@@ -1,0 +1,20 @@
+{
+    "atac.title" : "Bae_2022_Rankl_Osteoclast_Single_End",
+    "atac.description" : "Osteoclasts Differentiated from CD14+ Cells by RANKL Stimulation for 3 Days",
+
+    "atac.pipeline_type" : "atac",
+    "atac.align_only" : false,
+    "atac.true_rep_only" : false,
+
+    "atac.genome_tsv" : "/mnt/isilon/sfgi/conerym/data/genomes/ENCODE/hg38.tsv",
+
+    "atac.paired_end" : false,
+
+    "atac.fastqs_rep1_R1" : [ "/mnt/isilon/sfgi/conerym/data/ATAC-seq/osteoclasts/SRR19309473.fastq" ], 
+    "atac.fastqs_rep2_R1" : [ "/mnt/isilon/sfgi/conerym/data/ATAC-seq/osteoclasts/SRR19309474.fastq" ],
+    "atac.fastqs_rep3_R1" : [ "/mnt/isilon/sfgi/conerym/data/ATAC-seq/osteoclasts/SRR19309475.fastq" ],
+
+    "atac.auto_detect_adapter" : true,
+
+    "atac.multimapping" : 4
+}
