@@ -22,7 +22,7 @@ code in this section:
 
 ### 3) 3_hFOB_Capture-C_and_RNA-seq ###
 This folder contains the code used to generate the new hFOB RNA-seq results 
-and the Chicago config file used to create the Capture-C dataset.
+and the HICUP config file used to create the Capture-C dataset.
 
 ### 4) 4_Target_Selection_and_sgRNA_Design ###
 This folder conains the scripts used to select the screen targets from the 
