@@ -119,7 +119,7 @@ for grna in $(awk 'NR > 1 {print $1}' $successful_grnas | sort -u); do
 	cp $work_dir/tracks.ini $work_dir/$genes/tracks.ini
 
 	#Execute plotting function
-	echo "/home/conerym/miniconda3/bin/pyGenomeTracks  --tracks $work_dir/$genes/tracks.ini -o $work_dir/$genes/$genes.pdf --region chr$chromosome:$plot_min-$plot_max --fontSize 8 --dpi 300" > $work_dir/temp_shell_files/make_plot.$genes.sh
+	echo "/home/conerym/miniconda3/bin/pyGenomeTracks  --tracks $work_dir/$genes/tracks.ini -o $work_dir/$genes/$genes.png --region chr$chromosome:$plot_min-$plot_max --fontSize 8 --dpi 1000" > $work_dir/temp_shell_files/make_plot.$genes.sh
 	sed -i '1i#!/bin/bash' $work_dir/temp_shell_files/make_plot.$genes.sh
 	sbatch --mem=64G -t 6:00:00 --job-name $genes $work_dir/temp_shell_files/make_plot.$genes.sh
 
