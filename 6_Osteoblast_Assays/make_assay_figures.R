@@ -221,9 +221,9 @@ sirna_order <- sort(unique(as.character(hmsc_alp_normal$siRNA[str_detect(pattern
 
 ### hFOB ALP ###
 #Combine the measurements together and remove the control siRNA
-hfob_alp_combined <- hfob_alp_normal %>% group_by(siRNA, Replicate) %>% summarize(Value = mean(Value)) %>% filter(siRNA != "CON")
+hfob_alp_combined <- hfob_alp_normal %>% dplyr::group_by(siRNA, Replicate) %>% dplyr::summarize(Value = mean(Value)) %>% filter(siRNA != "CON")
 #Add on y-positions to the signficance df
-hfob_alp_y_pos_df <- hfob_alp_combined %>% group_by(siRNA) %>% summarize(max_value = max(Value))
+hfob_alp_y_pos_df <- hfob_alp_combined %>% dplyr::group_by(siRNA) %>% dplyr::summarize(max_value = max(Value))
 hfob_alp_comparison_df <- hfob_alp_comparison_df %>% mutate(siRNA = group1) %>% inner_join(hfob_alp_y_pos_df, by = "siRNA") %>%
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>% 
   mutate(max_value_padded = max_value + 0.04, signif = p.adj < 0.05)
@@ -250,7 +250,7 @@ hmsc_alp_plot <- hmsc_alp_normal %>% mutate(siRNA = ifelse(siRNA == "CON", paste
 #Set axis plotting order
 hmsc_alp_plot$Name <- factor(hmsc_alp_plot$Name, levels = name_order)
 #Add on y positions for significance df and convert to asterisks
-hmsc_alp_y_pos_df <- hmsc_alp_plot %>% group_by(siRNA) %>% summarize(max_value = max(Value))
+hmsc_alp_y_pos_df <- hmsc_alp_plot %>% dplyr::group_by(siRNA) %>% dplyr::summarize(max_value = max(Value))
 hmsc_alp_comparison_df_filt <- hmsc_alp_comparison_df %>% dplyr::filter(str_detect(group1, pattern = "-CON") & str_detect(group2, pattern = "-BMP2")) %>%
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
   mutate(group1 = str_replace(group1, "^CON", "CONTROL-")) %>% mutate(group2 = str_replace(group2, "^CON", "CONTROL-")) %>%
@@ -314,7 +314,7 @@ hmsc_ars_plot <- hmsc_ars_normal %>% mutate(siRNA = ifelse(siRNA == "CON", paste
 #Set axis plotting order
 hmsc_ars_plot$Name <- factor(hmsc_ars_plot$Name, levels = name_order)
 #Add on y positions for significance df and convert to asterisks
-hmsc_ars_y_pos_df <- hmsc_ars_plot %>% group_by(siRNA) %>% summarize(max_value = max(Value))
+hmsc_ars_y_pos_df <- hmsc_ars_plot %>% dplyr::group_by(siRNA) %>% dplyr::summarize(max_value = max(Value))
 hmsc_ars_comparison_df_filt <- hmsc_ars_comparison_df %>% dplyr::filter(str_detect(group1, pattern = "-CON") & str_detect(group2, pattern = "-BMP2")) %>%
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
   mutate(group1 = str_replace(group1, "^CON", "CONTROL-")) %>% mutate(group2 = str_replace(group2, "^CON", "CONTROL-")) %>%
@@ -376,7 +376,7 @@ hmsc_adipo_plot <- hmsc_adipo_normal %>% mutate(siRNA = ifelse(siRNA == "CON", "
 #Set axis plotting order
 hmsc_adipo_plot$Name <- factor(hmsc_adipo_plot$Name, levels = adipo_name_order)
 #Add on y positions for significance df and convert to asterisks
-hmsc_adipo_y_pos_df <- hmsc_adipo_plot %>% group_by(siRNA) %>% summarize(max_value = max(Value))
+hmsc_adipo_y_pos_df <- hmsc_adipo_plot %>% dplyr::group_by(siRNA) %>% dplyr::summarize(max_value = max(Value))
 hmsc_adipo_comparison_df_filt <- hmsc_adipo_comparison_df %>% dplyr::filter(str_detect(group1, pattern = "-CON") & str_detect(group2, pattern = "-Adipo")) %>%
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
   mutate(group1 = str_replace(group1, "^CON", "CONTROL-")) %>% mutate(group2 = str_replace(group2, "^CON", "CONTROL-")) %>%
@@ -466,6 +466,30 @@ ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
         legend.text = element_text(size = 20), legend.key = element_blank(),
         axis.text.y = element_text(size = 20),
         strip.text.y = element_text(size = 20)) +
+  ggplot2::guides(color = ggplot2::guide_legend(
+    keywidth = 0.0,
+    keyheight = 0.3, 
+    default.unit = "inch",
+    override.aes = list(size = 5)))
+dev.off()
+
+#Make combined plot in tiff format
+tiff(paste0(out_dir, "main_assay_figure.box.tiff"), width = 12000, height=12000, res=1000)
+ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
+  geom_boxplot(linewidth=1.03, width=0.5) + 
+  #  stat_pvalue_manual(combined_comparison_df, x= "siRNA", y = "max_value_padded", label = "p.signif", label.size = 6, color = "signif", show.legend=FALSE) + 
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
+  facet_grid(subplot ~ ., scales = "free", space = "free_x") +
+  scale_color_manual(values = c("gray", "dodgerblue3"), labels=c("Not Significant", "Adj. P-Value < 0.05")) + 
+  ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 20),
+                 axis.title = element_blank(), legend.position = "bottom",
+                 panel.background = element_blank(),
+                 axis.line = element_line(colour = "black"), panel.grid.major.x = element_blank(),
+                 legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
+                 legend.title = ggplot2::element_blank(),
+                 legend.text = element_text(size = 20), legend.key = element_blank(),
+                 axis.text.y = element_text(size = 20),
+                 strip.text.y = element_text(size = 20)) +
   ggplot2::guides(color = ggplot2::guide_legend(
     keywidth = 0.0,
     keyheight = 0.3, 
