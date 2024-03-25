@@ -97,7 +97,7 @@ count_bmd_signals <- function(temp_file_prefix, inp_dir, out_plot_dir=plot_dir){
           axis.text.x = element_text(size = 16, angle=45, hjust = 1, vjust = 1), 
           legend.position = "none", axis.text.y = element_text(color="black", size=24), 
           axis.title.y = element_text(size = 24), axis.title.x = element_blank())
-  jpeg(paste0(out_plot_dir, temp_file_prefix, ".signals_per_trait.jpeg"), width = 10800, height=6000, res=1000)
+  tiff(paste0(out_plot_dir, temp_file_prefix, ".signals_per_trait.tiff"), width = 10800, height=6000, res=1000)
     print(t_plot)
   dev.off()
   #Output the number of traits per signal
@@ -109,7 +109,7 @@ count_bmd_signals <- function(temp_file_prefix, inp_dir, out_plot_dir=plot_dir){
           panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
           axis.text.x = element_text(size = 24, angle=45, hjust = 1, vjust = 1), 
           legend.position = "none", axis.text.y = element_text(color="black", size=24), axis.title = element_text(size = 24))
-  jpeg(paste0(out_plot_dir, temp_file_prefix, ".traits_per_signal.trait.jpeg"), width = 10800, height=10800, res=1000)
+  tiff(paste0(out_plot_dir, temp_file_prefix, ".traits_per_signal.trait.tiff"), width = 10800, height=10800, res=1000)
     print(t_plot)
   dev.off()
 }
@@ -132,7 +132,7 @@ cluster_by_activity <- function(activity_file, out_plot_dir=paste0(plot_dir, "cl
   #Create needed directory
   dir.create(paste0(out_plot_dir, out_file_folder), recursive = TRUE, mode = "0777", showWarnings = FALSE)
   #Make heatmaps
-  jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".heatmap.jpeg"), width = 7200, height = 10800, res = 1000)
+  tiff(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".heatmap.tiff"), width = 7200, height = 10800, res = 1000)
   print(pheatmap(t(inp_filt), 
            show_colnames = FALSE, color=colorRampPalette(c("#C5C6D0", "black"),)(50), fontsize_row = 16,
            clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean"))
@@ -143,14 +143,14 @@ cluster_by_activity <- function(activity_file, out_plot_dir=paste0(plot_dir, "cl
   # Perform UMAP transformation
   umap_result <- umap(inp_filt, n_neighbors = 15, n_components = 2)
   #Plot uncolored UMAP clusters
-  jpeg(paste0(out_plot_dir, out_file_folder, "umap.uncolored.jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
+  tiff(paste0(out_plot_dir, out_file_folder, "umap.uncolored.tiff"), width = 6, height = 11.5, units = 'in', res = 500)
   plot(umap_result$layout, pch = 16, main = "", xlab = "UMAP 1", ylab = "UMAP 2")
   dev.off()
   # Plot the UMAP results with KNN clusters colored by trait
   plot_umap_colored_trait <- function(trait, umap_result, inp_filt, plot_dir, file_prefix){
     file_trait <- trait %>% str_replace_all(pattern = " ", replacement = "_") %>% str_replace_all(pattern = "/", replacement = "_")
     trait_color = inp_filt %>% mutate(trait_col = ifelse(inp_filt[,trait] > 0.95, 1, 0)) %>% select(trait_col)
-    jpeg(paste0(plot_dir, "umap.", file_trait, ".jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
+    tiff(paste0(plot_dir, "umap.", file_trait, ".tiff"), width = 6, height = 11.5, units = 'in', res = 1000)
     plot(umap_result$layout, col = as.numeric(trait_color$trait_col) + 1, pch = 16, main = paste0(trait, " UMAP"), xlab = "UMAP 1", ylab = "UMAP 2")
     dev.off()
   }
@@ -180,7 +180,7 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
   #Rename column names
   colnames(weight_filt) <- colnames(weight_filt) %>% correct_trait_names
   #Make heatmaps
-  jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".weight.heatmap.jpeg"), width = 7200, height = 10800, res = 1000)
+  tiff(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".weight.heatmap.tiff"), width = 7200, height = 10800, res = 1000)
   print(pheatmap(t(weight_filt), 
                  show_colnames = FALSE, color=colorRampPalette(c("navy", "#C5C6D0", "red"),)(50), fontsize_row = 16,
                  clustering_distance_rows = "euclidean", clustering_distance_cols = "euclidean"))
@@ -191,7 +191,7 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
   # Perform UMAP transformation
   umap_result <- umap(weight_filt, n_neighbors = 15, n_components = 2)
   #Plot uncolored UMAP clusters
-  jpeg(paste0(out_plot_dir, out_file_folder, "umap.weight.jpeg"), width = 6, height = 11.5, units = 'in', res = 500)
+  tiff(paste0(out_plot_dir, out_file_folder, "umap.weight.tiff"), width = 6, height = 11.5, units = 'in', res = 500)
   plot(umap_result$layout, pch = 16, main = "", xlab = "UMAP 1", ylab = "UMAP 2")
   dev.off()
   
@@ -207,7 +207,7 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
           axis.text.x = element_text(size = 16, angle=45, hjust = 1, vjust = 1), 
           legend.position = "none", axis.text.y = element_text(color="black", size=16), 
           axis.title.y = element_text(size = 16), axis.title.x = element_blank())
-  jpeg(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".signals_per_trait.weighted.jpeg"), width = 10800, height=6000, res=1000)
+  tiff(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".signals_per_trait.weighted.tiff"), width = 10800, height=6000, res=1000)
   print(t_plot)
   dev.off()
   
