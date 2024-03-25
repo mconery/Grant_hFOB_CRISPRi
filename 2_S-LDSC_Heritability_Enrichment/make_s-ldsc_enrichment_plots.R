@@ -117,6 +117,9 @@ make_enrichment_plot <- function(enrich_raw, cell_types_thin, plot_dir, file_pre
   jpeg(paste0(plot_dir,file_prefix, ".split_cell_type.bar.jpeg"), width = 10800, height=4000, res=1000)
   print(separate_bar)
   dev.off()
+  tiff(paste0(plot_dir,file_prefix, ".split_cell_type.bar.tiff"), width = 10800, height=4000, res=1000)
+  print(separate_bar)
+  dev.off()
 }
 #Call function
 make_enrichment_plot(bmd_enrich_raw, cell_types_thin=cell_types_thin, plot_dir=plot_dir, "bmd")
