@@ -96,7 +96,7 @@ imp_table <- cbind.data.frame(rbind.data.frame(hMSC_Osteo_promoter_scrubbed[,1:9
 ################################################## Make either Venn ###############################################################
 #Make Venn Diagram
 VennDiag <- euler((relation_table[,c(7,8,9)]))
-jpeg(paste(inp_dir, "implication_combos.either.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "implication_combos.either.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -104,7 +104,7 @@ dev.off()
 ################################################## Make interaction Venn #################################################################
 #Make Venn Diagram
 VennDiag <- euler((relation_table[,c(4,5,6)]))
-jpeg(paste(inp_dir, "implication_combos.interaction.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "implication_combos.interaction.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -195,7 +195,7 @@ imp_table <- cbind.data.frame(imp_table,
 ################################################## Make either expression Venn ###############################################################
 #Make Venn Diagram
 VennDiag <- euler((relation_table_expr[,c(21,22,23)]))
-jpeg(paste(inp_dir, "implication_combos.either.expr.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "implication_combos.either.expr.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -203,7 +203,7 @@ dev.off()
 ################################################## Make interaction expression Venn #################################################################
 #Make Venn Diagram
 VennDiag <- euler((relation_table_expr[,c(18,19,20)]))
-jpeg(paste(inp_dir, "implication_combos.interaction.expr.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "implication_combos.interaction.expr.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -211,7 +211,7 @@ dev.off()
 ################################################## Make promoter expression Venn ####################################################################
 #Make Venn Diagram
 VennDiag <- euler((relation_table_expr[,c(15,16,17)]))
-jpeg(paste(inp_dir, "implication_combos.promoter.expr.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "implication_combos.promoter.expr.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -280,7 +280,7 @@ make_histogram(c("count_any", "count_hMSC_Osteo", "count_hFOBsDiff", "count_hFOB
 #Make venn diagrams
 temp <- ifelse(morris_bmd_imp[,c(25,26,27)] > 0, 1, 0)
 VennDiag <- euler((temp))
-jpeg(paste(inp_dir, "genes_per_signal_venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "genes_per_signal_venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -378,7 +378,7 @@ interaction_only_table <- morris_bmd_proxy[which(morris_bmd_proxy$all_implicatio
                                                    (morris_bmd_proxy$count_hMSC_Osteo > 0 | morris_bmd_proxy$count_hFOBsDiff > 0)),]
 #Make Venn diagram of targets by cell type
 VennDiag <- euler((ifelse(interaction_only_table[,c("count_hMSC_Osteo", "count_hFOBsDiff")] > 0, 1, 0)))
-jpeg(paste(inp_dir, "interaction_only_signals.with_expr.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "interaction_only_signals.with_expr.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("red", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
@@ -393,7 +393,7 @@ interaction_only_table <- cbind.data.frame(interaction_only_table,
 #Make Venn Diagram
 VennDiag <- euler((ifelse(interaction_only_table[interaction_only_table$num_grnas == 1, 
                                                  c("count_hMSC_Osteo", "count_hFOBsDiff")] > 0, 1, 0)))
-jpeg(paste(inp_dir, "interaction_only_signals.with_expr.1_grna.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 200)
+jpeg(paste(inp_dir, "interaction_only_signals.with_expr.1_grna.venn.jpg", sep = ""), width = 5, height = 5, units = 'in', res = 1000)
 print(plot(VennDiag, quantities = TRUE, fill = c("cornflowerblue", "#03AC13", "#99EDC3"), alpha = c(0.9, 0.90, 0.2), 
            labels = list(labels=c("hMSC_Osteo", "hFOBsDiff", "hFOBsundiff"), cex = rep(1.1,3))))
 dev.off()
