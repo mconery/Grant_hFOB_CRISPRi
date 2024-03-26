@@ -102,9 +102,30 @@ p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
 jpeg(no_second_bmd_plot_loc, width = 10800, height=4000, res=1000)
 print(p)
 dev.off()
-tiff(str_replace(no_second_bmd_plot_loc, pattern = ".jpeg", replacement = ".tiff"), width = 10800, height=4000, res=1000)
-print(p)
-dev.off()
+
+#Create tiff image
+p <- ggplot(global_bmd_filt, aes(x = non_bmd_trait_clean, y = rg)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  ylab("Genetic Correlation") +
+  xlab("Phenotype") +
+  theme_minimal()
+# Add asterisks for significant values (p < 0.05)
+p <- p + geom_text(data = subset(global_bmd_filt, p_bh < 0.05), aes(label = "*", vjust = v_adj), size = 6)
+#Set min and max values
+p <- p + scale_y_continuous(limits = c(min(1.1*min(global_bmd_filt$rg),-0.5), max(0.5,1.1*max(global_bmd_filt$rg))))
+#Add an axis at x=0
+p <- p + geom_hline(yintercept = 0, color="black", linewidth=0.3)
+# Customize the appearance of the asterisks
+p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+               panel.background = element_rect(fill="white", color = "white"), legend.title = element_blank(),
+               axis.text.x = element_text(size = 7, angle=45, hjust = 1, vjust = 1, color = "black", family = "Arial"),
+               plot.background = element_rect(color = "white"),
+               axis.line = element_line(color="black", linewidth = 0.3),
+               axis.title=element_text(size=7), 
+               legend.position = "none", 
+               axis.text.y = element_text(color="black", size=7, family = "Arial"), axis.title.x = element_blank()) 
+ggsave(str_replace(no_second_bmd_plot_loc, pattern = ".jpeg", replacement = ".tiff"), 
+       width = 6, height=2.2222, device = "tiff", units = "in", dpi=1000, plot = p)
 
 #Write table to file for use in supplement
 global_raw %>% filter(p1=="BMD" | p2 == "BMD") %>%
