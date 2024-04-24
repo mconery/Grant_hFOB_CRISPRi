@@ -211,6 +211,23 @@ cluster_by_weight <- function(weight_file, out_plot_dir=paste0(plot_dir, "cluste
   print(t_plot)
   dev.off()
   
+  #Make the barplot again, but this time make it vertical
+  t_plot <- weight_filt %>% mutate(signal=rownames(weight_filt)) %>% pivot_longer(!signal, names_to = "trait", values_to = "activity") %>%
+    group_by(trait, activity) %>% summarize(count=n()) %>% filter(activity != 0) %>% mutate(count=activity*count) %>%
+    ggplot(aes(y = trait, x = count, fill = activity)) + geom_bar(position = "stack", stat="identity") + 
+    xlab("Count of Signals") + 
+    scale_fill_gradientn(colours = colorRampPalette(c("navy", "red"),)(100)) + 
+    scale_x_continuous(breaks = c(-20,-10,0,10,20), labels = c(20,10,0,10,20)) + 
+    scale_y_discrete(limits=rev) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+          panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+          axis.text.y = element_text(size = 16, hjust = 1), 
+          legend.position = "none", axis.text.x = element_text(color="black", size=16), 
+          axis.title.x = element_text(size = 16), axis.title.y = element_blank())
+  tiff(paste0(out_plot_dir, out_file_folder, out_file_prefix, ".signals_per_trait.weighted.vertical.tiff"), height = 10800, width=6000, res=1000)
+  print(t_plot)
+  dev.off()
+  
   #Write table to file
   write.table(weight_filt, file=paste0(inp_dir, "supplement.multi-trait_results.", out_file_prefix, ".weights.tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
 }
