@@ -578,8 +578,35 @@ make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5
 }
 
 #Call Volcano function
-jpeg(paste0(out_dir, "dicovery_volcano.publication_grade.hfob.jpeg"), width = 10800, height=10800, res=1000)
+jpeg(paste0(out_dir, "discovery_volcano.publication_grade.hfob.jpeg"), width = 10800, height=10800, res=1000)
 make_volcano_plot(discovery_result = discovery_result, p_thresh = max(discovery_set$p_value))
+dev.off()
+
+
+### Make the Volcano Plot with Adjusted P-values ###
+make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5), transparency = 0.5, point_size = 4) {
+  p_lower_lim <- 1e-10
+  temp_df <- discovery_result |> dplyr::mutate(reject = p_value_BH <= p_thresh,
+                                               p_value_BH = ifelse(p_value_BH < p_lower_lim, p_lower_lim, p_value_BH),
+                                               log_2_fold_change = ifelse(log_2_fold_change > x_limits[2], x_limits[2], log_2_fold_change),
+                                               log_2_fold_change = ifelse(log_2_fold_change < x_limits[1], x_limits[1], log_2_fold_change),
+                                               gene_lab = ifelse(p_value_BH <= p_thresh & !(is.na(p_value_BH)), ensg_to_symbol[response_id],"")) |>
+    dplyr::mutate(gene_lab = ifelse(gene_lab %in% pos_control_sgrnas, "", gene_lab))
+  out <- ggplot2::ggplot(data = temp_df,
+                         mapping = ggplot2::aes(x = log_2_fold_change, y = p_value_BH, col = reject)) +
+    ggplot2::geom_point(alpha = transparency, size = point_size) +
+    ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 7.5) + 
+    ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0), breaks = c(10^-1, 10^-6, 10^-11, 10^-16)) +
+    get_my_theme() + ggplot2::xlab("Log Fold Change") + ggplot2::ylab("Adj. P-Value") +
+    (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL) +
+    ggplot2::theme(legend.position = "none") + ggplot2::scale_color_manual(values = c("gray", "dodgerblue3")) +
+    ggplot2::ggtitle("Discovery volcano plot")
+  return(out)
+}
+
+#Call Volcano function
+jpeg(paste0(out_dir, "discovery_volcano.publication_grade.BH_adjusted.hfob.jpeg"), width = 10800, height=10800, res=1000)
+make_volcano_plot(discovery_result = discovery_result, p_thresh = 0.1)
 dev.off()
 
 # 11) Examine Results for V2G-Mapped Connections ====
