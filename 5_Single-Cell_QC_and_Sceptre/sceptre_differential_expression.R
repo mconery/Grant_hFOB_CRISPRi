@@ -515,7 +515,7 @@ make_publication_qq <- function(calibration_result, discovery_result, p_thresh =
   p_out <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(y = p_value, col = lab)) +
     stat_qq_points(size = point_size, alpha = transparency) +
     stat_qq_band(data = df[df$lab == "Negative control",], mapping = ggplot2::aes(y = p_value, col = lab)) +
-    ggplot2::labs(x = "Expected null p-value", y = "Observed p-value") +
+    ggplot2::labs(x = "Expected Null P-value", y = "Observed P-Value") +
     ggplot2::geom_abline(col = "black") +
     get_my_theme() +
     ggplot2::theme(legend.title = ggplot2::element_blank(),
@@ -530,8 +530,8 @@ make_publication_qq <- function(calibration_result, discovery_result, p_thresh =
       ggplot2::ggtitle("QQ plot (bulk)")
   } else {
     p_out <- p_out +
-      ggplot2::scale_x_continuous(trans = revlog_trans(10)) +
-      ggplot2::scale_y_continuous(trans = revlog_trans(10)) +
+      ggplot2::scale_y_continuous(trans = revlog_trans(10), breaks = c(1, 1e-6, 1e-12, 1e-18)) +
+      ggplot2::scale_x_continuous(trans = revlog_trans(10), breaks = c(1, 0.1, 0.01, 0.001)) +
       ggplot2::ggtitle("QQ plot (tail)") +
       (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL)
   }
@@ -569,7 +569,7 @@ make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5
                          mapping = ggplot2::aes(x = log_2_fold_change, y = p_value, col = reject)) +
     ggplot2::geom_point(alpha = transparency, size = point_size) +
     ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 7.5) + 
-    ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0)) +
+    ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0), breaks = c(10^-1, 10^-6, 10^-11, 10^-16)) +
     get_my_theme() + ggplot2::xlab("Log Fold Change") + ggplot2::ylab("P-Value") +
     (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL) +
     ggplot2::theme(legend.position = "none") + ggplot2::scale_color_manual(values = c("gray", "dodgerblue3")) +
