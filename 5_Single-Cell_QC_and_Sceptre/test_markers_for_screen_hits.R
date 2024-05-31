@@ -225,7 +225,14 @@ discovery_result <- discovery_result %>% mutate(p_value_BH=p.adjust(p_value, met
 #obtain discovery set and write to file
 discovery_set <- obtain_discovery_set(discovery_result)
 discovery_set$response_id <- marker_genes_raw[discovery_set$response_id,"Symbol"]
-write.table(discovery_set, file = paste0(out_dir, "discovery_results.marker_test.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+write.table(discovery_set, file = paste0(out_dir, "discovery_set.marker_test.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+write.table(discovery_result, file = paste0(out_dir, "discovery_results.marker_test.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+#Count discovery test results
+discovery_result %>% dplyr::filter(is.na(p_value)) %>% nrow #20 test had insufficient cells to run (all the BGLAP tests)
+discovery_result %>% dplyr::filter(is.na(p_value) == FALSE) %>% nrow #160 tests ran (all 8 other marker genes) 
+discovery_result %>% dplyr::filter(is.na(p_value) == FALSE & log_2_fold_change < 0) %>% nrow #101/160 (63.1%) of test showed marker gene repression
+#And 59/160 (36.9%) tests showed increased marker gene expression
 
 # 7) Make publication grade figures ====
 #Much of this is reproduced code from sceptre v.0.9.0
@@ -374,14 +381,20 @@ make_publication_qq(calibration_result = calibration_result,
 dev.off()
 
 ### Make the Volcano Plot ###
+get_screen_hit_genes <- function(grna_group_check, screen_hits_filt){
+  return(paste0(screen_hits_filt[screen_hits_filt$grna_group == grna_group_check, "response_id"],collapse = ","))
+}
 make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5), transparency = 0.5, point_size = 4) {
   p_lower_lim <- 1e-20
   temp_df <- discovery_result |> dplyr::mutate(reject = p_value <= p_thresh,
                                                p_value = ifelse(p_value < p_lower_lim, p_lower_lim, p_value),
                                                log_2_fold_change = ifelse(log_2_fold_change > x_limits[2], x_limits[2], log_2_fold_change),
                                                log_2_fold_change = ifelse(log_2_fold_change < x_limits[1], x_limits[1], log_2_fold_change),
-                                               gene_lab = ifelse(p_value <= p_thresh & !(is.na(p_value)), ensg_to_symbol[response_id],"")) |>
+                                               gene_lab = ifelse(p_value <= p_thresh & !(is.na(p_value)), marker_genes_raw[response_id,"Symbol"],"")) |>
     dplyr::mutate(gene_lab = ifelse(gene_lab %in% pos_control_sgrnas, "", gene_lab))
+  hit_genes <- sapply(temp_df$grna_group, FUN = get_screen_hit_genes, screen_hits_filt = screen_hits_filt)
+  temp_df <- temp_df %>% dplyr::mutate(hit_genes=hit_genes) %>%
+    dplyr::mutate(gene_lab = ifelse(gene_lab != "", paste0(hit_genes, "/", gene_lab), ""))
   out <- ggplot2::ggplot(data = temp_df,
                          mapping = ggplot2::aes(x = log_2_fold_change, y = p_value, col = reject)) +
     ggplot2::geom_point(alpha = transparency, size = point_size) +
