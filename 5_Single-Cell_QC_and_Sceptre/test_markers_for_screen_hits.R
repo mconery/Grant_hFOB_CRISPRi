@@ -339,7 +339,7 @@ make_publication_qq <- function(calibration_result, discovery_result, p_thresh =
   p_out <- ggplot2::ggplot(data = df, mapping = ggplot2::aes(y = p_value, col = lab)) +
     stat_qq_points(size = point_size, alpha = transparency) +
     stat_qq_band(data = df[df$lab == "Negative control",], mapping = ggplot2::aes(y = p_value, col = lab)) +
-    ggplot2::labs(x = "Expected null p-value", y = "Observed p-value") +
+    ggplot2::labs(x = "Expected Null P-Value", y = "Observed P-Value") +
     ggplot2::geom_abline(col = "black") +
     get_my_theme() +
     ggplot2::theme(legend.title = ggplot2::element_blank(),
@@ -354,8 +354,8 @@ make_publication_qq <- function(calibration_result, discovery_result, p_thresh =
       ggplot2::ggtitle("QQ plot (bulk)")
   } else {
     p_out <- p_out +
-      ggplot2::scale_x_continuous(trans = revlog_trans(10)) +
-      ggplot2::scale_y_continuous(trans = revlog_trans(10)) +
+      ggplot2::scale_x_continuous(trans = revlog_trans(10), breaks = c(0.001,0.01,0.1,1)) +
+      ggplot2::scale_y_continuous(trans = revlog_trans(10), breaks = c(0.001,0.01,0.1,1)) +
       ggplot2::ggtitle("QQ plot (tail)") +
       (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL)
   }
@@ -386,28 +386,28 @@ get_screen_hit_genes <- function(grna_group_check, screen_hits_filt){
 }
 make_volcano_plot <- function(discovery_result, p_thresh, x_limits = c(-1.5, 1.5), transparency = 0.5, point_size = 4) {
   p_lower_lim <- 1e-20
-  temp_df <- discovery_result |> dplyr::mutate(reject = p_value <= p_thresh,
-                                               p_value = ifelse(p_value < p_lower_lim, p_lower_lim, p_value),
+  temp_df <- discovery_result |> dplyr::mutate(reject = p_value_BH <= p_thresh,
+                                               p_value_BH = ifelse(p_value_BH < p_lower_lim, p_lower_lim, p_value_BH),
                                                log_2_fold_change = ifelse(log_2_fold_change > x_limits[2], x_limits[2], log_2_fold_change),
                                                log_2_fold_change = ifelse(log_2_fold_change < x_limits[1], x_limits[1], log_2_fold_change),
-                                               gene_lab = ifelse(p_value <= p_thresh & !(is.na(p_value)), marker_genes_raw[response_id,"Symbol"],"")) |>
+                                               gene_lab = ifelse(p_value_BH <= p_thresh & !(is.na(p_value_BH)), marker_genes_raw[response_id,"Symbol"],"")) |>
     dplyr::mutate(gene_lab = ifelse(gene_lab %in% pos_control_sgrnas, "", gene_lab))
   hit_genes <- sapply(temp_df$grna_group, FUN = get_screen_hit_genes, screen_hits_filt = screen_hits_filt)
   temp_df <- temp_df %>% dplyr::mutate(hit_genes=hit_genes) %>%
     dplyr::mutate(gene_lab = ifelse(gene_lab != "", paste0(hit_genes, "/", gene_lab), ""))
   out <- ggplot2::ggplot(data = temp_df,
-                         mapping = ggplot2::aes(x = log_2_fold_change, y = p_value, col = reject)) +
+                         mapping = ggplot2::aes(x = log_2_fold_change, y = p_value_BH, col = reject)) +
     ggplot2::geom_point(alpha = transparency, size = point_size) +
-    ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 7.5) + 
-    ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0)) +
-    get_my_theme() + ggplot2::xlab("Log Fold Change") + ggplot2::ylab("P-Value") +
+    ggrepel::geom_text_repel(mapping = ggplot2::aes(label = gene_lab), color = "dodgerblue3", box.padding = 0.5, max.overlaps = Inf, size = 7.5, force = 5) + 
+    ggplot2::scale_y_continuous(trans = revlog_trans(10), expand = c(0.02, 0), breaks = c(1, 0.1)) +
+    get_my_theme() + ggplot2::xlab("Log Fold Change") + ggplot2::ylab("Adj. P-Value") +
     (if (!is.na(p_thresh)) ggplot2::geom_hline(yintercept = p_thresh, linetype = "dashed") else NULL) +
     ggplot2::theme(legend.position = "none") + ggplot2::scale_color_manual(values = c("gray", "dodgerblue3")) +
-    ggplot2::ggtitle("Discovery volcano plot")
+    ggplot2::theme(plot.margin = margin(0,0.4,0,0, "cm")) + ggplot2::ggtitle("Discovery volcano plot")
   return(out)
 }
 
 #Call Volcano function
 jpeg(paste0(out_dir, "dicovery_volcano.publication_grade.marker_test.jpeg"), width = 10800, height=10800, res=1000)
-make_volcano_plot(discovery_result = discovery_result, p_thresh = max(discovery_set$p_value))
+make_volcano_plot(discovery_result = discovery_result, p_thresh = 0.1)
 dev.off()
