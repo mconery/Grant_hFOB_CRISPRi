@@ -71,6 +71,12 @@ hmsc_alp_normal <- normalize_hmsc(hmsc_alp_raw, treat_name = "BMP2")
 hmsc_ars_normal <- normalize_hmsc(hmsc_ars_raw, treat_name = "BMP2")
 hmsc_adipo_normal <- normalize_hmsc(hmsc_adipo_raw, treat_name = "Adipo")
 
+#Remove EPDR1
+hfob_alp_normal <- hfob_alp_normal %>% dplyr::filter(siRNA != "EPDR1")
+hmsc_alp_normal <- hmsc_alp_normal %>% dplyr::filter(siRNA != "EPDR1")
+hmsc_ars_normal <- hmsc_ars_normal %>% dplyr::filter(siRNA != "EPDR1")
+hmsc_adipo_normal <- hmsc_adipo_normal %>% dplyr::filter(siRNA != "EPDR1")
+
 # 3) Make functions for generating comparison df ====
 
 #Define function
