@@ -148,20 +148,28 @@ calc_comparison_sirna <- function(sirna, inp_raw){
 #Make functions for executing tests at sirna level when treatment present
 calc_sirna_test_treat <- function(treat, temp, sirna){
   temp_two <- temp %>% filter(Treatment == treat)
+  #Filter for donor controls with matched sirna treatment
+  sirna_donors <- temp_two %>% dplyr::filter(siRNA == sirna) %>% dplyr::select(Donor)
+  sirna_donors <- sirna_donors[,1]
+  temp_two <- temp_two %>% dplyr::filter(Donor %in% sirna_donors) %>% dplyr::arrange(Donor)
   control_vals <- temp_two %>% filter(siRNA == "CON") %>% select(Value)
   control_vals <- control_vals[,1]
   sirna_vals <- temp_two %>% filter(siRNA == sirna) %>% select(Value)
   sirna_vals <- sirna_vals[,1]
-  test_result <- t.test(sirna_vals, control_vals, alternative = "less")
+  test_result <- t.test(sirna_vals, control_vals, alternative = "less", paired = TRUE)
   return(c(length(sirna_vals), test_result$p.value))
 }
 calc_treat_test_sirna <- function(sirna, temp){
   temp_two <- temp %>% filter(siRNA == sirna)
+  #Filter for donor controls with matched sirna treatment
+  sirna_donors <- temp_two %>% dplyr::filter(siRNA == sirna) %>% dplyr::select(Donor)
+  sirna_donors <- sirna_donors[,1]
+  temp_two <- temp_two %>% dplyr::filter(Donor %in% sirna_donors) %>% dplyr::arrange(Donor)
   control_vals <- temp_two %>% dplyr::filter(Treatment == "CON") %>% dplyr::select(Value)
   control_vals <- control_vals[,1]
   treat_vals <- temp_two %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(Value)
   treat_vals <- treat_vals[,1]
-  test_result <- t.test(control_vals, treat_vals, alternative = "less")
+  test_result <- t.test(control_vals, treat_vals, alternative = "less", paired = TRUE)
   return(c(length(treat_vals), test_result$p.value))
 }
 #Make function for testing when no treatment present
@@ -189,6 +197,16 @@ hfob_alp_comparison_df <- calc_comparison_df(hfob_alp_normal)
 hmsc_alp_comparison_df <- calc_comparison_df(hmsc_alp_normal)
 hmsc_ars_comparison_df <- calc_comparison_df(hmsc_ars_normal)
 hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_normal)
+
+#Remove results with fewer than three replicates
+remove_few_rep_results <- function(comparison_df, rep_cutoff=3){
+  temp <- comparison_df %>% dplyr::mutate(p = ifelse(reps < rep_cutoff, NA, p))
+  return(temp)
+}
+hfob_alp_comparison_df <- remove_few_rep_results(hfob_alp_comparison_df)
+hmsc_alp_comparison_df <- remove_few_rep_results(hmsc_alp_comparison_df)
+hmsc_ars_comparison_df <- remove_few_rep_results(hmsc_ars_comparison_df)
+hmsc_adipo_comparison_df <- remove_few_rep_results(hmsc_adipo_comparison_df)
 
 #Correct for multiple testing separately for hfob tests
 hfob_alp_comparison_df <- hfob_alp_comparison_df %>% mutate(p.adj = p.adjust(p, method = "BH"))
@@ -232,14 +250,14 @@ hfob_alp_combined <- hfob_alp_normal %>% dplyr::group_by(siRNA, Replicate) %>% d
 hfob_alp_y_pos_df <- hfob_alp_combined %>% dplyr::group_by(siRNA) %>% dplyr::summarize(max_value = max(Value))
 hfob_alp_comparison_df <- hfob_alp_comparison_df %>% mutate(siRNA = group1) %>% inner_join(hfob_alp_y_pos_df, by = "siRNA") %>%
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>% 
-  mutate(max_value_padded = max_value + 0.04, signif = p.adj < 0.05)
+  mutate(max_value_padded = max_value + 0.04, signif = factor(ifelse(is.na(p.adj), "N", ifelse(p.adj < 0.05, "T", "F")), levels=c("F","T", "N")))
 #Add significance back onto the plotting df
 hfob_alp_combined <- hfob_alp_combined %>% inner_join(hfob_alp_comparison_df, by = "siRNA")
 #Make plot
 hfob_alp_plot <- ggplot(hfob_alp_combined, aes(x=siRNA, y=Value,color = signif)) + geom_boxplot(width=0.3) +
                   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 2, alpha = 0.6) + 
                   stat_pvalue_manual(hfob_alp_comparison_df, x= "siRNA", y = "max_value_padded", label = "p.signif", bracket.shorten = -0.1, label.size = 6, color = "signif") + 
-                  scale_color_manual(values = c("gray", "dodgerblue3")) + 
+                  scale_color_manual(values = c("gray", "dodgerblue3", "#48494B")) + 
                   scale_x_discrete(labels = sirna_order, breaks = sirna_order) + 
                   ylab("hFOB ALP") + 
                   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -294,7 +312,7 @@ hmsc_alp_comparison_df_main <- hmsc_alp_comparison_df %>% dplyr::filter(str_dete
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
   mutate(siRNA = str_replace(group1, pattern="-BMP2", replacement="")) %>%
   inner_join(hmsc_alp_y_pos_df, by = "siRNA") %>% 
-  mutate(y.position = max_value + 0.1, signif = p.adj < 0.05) %>% 
+  mutate(y.position = max_value + 0.1, signif = factor(ifelse(is.na(p.adj), "N", ifelse(p.adj < 0.05, "T", "F")), levels=c("F","T", "N"))) %>% 
   mutate(max_value_padded = max_value + 0.04)#Prep comparison df for plotting
 #Add the significance info back onto the main plotting dataframe
 hmsc_alp_main_plot <- hmsc_alp_main_plot %>% inner_join(hmsc_alp_comparison_df_main, by = "siRNA")
@@ -302,7 +320,7 @@ hmsc_alp_main_plot <- hmsc_alp_main_plot %>% inner_join(hmsc_alp_comparison_df_m
 hmsc_alp_plot <- ggplot(hmsc_alp_main_plot, aes(x=siRNA, y=Value,color = signif)) + geom_boxplot(width=0.3) +
   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 2, alpha = 0.6) + 
   stat_pvalue_manual(hmsc_alp_comparison_df_main, x= "siRNA", y = "max_value_padded", label = "p.signif", bracket.shorten = -0.1, label.size = 6, color = "signif") + 
-  scale_color_manual(values = c("gray", "dodgerblue3")) + 
+  scale_color_manual(values = c("gray", "dodgerblue3", "#48494B")) + 
   scale_x_discrete(labels = sirna_order, breaks = sirna_order) + 
   ylab("hMSC ALP") + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -358,7 +376,7 @@ hmsc_ars_comparison_df_main <- hmsc_ars_comparison_df %>% dplyr::filter(str_dete
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
   mutate(siRNA = str_replace(group1, pattern="-BMP2", replacement="")) %>%
   inner_join(hmsc_ars_y_pos_df, by = "siRNA") %>% 
-  mutate(y.position = max_value + 0.1, signif = p.adj < 0.05) %>% 
+  mutate(y.position = max_value + 0.1, signif = factor(ifelse(is.na(p.adj), "N", ifelse(p.adj < 0.05, "T", "F")), levels=c("F","T", "N"))) %>% 
   mutate(max_value_padded = max_value + 0.04)#Prep comparison df for plotting
 #Add the significance info back onto the main plotting dataframe
 hmsc_ars_main_plot <- hmsc_ars_main_plot %>% inner_join(hmsc_ars_comparison_df_main, by = "siRNA")
@@ -366,7 +384,7 @@ hmsc_ars_main_plot <- hmsc_ars_main_plot %>% inner_join(hmsc_ars_comparison_df_m
 hmsc_ars_plot <- ggplot(hmsc_ars_main_plot, aes(x=siRNA, y=Value,color = signif)) + geom_boxplot(width=0.3) +
   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 2, alpha = 0.6) + 
   stat_pvalue_manual(hmsc_ars_comparison_df_main, x= "siRNA", y = "max_value_padded", label = "p.signif", bracket.shorten = -0.1, label.size = 6, color = "signif") + 
-  scale_color_manual(values = c("gray", "dodgerblue3")) + 
+  scale_color_manual(values = c("gray", "dodgerblue3", "#48494B")) + 
   scale_x_discrete(labels = sirna_order, breaks = sirna_order) + 
   ylab("hMSC ARS") + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -420,7 +438,7 @@ hmsc_adipo_comparison_df_main <- hmsc_adipo_comparison_df %>% dplyr::filter(str_
   mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
   mutate(siRNA = str_replace(group1, pattern="-Adipo", replacement="")) %>%
   inner_join(hmsc_adipo_y_pos_df, by = "siRNA") %>% 
-  mutate(y.position = max_value + 0.1, signif = p.adj < 0.05) %>% 
+  mutate(y.position = max_value + 0.1, signif = factor(ifelse(is.na(p.adj), "N", ifelse(p.adj < 0.05, "T", "F")), levels=c("F","T", "N"))) %>% 
   mutate(max_value_padded = max_value + 0.04)#Prep comparison df for plotting
 #Add the significance info back onto the main plotting dataframe
 hmsc_adipo_main_plot <- hmsc_adipo_main_plot %>% inner_join(hmsc_adipo_comparison_df_main, by = "siRNA")
@@ -431,7 +449,7 @@ hmsc_adipo_comparison_df_main$siRNA <- factor(hmsc_adipo_comparison_df_main$siRN
 hmsc_adipo_plot <- ggplot(hmsc_adipo_main_plot, aes(x=siRNA, y=Value,color = signif)) + geom_boxplot(width=0.3) +
   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 2, alpha = 0.6) + 
   stat_pvalue_manual(hmsc_adipo_comparison_df_main, x= "siRNA", y = "max_value_padded", label = "p.signif", bracket.shorten = -0.1, label.size = 6, color = "signif") + 
-  scale_color_manual(values = c("gray", "dodgerblue3")) + 
+  scale_color_manual(values = c("gray", "dodgerblue3", "#48494B")) + 
   scale_x_discrete(labels = sirna_order, breaks = sirna_order) + 
   ylab("hMSC Adipogenesis") + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -462,14 +480,14 @@ ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
 #  stat_pvalue_manual(combined_comparison_df, x= "siRNA", y = "max_value_padded", label = "p.signif", label.size = 6, color = "signif", show.legend=FALSE) + 
   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
   facet_grid(subplot ~ ., scales = "free", space = "free_x") +
-  scale_color_manual(values = c("gray", "dodgerblue3"), labels=c("Not Significant", "Adj. P-Value < 0.05")) + 
+  scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     ")) + 
   ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 20),
         axis.title = element_blank(), legend.position = "bottom",
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"), panel.grid.major.x = element_blank(),
         legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
         legend.title = ggplot2::element_blank(),
-        legend.text = element_text(size = 20), legend.key = element_blank(),
+        legend.text = element_text(size = 20), 
         axis.text.y = element_text(size = 20),
         strip.text.y = element_text(size = 20)) +
   ggplot2::guides(color = ggplot2::guide_legend(
@@ -486,14 +504,14 @@ ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
   #  stat_pvalue_manual(combined_comparison_df, x= "siRNA", y = "max_value_padded", label = "p.signif", label.size = 6, color = "signif", show.legend=FALSE) + 
   geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
   facet_grid(subplot ~ ., scales = "free", space = "free_x") +
-  scale_color_manual(values = c("gray", "dodgerblue3"), labels=c("Not Significant", "Adj. P-Value < 0.05")) + 
+  scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05     ", "Not Tested     ")) + 
   ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 20),
                  axis.title = element_blank(), legend.position = "bottom",
                  panel.background = element_blank(),
                  axis.line = element_line(colour = "black"), panel.grid.major.x = element_blank(),
                  legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
                  legend.title = ggplot2::element_blank(),
-                 legend.text = element_text(size = 20), legend.key = element_blank(),
+                 legend.text = element_text(size = 20),
                  axis.text.y = element_text(size = 20),
                  strip.text.y = element_text(size = 20)) +
   ggplot2::guides(color = ggplot2::guide_legend(
@@ -509,28 +527,32 @@ dev.off()
 hfob_alp_supplement <- combined_hfob_alp_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hfob_alp_comparison_df, by = "siRNA") %>% 
-  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj))
 write.table(hfob_alp_supplement, file = paste0(inp_dir, "hfob_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC alp ###
 hmsc_alp_supplement <- combined_hmsc_alp_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hmsc_alp_comparison_df_main, by = "siRNA") %>% 
-  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj))
 write.table(hmsc_alp_supplement, file = paste0(inp_dir, "hmsc_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC alizarin ###
 hmsc_ars_supplement <- combined_hmsc_ars_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hmsc_ars_comparison_df_main, by = "siRNA") %>% 
-  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj))
 write.table(hmsc_ars_supplement, file = paste0(inp_dir, "hmsc_ars.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC adipo###
 hmsc_adipo_supplement <- combined_hmsc_adipo_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
   inner_join(hmsc_adipo_comparison_df_main, by = "siRNA") %>% 
-  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj)
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj))
 write.table(hmsc_adipo_supplement, file = paste0(inp_dir, "hmsc_adipo.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 
