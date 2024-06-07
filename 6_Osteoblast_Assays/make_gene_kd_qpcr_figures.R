@@ -156,7 +156,7 @@ make_combined_plot <- function(hmsc_normal, out_dir, treat_type, max_val=3){
   tiff(paste0(out_dir, paste0("kd_qpcr.", treat_type, ".tiff")), width = 12000, height=12000, res=1000)
   print(ggplot(hmsc_normal, aes(x = Gene, y = pct_diff, color=signif)) +
     geom_boxplot(linewidth=1.03, width=0.5) + 
-    geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
+    geom_hline(yintercept = 0, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
     facet_grid(subplot ~ ., scales = "free", space = "free_x") +
     scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05     ", "Not Tested     ")) + 
     ylab("Percentage Decrease in Expression with siRNA Transduction") + 
@@ -181,7 +181,7 @@ make_combined_plot <- function(hmsc_normal, out_dir, treat_type, max_val=3){
   jpeg(paste0(out_dir, paste0("kd_qpcr.", treat_type, ".jpeg")), width = 3600, height=3600, res=300)
   print(ggplot(hmsc_normal, aes(x = Gene, y = pct_diff, color=signif)) +
           geom_boxplot(linewidth=1.03, width=0.5) + 
-          geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
+          geom_hline(yintercept = 0, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
           facet_grid(subplot ~ ., scales = "free", space = "free_x") +
           scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05     ", "Not Tested     ")) + 
           ylab("Percentage Change in Expression with siRNA Transduction") + 
