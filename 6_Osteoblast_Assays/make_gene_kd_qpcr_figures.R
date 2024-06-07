@@ -196,7 +196,7 @@ make_combined_plot(hmsc_adipo_diff, out_dir, "Adipo")
 
 ### hMSC osteo ###
 hmsc_osteo_supplement <- hmsc_osteo_diff %>% dplyr::group_by(siRNA, Gene, Treatment) %>% 
-  dplyr::summarize(median_pct_diff=mean(pct_diff, na.rm = TRUE), reps = n(), p.adj = first(p.adj)) %>% 
+  dplyr::summarize(median_pct_diff=median(pct_diff, na.rm = TRUE), reps = n(), p.adj = first(p.adj)) %>% 
   dplyr::select(Gene, Treatment, reps, median_pct_diff, p.adj) %>% 
   dplyr::mutate(p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj))
 write.table(hmsc_osteo_supplement, file = paste0(inp_dir, "hmsc_osteo_kd_qpcr.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
@@ -205,7 +205,7 @@ write.table(hmsc_osteo_supplement, file = paste0(inp_dir, "hmsc_osteo_kd_qpcr.su
 hmsc_adipo_supplement <- hmsc_adipo_diff %>% 
   dplyr::mutate(ifelse(is.na(p.adj) == FALSE, p.adj, 10)) %>%
   dplyr::group_by(siRNA, Treatment) %>% 
-  dplyr::summarize(median_pct_diff=mean(pct_diff, na.rm = TRUE), reps = n(), p.adj = first(p.adj), Gene=first(Gene)) %>% 
+  dplyr::summarize(median_pct_diff=median(pct_diff, na.rm = TRUE), reps = n(), p.adj = first(p.adj), Gene=first(Gene)) %>% 
   dplyr::mutate(p.adj = as.character(p.adj)) %>% 
   as.data.frame() %>%
   dplyr::mutate(p.adj = ifelse(reps < 3, "Not Tested", p.adj)) %>% 
