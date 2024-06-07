@@ -29,23 +29,7 @@ set.seed(5)
 hmsc_osteo_raw <- read.csv(hmsc_osteo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 hmsc_adipo_raw <- read.csv(hmsc_adipo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 
-# 2) Normalize Data to Control Level of Each Plate ====
-
-#First normalize the osteo results to the GAPDH level of each plate
-normalize_to_GAPDH <- function(sirna, hmsc_osteo_raw){
-  temp <- hmsc_osteo_raw %>% dplyr::filter(siRNA == sirna)
-  temp_two <- temp %>% dplyr::filter(Gene != "GAPDH") %>% dplyr::arrange(Donor, Treatment) %>% mutate(Donor_Treatment=paste0(Donor, "_", Treatment, "_", Plate))
-  temp_three <- temp %>% dplyr::filter(Gene == "GAPDH") %>% dplyr::arrange(Donor, Treatment) %>% mutate(Donor_Treatment=paste0(Donor, "_", Treatment, "_", Plate)) %>% 
-    dplyr::select(Donor_Treatment, Value)
-  colnames(temp_three) <- c("Donor_Treatment", "GAPDH")
-  temp <- inner_join(temp_two, temp_three, by = "Donor_Treatment") %>% dplyr::mutate(Value = Value/GAPDH) %>%
-    dplyr::mutate(Value = ifelse(is.infinite(Value), NA, Value)) %>%
-    dplyr::select(siRNA, Treatment, Donor, Gene, Value)
-  return(temp)
-}
-hmsc_osteo_normal <- bind_rows(lapply(hmsc_osteo_raw$siRNA %>% unique, FUN = normalize_to_GAPDH, hmsc_osteo_raw = hmsc_osteo_raw))
-
-# 3) Make functions for generating comparison df ====
+# 2)  Make functions for generating comparison df ====
 
 #Define function
 calc_comparison_df <- function(inp_raw){
@@ -91,10 +75,10 @@ calc_sirna_test_treat <- function(treat, temp, sirna){
   return(c(length(sirna_vals), test_result$p.value))
 }
 
-# 4) Call functions and Correct for Multiple Testing ====
+# 3) Call functions and Correct for Multiple Testing ====
 
 #Call functions
-hmsc_osteo_comparison_df <- calc_comparison_df(hmsc_osteo_normal)
+hmsc_osteo_comparison_df <- calc_comparison_df(hmsc_osteo_raw)
 hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_raw)
 
 #Remove results with fewer than three replicates
@@ -116,10 +100,10 @@ hmsc_adipo_comparison_df <- adjust_comparison_p(hmsc_adipo_comparison_df)
 #Prep for merging by combining columns as identifiers
 hmsc_osteo_comparison_df <- hmsc_osteo_comparison_df %>% dplyr::mutate(Gene_Treatment=paste0(Gene, "_", Treatment)) %>% dplyr::select(Gene_Treatment, p.adj, signif)
 hmsc_adipo_comparison_df <- hmsc_adipo_comparison_df %>% dplyr::mutate(Gene_Treatment=paste0(Gene, "_", Treatment)) %>% dplyr::select(Gene_Treatment, p.adj, signif)
-hmsc_osteo_normal <- hmsc_osteo_normal %>% dplyr::mutate(Gene_Treatment=paste0(Gene, "_", Treatment))
+hmsc_osteo_raw <- hmsc_osteo_raw %>% dplyr::mutate(Gene_Treatment=paste0(Gene, "_", Treatment))
 hmsc_adipo_raw <- hmsc_adipo_raw %>% dplyr::mutate(Gene_Treatment=paste0(Gene, "_", Treatment))
 #Merge significance info onto the input dataframes
-hmsc_osteo_merge <- inner_join(hmsc_osteo_normal, hmsc_osteo_comparison_df, by = "Gene_Treatment")
+hmsc_osteo_merge <- inner_join(hmsc_osteo_raw, hmsc_osteo_comparison_df, by = "Gene_Treatment")
 hmsc_adipo_merge <- inner_join(hmsc_adipo_raw, hmsc_adipo_comparison_df, by = "Gene_Treatment")
 
 #Calculate expression differences
@@ -134,7 +118,7 @@ calculate_expr_diff <- function(hmsc_merge){
 hmsc_osteo_diff <- calculate_expr_diff(hmsc_osteo_merge)
 hmsc_adipo_diff <- calculate_expr_diff(hmsc_adipo_merge)
 
-# 6) Make Box Plots of Results ====
+# 4) Make Box Plots of Results ====
 
 
 #Make a function that makes a plot for each dataframe 
@@ -208,7 +192,7 @@ make_combined_plot <- function(hmsc_normal, out_dir, treat_type, max_val=3){
 make_combined_plot(hmsc_osteo_diff, out_dir, "Osteo")
 make_combined_plot(hmsc_adipo_diff, out_dir, "Adipo")
 
-# 6) Make Supplemental Tables of Results ====
+# 5) Make Supplemental Tables of Results ====
 
 ### hMSC osteo ###
 hmsc_osteo_supplement <- hmsc_osteo_diff %>% dplyr::group_by(siRNA, Gene, Treatment) %>% 
