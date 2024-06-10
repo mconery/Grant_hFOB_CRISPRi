@@ -125,7 +125,7 @@ calc_comparison_sirna <- function(sirna, inp_raw){
 }
 #Make functions for executing tests at sirna level when treatment present
 calc_sirna_test_treat <- function(treat, temp, sirna){
-  temp_two <- temp %>% filter(Treatment == treat)
+  temp_two <- temp %>% filter(Treatment == treat & is.na(Value) == FALSE)
   #Filter for donor controls with matched sirna treatment
   sirna_donors <- temp_two %>% dplyr::filter(siRNA == sirna) %>% dplyr::select(Donor)
   sirna_donors <- sirna_donors[,1]
@@ -401,7 +401,7 @@ hmsc_alp_temp <- combined_hmsc_alp_plot %>% dplyr::group_by(siRNA) %>%
 
 ### hMSC alizarin ###
 hmsc_ars_temp <- combined_hmsc_ars_plot %>% dplyr::group_by(siRNA) %>% 
-  dplyr::summarize(mean_fold_change=mean(Value)) %>% 
+  dplyr::summarize(mean_fold_change=mean(Value, na.rm = TRUE)) %>% 
   inner_join(hmsc_ars_comparison_df_main, by = "siRNA") %>% 
   dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>% 
   dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj),
