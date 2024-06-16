@@ -17,6 +17,8 @@ library(ggpubr)
 
 #Set directories and file locations
 inp_dir <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/osteoblast_assays/"
+hfob_alp_file <- paste0(inp_dir, "hfob_alp_results.tsv")
+hfob_alp_dapi_file <- paste0(inp_dir, "hfob_alp_dapi.tsv")
 hmsc_alp_file <- paste0(inp_dir, "hMSC-BMP2_alp_results.dapi_normalized.tsv")
 hmsc_ars_file <- paste0(inp_dir, "hMSC-BMP2_ars_results.dapi_normalized.tsv")
 hmsc_adipo_file <- paste0(inp_dir, "hMSC-BMP2_adipo_results.dapi_normalized.tsv")
@@ -28,11 +30,43 @@ set.seed(5)
 # 1) Read in files ====
 
 #Read in files
+hfob_alp_no_dapi <- read.csv(hfob_alp_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
+hfob_alp_dapi <- read.csv(hfob_alp_dapi_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 hmsc_alp_raw <- read.csv(hmsc_alp_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 hmsc_ars_raw <- read.csv(hmsc_ars_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 hmsc_adipo_raw <- read.csv(hmsc_adipo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 
+#Process the hfob data set to keep formatting consistent
+#Convert all "Control"s to "CON"s
+hfob_alp_no_dapi$siRNA = ifelse(hfob_alp_no_dapi$siRNA == "Control", "CON", hfob_alp_no_dapi$siRNA)
+hfob_alp_dapi$siRNA = ifelse(hfob_alp_dapi$siRNA == "Control", "CON", hfob_alp_dapi$siRNA)
+#Add Name column
+hfob_alp_no_dapi <- hfob_alp_no_dapi %>% mutate(Name = siRNA)
+hfob_alp_dapi <- hfob_alp_dapi %>% mutate(Name = siRNA)
+#Remove no siRNA test
+hfob_alp_no_dapi <- hfob_alp_no_dapi %>% dplyr::filter(siRNA != "NT" & siRNA != "Not Treated")
+hfob_alp_dapi <- hfob_alp_dapi %>% dplyr::filter(siRNA != "NT" & siRNA != "Not Treated")
+
+#Combine hfob measurements together
+hfob_alp_no_dapi <- hfob_alp_no_dapi %>% dplyr::group_by(siRNA, Replicate) %>% 
+  dplyr::summarize(Value=mean(Value)) %>% dplyr::arrange(siRNA, Replicate)
+hfob_alp_dapi <- hfob_alp_dapi %>% dplyr::arrange(siRNA, Replicate)
+#Normalize the raw hfob measurements by the dapi counts
+hfob_alp_raw <- cbind.data.frame(hfob_alp_dapi[,c("Name", "siRNA", "Replicate")], Value=hfob_alp_no_dapi$Value/hfob_alp_dapi$Value)
+
 # 2) Normalize Data to Control Level of Each Plate ====
+
+#Make a function that normalizes each plate relative to its control for the hfobs and call it
+normalize_hfob <- function(inp_raw){
+  replicates = unique(inp_raw$Replicate)
+  bind_rows(lapply(replicates, normalize_hfob_replicate, inp_raw=inp_raw))
+}
+normalize_hfob_replicate <- function(replicate, inp_raw){
+  temp <- inp_raw %>% dplyr::filter(Replicate == replicate)
+  temp$Value <- temp$Value/mean(temp[temp$siRNA == "CON","Value"])
+  return(temp)
+}
+hfob_alp_normal <- normalize_hfob(hfob_alp_raw)
 
 #Make a function that normalizes each plate relative to its control for the hMSC assays and call it
 normalize_hmsc <- function(inp_raw, treat_name){
@@ -171,6 +205,7 @@ calc_treat_test_control <- function(plate, inp_raw){
 # 4) Call functions and Correct for Multiple Testing ====
 
 #Call functions
+hfob_alp_comparison_df <- calc_comparison_df(hfob_alp_normal)
 hmsc_alp_comparison_df <- calc_comparison_df(hmsc_alp_normal)
 hmsc_ars_comparison_df <- calc_comparison_df(hmsc_ars_normal)
 hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_normal)
@@ -180,11 +215,14 @@ remove_few_rep_results <- function(comparison_df, rep_cutoff=3){
   temp <- comparison_df %>% dplyr::mutate(p = ifelse(reps < rep_cutoff, NA, p))
   return(temp)
 }
+hfob_alp_comparison_df<- remove_few_rep_results(hfob_alp_comparison_df)
 hmsc_alp_comparison_df <- remove_few_rep_results(hmsc_alp_comparison_df)
 hmsc_ars_comparison_df <- remove_few_rep_results(hmsc_ars_comparison_df)
 hmsc_adipo_comparison_df <- remove_few_rep_results(hmsc_adipo_comparison_df)
 
-#Correct for multiple testing separately for the two test types in the hMSC alp experiment
+#Correct for multiple testing separately for hfob tests
+hfob_alp_comparison_df <- hfob_alp_comparison_df %>% mutate(p.adj = p.adjust(p, method = "BH"))
+#Correct for multiple testing separately for the three test types in the hMSC alp experiment
 hmsc_alp_comparison_df <- hmsc_alp_comparison_df %>% mutate(p.adj = ifelse(is.na(p), NA, 1))
 hmsc_alp_comparison_df$p.adj[str_detect(pattern = "-CON",hmsc_alp_comparison_df$group1) & str_detect(pattern = "-BMP2", hmsc_alp_comparison_df$group2)] <-
   p.adjust(hmsc_alp_comparison_df$p[str_detect(pattern = "-CON",hmsc_alp_comparison_df$group1) & str_detect(pattern = "-BMP2", hmsc_alp_comparison_df$group2)], method = "BH")
@@ -216,6 +254,17 @@ name_order <- c("CONTROL-1-BMP2", "CONTROL-1-CON", "CONTROL-2-BMP2", "CONTROL-2-
 adipo_name_order <- str_replace(name_order, pattern = "-BMP2", "-Adipo")
 adipo_name_order <- str_replace(adipo_name_order[str_detect(adipo_name_order, pattern = "CONTROL-2", negate = TRUE)], pattern = "CONTROL-1", replacement = "CONTROL")
 sirna_order <- sort(unique(as.character(hmsc_alp_normal$siRNA[str_detect(pattern = "CON", hmsc_alp_normal$Name) == FALSE])))
+
+### hFOB ALP ###
+#Combine the measurements together and remove the control siRNA
+hfob_alp_combined <- hfob_alp_normal %>% dplyr::group_by(siRNA, Replicate) %>% dplyr::summarize(Value = mean(Value)) %>% filter(siRNA != "CON")
+#Add on y-positions to the signficance df
+hfob_alp_y_pos_df <- hfob_alp_combined %>% dplyr::group_by(siRNA) %>% dplyr::summarize(max_value = max(Value))
+hfob_alp_comparison_df <- hfob_alp_comparison_df %>% mutate(siRNA = group1) %>% inner_join(hfob_alp_y_pos_df, by = "siRNA") %>%
+  mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>% 
+  mutate(max_value_padded = max_value + 0.04, signif = factor(ifelse(is.na(p.adj), "N", ifelse(p.adj < 0.05, "T", "F")), levels=c("F","T", "N")))
+#Add significance back onto the plotting df
+hfob_alp_combined <- hfob_alp_combined %>% inner_join(hfob_alp_comparison_df, by = "siRNA")
 
 ### hMSC ALP ###
 #Make a supplemental figure showing effect of BMP2 stimulation
@@ -329,17 +378,19 @@ hmsc_adipo_plot <- ggplot(hmsc_adipo_main_plot, aes(x=siRNA, y=Value,color = sig
         legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
 
 #Make stacked combined plot data frames
+combined_hfob_alp_plot <- hfob_alp_combined %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(reps, subplot = "hFOB ALP")
 combined_hmsc_alp_plot <- hmsc_alp_main_plot %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(subplot = "hMSC ALP")
 combined_hmsc_ars_plot <- hmsc_ars_main_plot %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(subplot = "hMSC ARS")
 combined_hmsc_adipo_plot <- hmsc_adipo_main_plot %>% dplyr::select(siRNA, signif, reps, Value) %>% mutate(subplot = "hMSC Adipo")
-combined_plot_df <- rbind.data.frame(combined_hmsc_alp_plot, combined_hmsc_ars_plot, combined_hmsc_adipo_plot)
-combined_plot_df$subplot <- factor(combined_plot_df$subplot, levels = c("hMSC ALP", "hMSC ARS", "hMSC Adipo"))
+combined_plot_df <- rbind.data.frame(combined_hfob_alp_plot, combined_hmsc_alp_plot, combined_hmsc_ars_plot, combined_hmsc_adipo_plot)
+combined_plot_df$subplot <- factor(combined_plot_df$subplot, levels = c("hFOB ALP", "hMSC ALP", "hMSC ARS", "hMSC Adipo"))
 #And now make significance data frames
+combined_hfob_alp_comparison <- hfob_alp_comparison_df %>% dplyr::select(group1, group2, siRNA, max_value_padded, p.signif, signif) %>% mutate(subplot = "hFOB ALP")
 combined_hmsc_alp_comparison <- hmsc_alp_comparison_df_main %>% dplyr::select(group1, group2, siRNA, max_value_padded, p.signif, signif) %>% mutate(subplot = "hMSC ALP")
 combined_hmsc_ars_comparison <- hmsc_ars_comparison_df_main %>% dplyr::select(group1, group2, siRNA, max_value_padded, p.signif, signif) %>% mutate(subplot = "hMSC ARS")
 combined_hmsc_adipo_comparison <- hmsc_adipo_comparison_df_main %>% dplyr::select(group1, group2, siRNA, max_value_padded, p.signif, signif) %>% mutate(subplot = "hMSC Adipo")
-combined_comparison_df <- rbind.data.frame(combined_hmsc_alp_comparison, combined_hmsc_ars_comparison, combined_hmsc_adipo_comparison)
-combined_comparison_df$subplot <- factor(combined_comparison_df$subplot, levels = c("hMSC ALP", "hMSC ARS", "hMSC Adipo"))
+combined_comparison_df <- rbind.data.frame(combined_hfob_alp_comparison, combined_hmsc_alp_comparison, combined_hmsc_ars_comparison, combined_hmsc_adipo_comparison)
+combined_comparison_df$subplot <- factor(combined_comparison_df$subplot, levels = c("hFOB ALP", "hMSC ALP", "hMSC ARS", "hMSC Adipo"))
 
 #Make combined plot
 jpeg(paste0(out_dir, "DAPI_normalized.box.jpeg"), width = 12000, height=12000, res=1000)
@@ -391,6 +442,14 @@ dev.off()
 
 # 6) Make Supplemental Tables of Results ====
 
+### hFOB alp ###
+hfob_alp_temp <- combined_hfob_alp_plot %>% dplyr::group_by(siRNA) %>% 
+  dplyr::summarize(mean_fold_change=mean(Value)) %>% 
+  inner_join(hfob_alp_comparison_df, by = "siRNA") %>% 
+  dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj),
+                assay = "hfob_alp")
+
 ### hMSC alp ###
 hmsc_alp_temp <- combined_hmsc_alp_plot %>% dplyr::group_by(siRNA) %>% 
   dplyr::summarize(mean_fold_change=mean(Value)) %>% 
@@ -416,7 +475,7 @@ hmsc_adipo_temp <- combined_hmsc_adipo_plot %>% dplyr::group_by(siRNA) %>%
                 assay = "hmsc_adipo")
 
 ### Write to File ###
-final_file_temp <- rbind.data.frame(hmsc_alp_temp, hmsc_ars_temp, hmsc_adipo_temp)
+final_file_temp <- rbind.data.frame(hfob_alp_temp, hmsc_alp_temp, hmsc_ars_temp, hmsc_adipo_temp)
 write.table(final_file_temp, file = paste0(inp_dir, "dapi_normalized.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 
