@@ -1,5 +1,6 @@
 '''
 This script performs standard quality control on the Cell Ranger output data. 
+It should be run in the "sceptre" conda environment
 '''
 
 #import modules that will be needed
@@ -165,7 +166,7 @@ for pool in good_pools:
     #Make variable names unique
     cellbender_good_results[pool].var_names_make_unique()
 
-#Merge the good cells into a single scanpy object
+#Merge the good cells into a single scanpy object and write it to file
 cellbender_merged_good = ad.concat(cellbender_good_results.values())
 
 #Run basic QC metrics for the merged good cells
@@ -226,6 +227,9 @@ cellbender_merged_good_filtered = cellbender_merged_good_filtered[cellbender_mer
 #Create a version to save for export
 cellbender_export = cellbender_merged_good_filtered[:]
 cellbender_export_copy = cellbender_export[:]
+outfile = open(qc_dir + 'aggr/all_cells.fully_qced.pkl','wb')
+pickle.dump(cellbender_export,outfile)
+outfile.close()
 
 #Append on the information about whether the cell has been retained thus far
 grna_ref_raw['passed_secondary_qc'] = [True if x in cellbender_export.obs_names.to_list() else False for x in grna_ref_raw['cell_barcode']]
