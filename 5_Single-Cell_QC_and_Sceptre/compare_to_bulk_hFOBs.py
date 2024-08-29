@@ -25,6 +25,7 @@ grna_ref_loc = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFO
 
 #Set bulk hFOB tpm location
 bulk_loc = "/mnt/isilon/sfgi/pahlm/analyses/grant/rnaSeq/bone_diff/DE/hFOB/hFOB_tpm.txt"
+hmsc_loc = "/mnt/isilon/sfgi/chesia/analyses/grant/rnaSeq/BMP2/BMP2_vs_Contr.txt"
 #Set gene length file
 gene_len_loc = "/mnt/isilon/sfgi/programs/HTSeq-0.6.1/geneModels/gencodeV19.lincRNA.snomiRNA.annotation_for_HTseq.length.txt"
 #Set file of osteoblast marker genes
@@ -39,6 +40,16 @@ bulk_raw = pd.read_csv(bulk_loc, sep="\t")
 bulk_filt = bulk_raw.loc[[True if "ENSG" in x else False for x in bulk_raw.gene_id.to_list()],:]
 bulk_filt['cut_id'] = [x.split('.')[0] for x in bulk_filt.gene_id.to_list()]
 
+#Read in bullk hMSC results
+hmsc_raw = pd.read_csv(hmsc_loc, sep="\t")
+hmsc_filt = hmsc_raw.loc[[True if "ENSG" in x else False for x in hmsc_raw.GENE.to_list()],:]
+hmsc_filt['cut_id'] = [x.split('.')[0] for x in hmsc_filt.GENE.to_list()]
+hmsc_filt.index = hmsc_filt['cut_id']
+#Convert FPKM to TPM
+for fpkm_col in [x for x in hmsc_filt.columns if "FPKM" in x]:
+    scale_factor = hmsc_filt[fpkm_col].sum()
+    hmsc_filt[fpkm_col.replace("FPKM", "TPM")] = (hmsc_filt[fpkm_col] / scale_factor) * 1e6
+
 #Read in hfob gene reference
 hfob_ref_raw = pd.read_table(hfob_loc, sep=",")
 #Make dictionary mapping and get maturation and mineralization genes
@@ -46,7 +57,6 @@ osteo_mapping = {hfob_ref_raw['ENSG'][x] : hfob_ref_raw['Symbol'][x] for x in ra
 proliferation_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Proliferation"]
 maturation_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Maturation"]
 mineralization_genes = [hfob_ref_raw['Symbol'][x] for x in range(len(hfob_ref_raw)) if hfob_ref_raw['Category'][x] == "Mineralization"]
-
 
 #Read in pickle file of screen cells
 with open(filtered_cell_loc, 'rb') as f:
@@ -106,13 +116,17 @@ tpm_df = pseudo_bulk_df_filt[['No_Guide_TPM', "NT_TPM"]]
 temp = bulk_filt.cut_id.to_list()
 tpm_df = tpm_df.loc[[True if x in temp else False for x in tpm_df.index],:]
 
-#Add on the bulk data to the tpm_df
+#Add on the bulk hFOB data to the tpm_df
 for repl in list(bulk_filt['sample'].unique()):
     #Get the data for the current bulk replicate
     temp = bulk_filt.query("sample == @repl")
     temp.index = temp.cut_id
     #Append on the new data
     tpm_df[repl] = temp.loc[list(tpm_df.index), 'tpm']
+    
+#Add on the bulk hMSC data to the tpm_df
+tpm_df = tpm_df.loc[[x for x in tpm_df.index if x in hmsc_filt.index],:]
+tpm_df = pd.concat([tpm_df, hmsc_filt.loc[tpm_df.index,[x for x in hmsc_filt.columns if "TPM" in x]]], axis = 1)
     
 #### Make the PCA Plot #####
 # Standardize the data
@@ -127,17 +141,23 @@ pca_df = pd.DataFrame(data=principal_components, columns=['PC1', 'PC2'], index=t
 categories = []
 for experiment in pca_df.index:
     if experiment.startswith("hFOBdiff_"):
-        categories.append("Differentiated")
+        categories.append("Diff. hFOB")
     elif experiment.startswith("hFOBundiff_"):
-        categories.append("Undifferentiated")
+        categories.append("Undiff. hFOB")
+    elif "BMP2" in experiment:
+        categories.append("hMSC-Osteo")
+    elif "Contr" in experiment:
+        categories.append("hMSC")
     else:
         categories.append("Screen")
         
 pca_df['Category'] = categories 
 # Define colors for each category
 colors = {
-    "Differentiated": "blue",
-    "Undifferentiated": "green",
+    "Diff. hFOB": "#026602",
+    "Undiff. hFOB": "#03fa03",
+    "hMSC-Osteo": "#004778",
+    "hMSC": "#0396fc",
     "Screen": "red"
 }
 
@@ -176,6 +196,14 @@ def assign_category(gene):
         return "Unknown"
 
 tpm_marker_long['Category'] = tpm_marker_long['Gene'].apply(assign_category)
+#Reset experiment names
+tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("No_Guide_TPM", 'Screen No Guide')
+tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("NT_TPM", 'Screen NT Guide')
+tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("hFOBdiff_rep", 'Diff. hFOB ')
+tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("hFOBundiff_rep", 'Undiff. hFOB ')
+tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("TPM.BMP2", "hMSC-Osteo ")
+tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("TPM.Contr", "hMSC ")
+tpm_marker_long.sort_values(['Category', 'Gene', 'Experiment'], inplace=True)
 
 #Create the faceted bar plot
 plt.figure(figsize=(8, 6))
@@ -189,8 +217,6 @@ for ax in g.axes[6:]:
 g.set_axis_labels("", "TPM")
 g.set_titles("{col_name}")
 
-# Save the plot to the specified location
-plt.savefig('marker_genes_faceted_barplot.png', dpi=300, bbox_inches='tight')
 # Save the plot to the specified location
 plt.savefig(os.path.join(qc_dir, 'aggr', 'marker_genes_faceted_barplot.png'), dpi=300, bbox_inches='tight')
 plt.clf()
