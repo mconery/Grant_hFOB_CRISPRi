@@ -221,8 +221,10 @@ make_combined_plot <- function(hmsc_normal, hmsc_comparison_df, out_dir, treat_t
     geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
     facet_grid(subplot ~ ., scales = "free", space = "free_x") +
     scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05     ", "Not Tested     ")) + 
+    ylab("Expression Fold Change") + 
     ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 20),
-                   axis.title = element_blank(), legend.position = "bottom",
+                   axis.title.x = element_blank(), legend.position = "bottom",
+                   axis.title.y = element_text(size = 24),
                    panel.background = element_blank(),
                    axis.line = element_line(colour = "black"), panel.grid.major.x = element_blank(),
                    legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
