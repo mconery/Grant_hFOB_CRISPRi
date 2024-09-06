@@ -466,7 +466,7 @@ intensity_dapi_plot <- ggplot(intensity_dapi_df, aes(x = siRNA, y = Value, colou
                  strip.text = element_text(size = 12))
 
 #Make combined plot
-tiff(paste0(out_dir, "main_assay_figure.renormalized.box.tiff"), width = 18000, height=6000, res=1000)
+tiff(paste0(out_dir, "main_assay_figure.renormalized.box.tif"), width = 18000, height=6000, res=1000)
 ggarrange(intensity_plot, count_plot, intensity_dapi_plot, ncol = 3, nrow = 1, common.legend = FALSE, align = "v", heights = c(4.25, 4.25),
           labels = c("A", "B", "C"), font.label = list(face = "plain", size = 20))
 dev.off()

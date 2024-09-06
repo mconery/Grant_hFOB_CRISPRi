@@ -215,7 +215,7 @@ make_combined_plot <- function(hmsc_normal, hmsc_comparison_df, out_dir, treat_t
   combined_plot_df <- bind_rows(facet_dfs)
   combined_plot_df$subplot <- factor(combined_plot_df$subplot, levels = genes)
   #Make combined plot in tiff format
-  tiff(paste0(out_dir, paste0("marker_gene_qpcr.", treat_type, ".tiff")), width = 12000, height=12000, res=1000)
+  tiff(paste0(out_dir, paste0("marker_gene_qpcr.", treat_type, ".tif")), width = 12000, height=12000, res=1000)
   print(ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
     geom_boxplot(linewidth=1.03, width=0.5) + 
     geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +

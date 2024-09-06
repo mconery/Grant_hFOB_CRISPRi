@@ -137,7 +137,7 @@ make_combined_plot <- function(hmsc_normal, out_dir, treat_type, max_val=3){
   hmsc_normal$signif = factor(ifelse(is.na(hmsc_normal$signif), "N", ifelse(hmsc_normal$signif, "T", "F")), levels = c("F", "T", "N"))
   hmsc_normal$Gene = factor(hmsc_normal$Gene, levels = gene_order)
   #Make combined plot in tiff format
-  tiff(paste0(out_dir, paste0("kd_qpcr.", treat_type, ".tiff")), width = 12000, height=12000, res=1000)
+  tiff(paste0(out_dir, paste0("kd_qpcr.", treat_type, ".tif")), width = 12000, height=12000, res=1000)
   print(ggplot(hmsc_normal, aes(x = Gene, y = pct_diff, color=signif)) +
     geom_boxplot(linewidth=1.03, width=0.5) + 
     geom_hline(yintercept = 0, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
