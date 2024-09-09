@@ -3,8 +3,8 @@
 #make_main_assay_figures.R
 
 #The purpose of this script is to make figures and tables for the osteoblast
-#cell model assay results. This script uses the plate-normalized intensity 
-#measurements to compare siRNAs. This script runs locally.
+#cell model assay results. This script uses the raw intensity measurements only
+#normalized by cell counts to compare siRNAs. This script runs locally.
 
 ################################################################################
 
@@ -133,48 +133,7 @@ temp <- intersect(colnames(hmsc_adipo_filt), colnames(hmsc_adipo_count_filt))
 temp <- temp[temp != "Value"]
 hmsc_adipo_intensity_dapi <- cbind.data.frame(hmsc_adipo_filt[,temp], Value = hmsc_adipo_filt$Value/hmsc_adipo_count_filt$Value)
 
-# 4) Normalize Data to Control Level of Each Plate ====
-
-#Make a function that normalizes each plate relative to its control for the hfobs and call it
-normalize_hfob <- function(inp_raw){
-  replicates = unique(inp_raw$Replicate)
-  bind_rows(lapply(replicates, normalize_hfob_replicate, inp_raw=inp_raw))
-}
-normalize_hfob_replicate <- function(replicate, inp_raw){
-  temp <- inp_raw %>% dplyr::filter(Replicate == replicate)
-  temp$Value <- temp$Value/mean(temp[temp$siRNA == "CON","Value"])
-  return(temp)
-}
-hfob_alp_normal <- normalize_hfob(hfob_alp_filt)
-hfob_alp_count_normal <- normalize_hfob(hfob_alp_count_filt)
-hfob_alp_intensity_dapi_normal <- normalize_hfob(hfob_alp_intensity_dapi)
-
-#Make a function that normalizes each plate relative to its control for the hMSC assays and call it
-normalize_hmsc <- function(inp_raw, treat_name){
-  #Bind on a column representing unique plate
-  inp_raw <- inp_raw %>% mutate(Unique_plate = paste(Donor, Plate, Passage, sep = "."))
-  unique_plates = unique(inp_raw$Unique_plate)
-  bind_rows(lapply(unique_plates, normalize_hmsc_plate, inp_raw=inp_raw, treat_name=treat_name))
-}
-normalize_hmsc_plate <- function(unique_plate, inp_raw, treat_name){
-  temp <- inp_raw %>% dplyr::filter(Unique_plate == unique_plate)
-  temp$Value <- temp$Value/temp[temp$siRNA == "CON" & temp$Treatment == treat_name,"Value"]
-  return(temp)
-}
-#Call the function on the hmsc alp results
-hmsc_alp_normal <- normalize_hmsc(hmsc_alp_filt, treat_name = "BMP2")
-hmsc_alp_count_normal <- normalize_hmsc(hmsc_alp_count_filt, treat_name = "BMP2")
-hmsc_alp_intensity_dapi_normal <- normalize_hmsc(hmsc_alp_intensity_dapi, treat_name = "BMP2")
-#Call the function on the hmsc ars results
-hmsc_ars_normal <- normalize_hmsc(hmsc_ars_filt, treat_name = "BMP2")
-hmsc_ars_count_normal <- normalize_hmsc(hmsc_ars_count_filt, treat_name = "BMP2")
-hmsc_ars_intensity_dapi_normal <- normalize_hmsc(hmsc_ars_intensity_dapi, treat_name = "BMP2")
-#Call the function on the hmsc adipogenesis results
-hmsc_adipo_normal <- normalize_hmsc(hmsc_adipo_filt, treat_name = "Adipo")
-hmsc_adipo_count_normal <- normalize_hmsc(hmsc_adipo_count_filt, treat_name = "Adipo")
-hmsc_adipo_intensity_dapi_normal <- normalize_hmsc(hmsc_adipo_intensity_dapi, treat_name = "Adipo")
-
-# 5) Make functions for generating comparison df ====
+# 4) Make functions for generating comparison df ====
 
 #Define function
 calc_comparison_df <- function(inp_raw){
@@ -287,25 +246,25 @@ calc_treat_test_control <- function(plate, inp_raw){
   return(calc_treat_test_sirna("CON", temp))
 }
 
-# 6) Call functions and Correct for Multiple Testing ====
+# 5) Call functions and Correct for Multiple Testing ====
 
 #Call functions for raw intensity data
-hfob_alp_comparison_df <- calc_comparison_df(hfob_alp_normal)
-hmsc_alp_comparison_df <- calc_comparison_df(hmsc_alp_normal)
-hmsc_ars_comparison_df <- calc_comparison_df(hmsc_ars_normal)
-hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_normal)
+hfob_alp_comparison_df <- calc_comparison_df(hfob_alp_filt)
+hmsc_alp_comparison_df <- calc_comparison_df(hmsc_alp_filt)
+hmsc_ars_comparison_df <- calc_comparison_df(hmsc_ars_filt)
+hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_filt)
 
 #Call functions for raw intensity data
-hfob_alp_count_comparison_df <- calc_comparison_df(hfob_alp_count_normal)
-hmsc_alp_count_comparison_df <- calc_comparison_df(hmsc_alp_count_normal)
-hmsc_ars_count_comparison_df <- calc_comparison_df(hmsc_ars_count_normal)
-hmsc_adipo_count_comparison_df <- calc_comparison_df(hmsc_adipo_count_normal)
+hfob_alp_count_comparison_df <- calc_comparison_df(hfob_alp_count_filt)
+hmsc_alp_count_comparison_df <- calc_comparison_df(hmsc_alp_count_filt)
+hmsc_ars_count_comparison_df <- calc_comparison_df(hmsc_ars_count_filt)
+hmsc_adipo_count_comparison_df <- calc_comparison_df(hmsc_adipo_count_filt)
 
 #Call functions for intensity data normalized by DAPI cell counts
-hfob_alp_intensity_dapi_comparison_df <- calc_comparison_df(hfob_alp_intensity_dapi_normal)
-hmsc_alp_intensity_dapi_comparison_df <- calc_comparison_df(hmsc_alp_intensity_dapi_normal)
-hmsc_ars_intensity_dapi_comparison_df <- calc_comparison_df(hmsc_ars_intensity_dapi_normal)
-hmsc_adipo_intensity_dapi_comparison_df <- calc_comparison_df(hmsc_adipo_intensity_dapi_normal)
+hfob_alp_intensity_dapi_comparison_df <- calc_comparison_df(hfob_alp_intensity_dapi)
+hmsc_alp_intensity_dapi_comparison_df <- calc_comparison_df(hmsc_alp_intensity_dapi)
+hmsc_ars_intensity_dapi_comparison_df <- calc_comparison_df(hmsc_ars_intensity_dapi)
+hmsc_adipo_intensity_dapi_comparison_df <- calc_comparison_df(hmsc_adipo_intensity_dapi)
 
 #Remove results with fewer than three replicates
 remove_few_rep_results <- function(comparison_df, rep_cutoff=3){
@@ -355,6 +314,23 @@ hmsc_adipo_comparison_df <- correct_hmsc_bh(hmsc_adipo_comparison_df, treat = "A
 hmsc_adipo_count_comparison_df <- correct_hmsc_bh(hmsc_adipo_count_comparison_df, treat = "Adipo")
 hmsc_adipo_intensity_dapi_comparison_df <- correct_hmsc_bh(hmsc_adipo_intensity_dapi_comparison_df, treat = "Adipo")
 
+# 6) Adjust hFOB Data Format to that of hMSC Results ====
+
+#Create a plate map
+temp = hmsc_alp_filt %>% dplyr::select(siRNA, Plate) %>% distinct(siRNA, Plate, .keep_all = TRUE)
+sirna_plate_map = temp$Plate
+names(sirna_plate_map) = temp$siRNA
+
+#Append on Plate info to the hfob data sets
+hfob_alp_filt <- hfob_alp_filt %>% mutate(Plate = sirna_plate_map[siRNA])
+hfob_alp_count_filt <- hfob_alp_count_filt %>% mutate(Plate = sirna_plate_map[siRNA])
+hfob_alp_intensity_dapi <- hfob_alp_intensity_dapi %>% mutate(Plate = sirna_plate_map[siRNA])
+
+#Append on Plate 2 info for the controls
+hfob_alp_filt <- rbind.data.frame(hfob_alp_filt, hfob_alp_filt %>% dplyr::filter(siRNA == "CON") %>% dplyr::mutate(Plate = 2))
+hfob_alp_count_filt <- rbind.data.frame(hfob_alp_count_filt, hfob_alp_count_filt %>% dplyr::filter(siRNA == "CON") %>% dplyr::mutate(Plate = 2))
+hfob_alp_intensity_dapi <- rbind.data.frame(hfob_alp_intensity_dapi, hfob_alp_intensity_dapi %>% dplyr::filter(siRNA == "CON") %>% dplyr::mutate(Plate = 2))
+
 # 7) Append on significance status to Data Frames ====
 
 #Create a function that appends on significance 
@@ -368,53 +344,53 @@ append_signif <- function(plot_df, comparison_df){
   signif_sirnas <- comparison_df[comparison_df$p.adj <= 0.05,"group1"]
   #Get untested sirnas
   untested_sirnas <- c(comparison_df[is.na(comparison_df$p),"group1"], "CON", "CON1", "CON2")
-  #Remove control siRNAs from results
-  plot_df <- plot_df %>% dplyr::filter(siRNA != "CON")
   #Append on significance info to the plot_df
   plot_df <- plot_df %>% dplyr::mutate(signif = ifelse(siRNA %in% untested_sirnas, "Cat 3", ifelse(siRNA %in% signif_sirnas, "Cat 2", "Cat 1")))
   return(plot_df)
 }
 
 #Call the function on all the dataframes
-hfob_alp_normal <- append_signif(hfob_alp_normal, hfob_alp_comparison_df)
-hfob_alp_count_normal <- append_signif(hfob_alp_count_normal, hfob_alp_count_comparison_df)
-hfob_alp_intensity_dapi_normal <- append_signif(hfob_alp_intensity_dapi_normal, hfob_alp_intensity_dapi_comparison_df)
-hmsc_alp_normal <- append_signif(hmsc_alp_normal, hmsc_alp_comparison_df)
-hmsc_alp_count_normal <- append_signif(hmsc_alp_count_normal, hmsc_alp_count_comparison_df)
-hmsc_alp_intensity_dapi_normal <- append_signif(hmsc_alp_intensity_dapi_normal, hmsc_alp_intensity_dapi_comparison_df)
-hmsc_ars_normal <- append_signif(hmsc_ars_normal, hmsc_ars_comparison_df)
-hmsc_ars_count_normal <- append_signif(hmsc_ars_count_normal, hmsc_ars_count_comparison_df)
-hmsc_ars_intensity_dapi_normal <- append_signif(hmsc_ars_intensity_dapi_normal, hmsc_ars_intensity_dapi_comparison_df)
-hmsc_adipo_normal <- append_signif(hmsc_adipo_normal, hmsc_adipo_comparison_df)
-hmsc_adipo_count_normal <- append_signif(hmsc_adipo_count_normal, hmsc_adipo_count_comparison_df)
-hmsc_adipo_intensity_dapi_normal <- append_signif(hmsc_adipo_intensity_dapi_normal, hmsc_adipo_intensity_dapi_comparison_df)
+hfob_alp_filt <- append_signif(hfob_alp_filt, hfob_alp_comparison_df)
+hfob_alp_count_filt <- append_signif(hfob_alp_count_filt, hfob_alp_count_comparison_df)
+hfob_alp_intensity_dapi <- append_signif(hfob_alp_intensity_dapi, hfob_alp_intensity_dapi_comparison_df)
+hmsc_alp_filt <- append_signif(hmsc_alp_filt, hmsc_alp_comparison_df)
+hmsc_alp_count_filt <- append_signif(hmsc_alp_count_filt, hmsc_alp_count_comparison_df)
+hmsc_alp_intensity_dapi <- append_signif(hmsc_alp_intensity_dapi, hmsc_alp_intensity_dapi_comparison_df)
+hmsc_ars_filt <- append_signif(hmsc_ars_filt, hmsc_ars_comparison_df)
+hmsc_ars_count_filt <- append_signif(hmsc_ars_count_filt, hmsc_ars_count_comparison_df)
+hmsc_ars_intensity_dapi <- append_signif(hmsc_ars_intensity_dapi, hmsc_ars_intensity_dapi_comparison_df)
+hmsc_adipo_filt <- append_signif(hmsc_adipo_filt, hmsc_adipo_comparison_df)
+hmsc_adipo_count_filt <- append_signif(hmsc_adipo_count_filt, hmsc_adipo_count_comparison_df)
+hmsc_adipo_intensity_dapi <- append_signif(hmsc_adipo_intensity_dapi, hmsc_adipo_intensity_dapi_comparison_df)
 
 # 8) Make Box Plots of Results ====
 
 #Combine dataframes across the 4 experiments by type
 raw_intensity_df <- rbind.data.frame(
-  hfob_alp_normal %>% dplyr::select(siRNA, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
-  hmsc_alp_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
-  hmsc_ars_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA,Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
-  hmsc_adipo_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
+  hfob_alp_filt %>% dplyr::select(siRNA, Plate, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
+  hmsc_alp_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
+  hmsc_ars_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
+  hmsc_adipo_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
 )
 count_df <- rbind.data.frame(
-  hfob_alp_count_normal %>% dplyr::select(siRNA, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
-  hmsc_alp_count_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
-  hmsc_ars_count_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
-  hmsc_adipo_count_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
+  hfob_alp_count_filt %>% dplyr::select(siRNA, Plate, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
+  hmsc_alp_count_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
+  hmsc_ars_count_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
+  hmsc_adipo_count_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
 )
 intensity_dapi_df <- rbind.data.frame(
-  hfob_alp_intensity_dapi_normal %>% dplyr::select(siRNA, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
-  hmsc_alp_intensity_dapi_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
-  hmsc_ars_intensity_dapi_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
-  hmsc_adipo_intensity_dapi_normal %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
+  hfob_alp_intensity_dapi %>% dplyr::select(siRNA, Plate, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
+  hmsc_alp_intensity_dapi %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
+  hmsc_ars_intensity_dapi %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
+  hmsc_adipo_intensity_dapi %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
 )
 
 #Reset factor levels
 reset_factor_levels <- function(combined_df){
   #Reset siRNA factor levels
-  combined_df$siRNA <- as.factor(combined_df$siRNA)
+  combined_df$siRNA <- ifelse(combined_df$siRNA == "CON", "Control", combined_df$siRNA)
+  temp <- combined_df$siRNA %>% unique
+  combined_df$siRNA <- factor(combined_df$siRNA, levels = c("Control", temp[temp != "Control"]))
   #Set signif factor levels
   combined_df$signif <- factor(combined_df$signif, levels = c("Cat 1", "Cat 2", "Cat 3"))
   #Set subplot levels
@@ -431,11 +407,11 @@ intensity_dapi_df <- reset_factor_levels(intensity_dapi_df)
 #Make raw intensity plot
 intensity_plot <- ggplot(raw_intensity_df, aes(x = siRNA, y = Value, colour = signif)) +
   geom_boxplot(linewidth=1.03, width=0.5) + 
-  geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
-  facet_grid(subplot ~ ., scales = "free", space = "free_x") +
+  #geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
+  facet_grid(subplot ~ Plate, scales = "free", space = "free_x") +
   scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     "),
                      guide = guide_legend(override.aes = list(color = "white"))) + 
-  ylab("Fold Change Stain Intensity") + 
+  ylab("Stain Intensity") + 
   ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
                  axis.title.x = element_blank(), legend.position = "bottom",
                  axis.title.y = element_text(size = 16), 
@@ -450,10 +426,10 @@ intensity_plot <- ggplot(raw_intensity_df, aes(x = siRNA, y = Value, colour = si
 #Make DAPI cell-count plot
 count_plot <- ggplot(count_df, aes(x = siRNA, y = Value, colour = signif)) +
   geom_boxplot(linewidth=1.03, width=0.5) + 
-  geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
-  facet_grid(subplot ~ ., scales = "free", space = "free_x") +
+  #geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
+  facet_grid(subplot ~ Plate, scales = "free", space = "free_x") +
   scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     ")) + 
-  ylab("Fold Change DAPI Cell Count") + 
+  ylab("DAPI Cell Count") + 
   ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
                  axis.title.x = element_blank(), legend.position = "bottom",
                  axis.title.y = element_text(size = 16),
@@ -473,11 +449,11 @@ count_plot <- ggplot(count_df, aes(x = siRNA, y = Value, colour = signif)) +
 #Make Plot of intensity normalized by cell-count
 intensity_dapi_plot <- ggplot(intensity_dapi_df, aes(x = siRNA, y = Value, colour = signif)) +
   geom_boxplot(linewidth=1.03, width=0.5) + 
-  geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
-  facet_grid(subplot ~ ., scales = "free", space = "free_x") +
+  #geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
+  facet_grid(subplot ~ Plate, scales = "free", space = "free_x") +
   scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     "),
                      guide = guide_legend(override.aes = list(color = "white"))) + 
-  ylab("Fold Change Intensity / DAPI Cell Count") + 
+  ylab("Intensity / DAPI Cell Count") + 
   ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 12),
                  axis.title.x = element_blank(), legend.position = "bottom",
                  axis.title.y = element_text(size = 16),
@@ -490,12 +466,26 @@ intensity_dapi_plot <- ggplot(intensity_dapi_df, aes(x = siRNA, y = Value, colou
                  strip.text = element_text(size = 12))
 
 #Make combined plot
-tiff(paste0(out_dir, "main_assay_figure.main.box.tif"), width = 18000, height=6000, res=1000)
-ggarrange(intensity_plot, count_plot, intensity_dapi_plot, ncol = 3, nrow = 1, common.legend = FALSE, align = "v", heights = c(4.25, 4.25), 
+tiff(paste0(out_dir, "main_assay_figure.renormalized.box.tif"), width = 18000, height=6000, res=1000)
+ggarrange(intensity_plot, count_plot, intensity_dapi_plot, ncol = 3, nrow = 1, common.legend = FALSE, align = "v", heights = c(4.25, 4.25),
           labels = c("A", "B", "C"), font.label = list(face = "plain", size = 20))
 dev.off()
 
 # 9) Make Supplemental Tables of Results ====
+
+### Make a Single Table Containing Raw Intensity Data ###
+raw_intensity_df %>% dplyr::mutate(Plate = ifelse(subplot == "hFOB ALP", NA, Plate)) %>% 
+  dplyr::distinct(siRNA, Plate, Replicate, signif, Value, subplot, .keep_all = TRUE) %>% 
+  dplyr::mutate(signif = ifelse(signif == "Cat 1", "Not Significant", ifelse(signif == "Cat 2", "Adj. P-Value < 0.05", "Not Tested"))) %>% 
+  dplyr::select(!(signif)) %>% 
+  write.table(file = paste0(inp_dir, "raw_intensity.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+
+### Make a Single Table Containing Raw Count Data ###
+count_df %>% dplyr::mutate(Plate = ifelse(subplot == "hFOB ALP", NA, Plate)) %>% 
+  dplyr::distinct(siRNA, Plate, Replicate, signif, Value, subplot, .keep_all = TRUE) %>% 
+  dplyr::mutate(signif = ifelse(signif == "Cat 1", "Not Significant", ifelse(signif == "Cat 2", "Adj. P-Value < 0.05", "Not Tested"))) %>% 
+  dplyr::select(!(signif)) %>% 
+  write.table(file = paste0(inp_dir, "cell_count.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### Make a Single Table for all hFOB ALP Results ###
 rbind.data.frame(
@@ -503,31 +493,31 @@ rbind.data.frame(
   raw_intensity_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hFOB ALP") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     inner_join(hfob_alp_comparison_df, join_by(siRNA ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
   count_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hFOB ALP") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     inner_join(hfob_alp_count_comparison_df, join_by(siRNA ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
   intensity_dapi_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hFOB ALP") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     inner_join(hfob_alp_intensity_dapi_comparison_df, join_by(siRNA ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
-write.table(file = paste0(inp_dir, "hfob_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+  write.table(file = paste0(inp_dir, "hfob_alp.renormalized.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### Make a Single Table for all hMSC ALP Results ###
 rbind.data.frame(
@@ -535,34 +525,34 @@ rbind.data.frame(
   raw_intensity_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC ALP") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
   count_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC ALP") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
   intensity_dapi_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC ALP") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
-  write.table(file = paste0(inp_dir, "hmsc_alp.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+  write.table(file = paste0(inp_dir, "hmsc_alp.renormalized.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### Make a Single Table for all hMSC ARS Results ###
 rbind.data.frame(
@@ -570,34 +560,34 @@ rbind.data.frame(
   raw_intensity_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC ARS") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
   count_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC ARS") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
   intensity_dapi_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC ARS") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
-  write.table(file = paste0(inp_dir, "hmsc_ars.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
+  write.table(file = paste0(inp_dir, "hmsc_ars.renormalized.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### Make a Single Table for all hMSC Adipogenesis Results ###
 rbind.data.frame(
@@ -605,33 +595,31 @@ rbind.data.frame(
   raw_intensity_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC Adipo") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
   count_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC Adipo") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
   intensity_dapi_df %>% dplyr::select(!Plate) %>%
     dplyr::filter(subplot == "hMSC Adipo") %>% 
     dplyr::group_by(siRNA) %>%
-    dplyr::summarize(mean_fold_change=mean(Value)) %>%
+    dplyr::summarize(mean_value=mean(Value)) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2")) %>%
     inner_join(hmsc_alp_comparison_df, join_by(temp ==group1)) %>% 
-    dplyr::select(siRNA, reps, mean_fold_change, p, p.adj) %>%
+    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj)) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
-  write.table(file = paste0(inp_dir, "hmsc_adipo.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
-
-
+  write.table(file = paste0(inp_dir, "hmsc_adipo.renormalized.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
