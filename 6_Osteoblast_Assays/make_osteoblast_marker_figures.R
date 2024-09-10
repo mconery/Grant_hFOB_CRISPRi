@@ -75,11 +75,11 @@ calc_comparison_sirna_gene <- function(sirna_gene, inp_raw){
   }
   #Check if Measurements are present
   if ("Measurement" %in% colnames(temp)) {
-    temp <- temp %>% dplyr::group_by(siRNA, Replicate) %>% dplyr::summarize(Value=mean(Value))
+    temp <- temp %>% dplyr::group_by(siRNA, Replicate) %>% dplyr::summarize(Value=mean(Value, na.rm = TRUE))
   }
   #Check if Multiple passages are present for donors (Passage is mutually exclusive with Measurement in input file)
   if ("Passage" %in% colnames(temp)){
-    temp <- temp %>% dplyr::group_by(siRNA, Donor, Treatment) %>% dplyr::summarize(Value=mean(Value)) %>% as.data.frame
+    temp <- temp %>% dplyr::group_by(siRNA, Donor, Treatment) %>% dplyr::summarize(Value=mean(Value, na.rm = TRUE)) %>% as.data.frame
   }
   #Execute Tests
   treats <- temp %>% select(Treatment) %>% unique
@@ -268,12 +268,16 @@ hmsc_osteo_comparison_filt <- hmsc_osteo_comparison_df %>% dplyr::filter(str_det
   dplyr::mutate(group1=str_replace(group1, "-BMP2", ""))
 hmsc_osteo_supplement <- hmsc_osteo_raw %>% 
   dplyr::filter(Treatment != "CON") %>%
+  dplyr::group_by(siRNA, Treatment, Plate, Donor, Gene) %>%
+  dplyr::summarize(Value=mean(Value, na.rm = TRUE)) %>% #Combine tech reps for same donor together
   dplyr::group_by(siRNA, Gene) %>% 
   dplyr::summarize(mean_value=mean(Value, na.rm = TRUE)) %>% 
   dplyr::select(siRNA, Gene, mean_value) %>%
   left_join(hmsc_osteo_comparison_filt, join_by(siRNA == group1, Gene== Gene)) %>% 
   dplyr::select(Gene, siRNA, reps, mean_value, p, p.adj) %>% 
-  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj)))
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) 
+hmsc_osteo_supplement <- hmsc_osteo_supplement %>% 
+  dplyr::mutate(reps = ifelse(is.na(reps), as.character(max(as.numeric(hmsc_osteo_supplement$reps), na.rm = TRUE)), reps))
 write.table(hmsc_osteo_supplement, file = paste0(inp_dir, "hmsc_osteo_markers.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC adipo ###
@@ -281,12 +285,16 @@ hmsc_adipo_comparison_filt <- hmsc_adipo_comparison_df %>% dplyr::filter(str_det
   dplyr::mutate(group1=str_replace(group1, "-Adipo", ""))
 hmsc_adipo_supplement <- hmsc_adipo_raw %>% 
   dplyr::filter(Treatment != "CON") %>%
+  dplyr::group_by(siRNA, Treatment, Plate, Donor, Gene) %>%
+  dplyr::summarize(Value=mean(Value, na.rm = TRUE)) %>% #Combine tech reps for same donor together
   dplyr::group_by(siRNA, Gene) %>% 
   dplyr::summarize(mean_value=mean(Value, na.rm = TRUE)) %>% 
   dplyr::select(siRNA, Gene, mean_value) %>%
   left_join(hmsc_adipo_comparison_filt, join_by(siRNA == group1, Gene== Gene)) %>% 
   dplyr::select(Gene, siRNA, reps, mean_value, p, p.adj) %>% 
-  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj)))
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) 
+hmsc_adipo_supplement <- hmsc_adipo_supplement %>% 
+  dplyr::mutate(reps = ifelse(is.na(reps), as.character(max(as.numeric(hmsc_adipo_supplement$reps), na.rm = TRUE)), reps))
 write.table(hmsc_adipo_supplement, file = paste0(inp_dir, "hmsc_adipo_markers.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 
