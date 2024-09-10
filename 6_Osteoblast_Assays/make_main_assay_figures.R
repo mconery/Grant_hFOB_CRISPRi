@@ -371,20 +371,23 @@ raw_intensity_df <- rbind.data.frame(
   hmsc_alp_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
   hmsc_ars_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
   hmsc_adipo_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
-)
+) %>%
+  dplyr::group_by(siRNA, Plate, Replicate, signif, subplot) %>% dplyr::summarise(Value = mean(Value, na.rm = TRUE)) #Collapse duplicate donor tech reps
 count_df <- rbind.data.frame(
   hfob_alp_count_filt %>% dplyr::select(siRNA, Plate, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
   hmsc_alp_count_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
   hmsc_ars_count_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
   hmsc_adipo_count_filt %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
-)
+) %>%
+  dplyr::group_by(siRNA, Plate, Replicate, signif, subplot) %>% dplyr::summarise(Value = mean(Value, na.rm = TRUE))  #Collapse duplicate donor tech reps
 intensity_dapi_df <- rbind.data.frame(
   hfob_alp_intensity_dapi %>% dplyr::select(siRNA, Plate, Replicate, signif, Value) %>% dplyr::mutate(subplot = "hFOB ALP"),
   hmsc_alp_intensity_dapi %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ALP"),
   hmsc_ars_intensity_dapi %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC ARS"),
   hmsc_adipo_intensity_dapi %>% dplyr::filter(Treatment != "CON") %>% dplyr::select(siRNA, Plate, Donor, signif, Value) %>% dplyr::rename(Replicate = Donor) %>% dplyr::mutate(subplot = "hMSC Adipo")
-)
-
+) %>%
+  dplyr::group_by(siRNA, Plate, Replicate, signif, subplot) %>% dplyr::summarise(Value = mean(Value, na.rm = TRUE)) #Collapse duplicate donor tech reps
+ 
 #Reset factor levels
 reset_factor_levels <- function(combined_df){
   #Reset siRNA factor levels
