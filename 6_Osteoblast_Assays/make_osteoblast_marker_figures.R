@@ -30,6 +30,15 @@ set.seed(5)
 hmsc_osteo_raw <- read.csv(hmsc_osteo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 hmsc_adipo_raw <- read.csv(hmsc_adipo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 
+#Create a function for taking element x of a list
+take_x <- function(take_list, x){return(ifelse(x <= length(take_list), take_list[[x]], 0))}
+
+#Split off passage info
+temp <- hmsc_osteo_raw$Donor %>% str_split(pattern = "p")
+hmsc_osteo_raw <- hmsc_osteo_raw %>% dplyr::mutate(Donor=unlist(lapply(temp, take_x, x=1)), Passage=unlist(lapply(temp, take_x, x=2)))
+temp <- hmsc_adipo_raw$Donor %>% str_split(pattern = "p")
+hmsc_adipo_raw <- hmsc_adipo_raw %>% dplyr::mutate(Donor=unlist(lapply(temp, take_x, x=1)), Passage=unlist(lapply(temp, take_x, x=2)))
+
 # 2) Make functions for generating comparison df ====
 
 #Define function
@@ -185,8 +194,9 @@ append_signif <- function(inp_df, comparison_df){
     comparison_df <- comparison_df %>% dplyr::filter(!(str_detect(group1, "-CON")) & !(str_detect(group2, "-CON"))) %>%
       dplyr::mutate(group1 = sub("-.*", "", group1)) %>% dplyr::mutate(group2 = sub("-.*", "", group2))
   }
-  #Filter out control treatments from input_df
-  plot_df <- inp_df %>% dplyr::filter(Treatment != "CON")
+  #Filter out control treatments from input_df and collapse same donor passage replicates
+  plot_df <- inp_df %>% dplyr::filter(Treatment != "CON") %>% 
+    group_by(siRNA, Treatment, Plate, Donor, Gene) %>% summarize(Value=mean(Value, na.rm=TRUE))
   #Append on p-value info to the plot_df
   plot_df <- plot_df %>% left_join(comparison_df, join_by(siRNA ==group1, Gene == Gene))
   #Append on significance info to the plot_df
@@ -222,19 +232,24 @@ make_marker_boxplot <- function(plot_df, treat_type, plot_dir=out_dir){
   plot_object <- ggplot(plot_df, aes(x = siRNA, y = Value, colour = signif)) +
     geom_boxplot(linewidth=1.03, width=0.5) + 
     facet_grid(Gene ~ Plate, scales = "free", space = "free_x") +
-    scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     "),
+    scale_color_manual(breaks = c("Cat 1", "Cat 2", "Cat 3"), values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     "),
                        guide = guide_legend(override.aes = list(color = "white"))) + 
     ylab("Expression") + 
     ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 20),
                    axis.title.x = element_blank(), legend.position = "bottom",
-                   axis.title.y = element_text(size = 24), 
+                   axis.title.y = element_text(size = 24),
                    panel.background = element_blank(),
                    axis.line = element_line(colour = "black"), panel.grid.major.x = element_blank(),
                    legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
                    legend.title = ggplot2::element_blank(),
-                   legend.text = element_text(size = 20, colour = "white"), 
+                   legend.text = element_text(size = 20), 
                    axis.text.y = element_text(size = 20),
-                   strip.text = element_text(size = 20))
+                   strip.text = element_text(size = 20)) +
+    ggplot2::guides(color = ggplot2::guide_legend(
+      keywidth = 0.0,
+      keyheight = 0.3, 
+      default.unit = "inch",
+      override.aes = list(size = 5)))
   
   #Save plot
   tiff(paste0(out_dir, paste0("marker_gene_qpcr.", treat_type, ".tif")), width = 12000, height=12000, res=1000)
