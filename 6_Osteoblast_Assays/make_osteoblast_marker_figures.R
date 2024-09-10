@@ -30,31 +30,7 @@ set.seed(5)
 hmsc_osteo_raw <- read.csv(hmsc_osteo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 hmsc_adipo_raw <- read.csv(hmsc_adipo_file, sep = "\t", stringsAsFactors = FALSE, header = TRUE)
 
-# 2) Normalize Data to Control Level of Each Plate ====
-
-#Make a function that normalizes each plate relative to its control for the hMSC assays and call it
-normalize_hmsc <- function(inp_raw, treat_name){
-  #Get names of genes
-  genes <- inp_raw$Gene %>% unique
-  return(bind_rows(lapply(genes, FUN = normalize_hmsc_gene, inp_raw=inp_raw, treat_name=treat_name)))
-}
-normalize_hmsc_gene <- function(gene, inp_raw, treat_name){
-  #Filter for the gene
-  inp_raw <- inp_raw %>% dplyr::filter(Gene == gene)
-  #Bind on a column representing unique plate
-  inp_raw <- inp_raw %>% mutate(Unique_plate = paste(Donor, Plate, Gene, sep = "."))
-  unique_plates = unique(inp_raw$Unique_plate)
-  bind_rows(lapply(unique_plates, normalize_hmsc_plate, inp_raw=inp_raw, treat_name=treat_name))
-}
-normalize_hmsc_plate <- function(unique_plate, inp_raw, treat_name){
-  temp <- inp_raw %>% dplyr::filter(Unique_plate == unique_plate)
-  temp$Value <- temp$Value/temp[temp$siRNA == "CON" & temp$Treatment == treat_name,"Value"]
-  return(temp)
-}
-hmsc_osteo_normal <- normalize_hmsc(hmsc_osteo_raw, treat_name = "BMP2")
-hmsc_adipo_normal <- normalize_hmsc(hmsc_adipo_raw, treat_name = "Adipo")
-
-# 3) Make functions for generating comparison df ====
+# 2) Make functions for generating comparison df ====
 
 #Define function
 calc_comparison_df <- function(inp_raw){
@@ -161,11 +137,11 @@ calc_treat_test_control <- function(gene, inp_raw){
   return(calc_treat_test_sirna("CON", temp))
 }
 
-# 4) Call functions and Correct for Multiple Testing ====
+# 3) Call functions and Correct for Multiple Testing ====
 
 #Call functions
-hmsc_osteo_comparison_df <- calc_comparison_df(hmsc_osteo_normal)
-hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_normal)
+hmsc_osteo_comparison_df <- calc_comparison_df(hmsc_osteo_raw)
+hmsc_adipo_comparison_df <- calc_comparison_df(hmsc_adipo_raw)
 
 #Remove results with fewer than three replicates
 remove_few_rep_results <- function(comparison_df, rep_cutoff=3){
@@ -200,93 +176,102 @@ for (gene in genes) {
     p.adjust(hmsc_adipo_comparison_df$p[str_detect(pattern = "-CON",hmsc_adipo_comparison_df$group1) & str_detect(pattern = "-CON", hmsc_adipo_comparison_df$group2) & hmsc_adipo_comparison_df$Gene == gene], method = "BH")
 }
 
+# 4) Append on significance status to plot dataframes ====
+
+#Create a function that appends on significance 
+append_signif <- function(inp_df, comparison_df){
+  #Check to see if we have hMSC or hFOB Data
+  if (str_detect(comparison_df$group1[1],"-") & str_detect(comparison_df$group2[1],"-")) {
+    comparison_df <- comparison_df %>% dplyr::filter(!(str_detect(group1, "-CON")) & !(str_detect(group2, "-CON"))) %>%
+      dplyr::mutate(group1 = sub("-.*", "", group1)) %>% dplyr::mutate(group2 = sub("-.*", "", group2))
+  }
+  #Filter out control treatments from input_df
+  plot_df <- inp_df %>% dplyr::filter(Treatment != "CON")
+  #Append on p-value info to the plot_df
+  plot_df <- plot_df %>% left_join(comparison_df, join_by(siRNA ==group1, Gene == Gene))
+  #Append on significance info to the plot_df
+  plot_df <- plot_df %>% dplyr::mutate(signif = ifelse(is.na(p), "Cat 3", ifelse(p.adj < 0.05, "Cat 2", "Cat 1")))
+  return(plot_df)
+}
+
+#Call Function on each of the result sets
+osteo_plot <- append_signif(hmsc_osteo_raw, hmsc_osteo_comparison_df)
+adipo_plot <- append_signif(hmsc_adipo_raw, hmsc_adipo_comparison_df)
+
 # 5) Make Box Plots of Results ====
 
-#Get order of names for plots
-sirna_order <- sort(unique(as.character(hmsc_osteo_normal$siRNA[str_detect(pattern = "CON", hmsc_osteo_normal$Name) == FALSE])))
+#Reset factor levels
+reset_factor_levels <- function(raw_df){
+  #Reset siRNA factor levels
+  raw_df$siRNA <- ifelse(raw_df$siRNA == "CON", "Control", raw_df$siRNA)
+  temp <- raw_df$siRNA %>% unique
+  raw_df$siRNA <- factor(raw_df$siRNA, levels = c("Control", temp[temp != "Control"]))
+  #Set signif factor levels
+  raw_df$signif <- factor(raw_df$signif, levels = c("Cat 1", "Cat 2", "Cat 3"))
+  #Reset Plate Levels
+  raw_df$Plate <- factor(paste0("Plate ", raw_df$Plate), levels = c("Plate 1", "Plate 2"))
+  #Return the dataframe
+  return(raw_df)
+}
+osteo_plot <- reset_factor_levels(osteo_plot)
+adipo_plot <- reset_factor_levels(adipo_plot)
 
-#Make a function that makes a plot for each dataframe 
-make_combined_plot <- function(hmsc_normal, hmsc_comparison_df, out_dir, treat_type){
-  #Get gene names
-  genes <- hmsc_normal$Gene %>% unique
-  #Apply facet function
-  facet_dfs <- lapply(genes, make_facet_df, hmsc_normal = hmsc_normal, hmsc_comparison_df=hmsc_comparison_df, out_dir=out_dir, treat_type=treat_type)
-  #Combine facet dfs into a single dataframe
-  combined_plot_df <- bind_rows(facet_dfs)
-  combined_plot_df$subplot <- factor(combined_plot_df$subplot, levels = genes)
-  #Make combined plot in tiff format
-  tiff(paste0(out_dir, paste0("marker_gene_qpcr.", treat_type, ".tif")), width = 12000, height=12000, res=1000)
-  print(ggplot(combined_plot_df, aes(x = siRNA, y = Value, color=signif)) +
+#Make boxplot function
+make_marker_boxplot <- function(plot_df, treat_type, plot_dir=out_dir){
+  #Make the plot object
+  plot_object <- ggplot(plot_df, aes(x = siRNA, y = Value, colour = signif)) +
     geom_boxplot(linewidth=1.03, width=0.5) + 
-    geom_hline(yintercept = 1, color = "red", linetype = "dashed", linewidth = 1.4, alpha = 0.6) +
-    facet_grid(subplot ~ ., scales = "free", space = "free_x") +
-    scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05     ", "Not Tested     ")) + 
-    ylab("Expression Fold Change") + 
+    facet_grid(Gene ~ Plate, scales = "free", space = "free_x") +
+    scale_color_manual(values = c("gray", "dodgerblue3", "#48494B"), labels=c("Not Significant     ", "Adj. P-Value < 0.05      ", "Not Tested     "),
+                       guide = guide_legend(override.aes = list(color = "white"))) + 
+    ylab("Expression") + 
     ggplot2::theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 20),
                    axis.title.x = element_blank(), legend.position = "bottom",
-                   axis.title.y = element_text(size = 24),
+                   axis.title.y = element_text(size = 24), 
                    panel.background = element_blank(),
                    axis.line = element_line(colour = "black"), panel.grid.major.x = element_blank(),
                    legend.margin = ggplot2::margin(t = -0.5, unit = "cm"),
                    legend.title = ggplot2::element_blank(),
-                   legend.text = element_text(size = 20),
+                   legend.text = element_text(size = 20, colour = "white"), 
                    axis.text.y = element_text(size = 20),
-                   strip.text.y = element_text(size = 20)) +
-    ggplot2::guides(color = ggplot2::guide_legend(
-      keywidth = 0.0,
-      keyheight = 0.3, 
-      default.unit = "inch",
-      override.aes = list(size = 5))))
+                   strip.text = element_text(size = 20))
+  
+  #Save plot
+  tiff(paste0(out_dir, paste0("marker_gene_qpcr.", treat_type, ".tif")), width = 12000, height=12000, res=1000)
+  print(plot_object)
   dev.off()
 }
-#Make a sub function for making individual facets
-make_facet_df <- function(gene, hmsc_normal, hmsc_comparison_df, out_dir, treat_type, sirna_plot_order=sirna_order){
-  #Filter the normal data frame
-  normal_temp <- hmsc_normal %>% dplyr::filter(Gene == gene, Treatment == treat_type, siRNA != "CON")
-  normal_temp$siRNA <- factor(normal_temp$siRNA, levels = sirna_order)
-  #Now filter the comparison df correctly
-  comparison_temp <- hmsc_comparison_df %>% dplyr::filter(Gene == gene) %>% 
-    dplyr::filter(str_detect(group1, pattern = paste0("-", treat_type)) & str_detect(group2, pattern = paste0("-", treat_type)) & str_detect(group2, pattern = "CON")) %>%
-    mutate(p.signif = ifelse(p.adj < 0.05, "*", "")) %>%
-    mutate(siRNA = str_replace(group1, pattern=paste0("-",treat_type), replacement="")) %>%
-    dplyr::select(siRNA, p.signif)
-  #Combine the significance info onto the normal_temp
-  normal_temp <- normal_temp %>% inner_join(comparison_temp, by = "siRNA")
-  normal_temp$signif <- factor(ifelse(is.na(normal_temp$p.signif), "N", ifelse(normal_temp$p.signif == "*", "T", "F")), levels=c("F","T", "N"))
-  #Make plot_df
-  plot_df <- normal_temp %>% dplyr::select(siRNA, signif, Value) %>% mutate(subplot = gene)
-  return(plot_df)
-}
 
-#Call function
-make_combined_plot(hmsc_osteo_normal, hmsc_osteo_comparison_df, out_dir, "BMP2")
-make_combined_plot(hmsc_adipo_normal, hmsc_adipo_comparison_df, out_dir, "Adipo")
+#Call Function
+make_marker_boxplot(osteo_plot, "BMP2")
+make_marker_boxplot(adipo_plot, "Adipo")
 
 # 6) Make Supplemental Tables of Results ====
 
 ### hMSC osteo ###
 hmsc_osteo_comparison_filt <- hmsc_osteo_comparison_df %>% dplyr::filter(str_detect(group1, "-BMP2") & str_detect(group2, "-BMP2")) %>%
-  dplyr::mutate(siRNA_Gene=paste0(str_remove(group1, "-BMP2"), "_", Gene))
-hmsc_osteo_supplement <- hmsc_osteo_normal %>% dplyr::group_by(siRNA, Gene) %>% 
-  dplyr::summarize(mean_fold_change=mean(Value, na.rm = TRUE)) %>% 
-  dplyr::mutate(siRNA_Gene=paste0(siRNA, "_", Gene)) %>% 
-  dplyr::select(siRNA, siRNA_Gene, mean_fold_change) %>%
-  inner_join(hmsc_osteo_comparison_filt, by = "siRNA_Gene") %>% 
-  dplyr::select(Gene, siRNA, reps, mean_fold_change, p, p.adj) %>% 
-  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p), p.adj = ifelse(is.na(p.adj), "Not Tested", p.adj))
+  dplyr::mutate(group1=str_replace(group1, "-BMP2", ""))
+hmsc_osteo_supplement <- hmsc_osteo_raw %>% 
+  dplyr::filter(Treatment != "CON") %>%
+  dplyr::group_by(siRNA, Gene) %>% 
+  dplyr::summarize(mean_value=mean(Value, na.rm = TRUE)) %>% 
+  dplyr::select(siRNA, Gene, mean_value) %>%
+  left_join(hmsc_osteo_comparison_filt, join_by(siRNA == group1, Gene== Gene)) %>% 
+  dplyr::select(Gene, siRNA, reps, mean_value, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj)))
 write.table(hmsc_osteo_supplement, file = paste0(inp_dir, "hmsc_osteo_markers.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 ### hMSC adipo ###
 hmsc_adipo_comparison_filt <- hmsc_adipo_comparison_df %>% dplyr::filter(str_detect(group1, "-Adipo") & str_detect(group2, "-Adipo")) %>%
-  dplyr::mutate(siRNA_Gene=paste0(str_remove(group1, "-Adipo"), "_", Gene))
-hmsc_adipo_supplement <- hmsc_adipo_normal %>% dplyr::group_by(siRNA, Gene) %>% 
-  dplyr::summarize(mean_fold_change=mean(Value, na.rm = TRUE)) %>% 
-  dplyr::mutate(siRNA_Gene=paste0(siRNA, "_", Gene)) %>% 
-  dplyr::select(siRNA, siRNA_Gene, mean_fold_change) %>%
-  inner_join(hmsc_adipo_comparison_filt, by = "siRNA_Gene") %>% 
-  dplyr::select(Gene, siRNA, reps, mean_fold_change, p, p.adj) %>% 
-  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", p))
-hmsc_adipo_supplement$p.adj = ifelse(is.na(hmsc_adipo_supplement$p.adj), "Not Tested", hmsc_adipo_supplement$p.adj)
+  dplyr::mutate(group1=str_replace(group1, "-Adipo", ""))
+hmsc_adipo_supplement <- hmsc_adipo_raw %>% 
+  dplyr::filter(Treatment != "CON") %>%
+  dplyr::group_by(siRNA, Gene) %>% 
+  dplyr::summarize(mean_value=mean(Value, na.rm = TRUE)) %>% 
+  dplyr::select(siRNA, Gene, mean_value) %>%
+  left_join(hmsc_adipo_comparison_filt, join_by(siRNA == group1, Gene== Gene)) %>% 
+  dplyr::select(Gene, siRNA, reps, mean_value, p, p.adj) %>% 
+  dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj)))
 write.table(hmsc_adipo_supplement, file = paste0(inp_dir, "hmsc_adipo_markers.supplement.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
 
 
