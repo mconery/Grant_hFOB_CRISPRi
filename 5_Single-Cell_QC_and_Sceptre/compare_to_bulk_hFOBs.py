@@ -203,7 +203,20 @@ tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("hFOBdiff
 tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("hFOBundiff_rep", 'Undiff. hFOB ')
 tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("TPM.BMP2", "hMSC-Osteo ")
 tpm_marker_long['Experiment'] = tpm_marker_long.Experiment.str.replace("TPM.Contr", "hMSC ")
-tpm_marker_long.sort_values(['Category', 'Gene', 'Experiment'], inplace=True)
+
+#Create a column for sorting on the category
+def assign_category_number(cat):
+    if cat == "Proliferation":
+        return 1
+    elif cat  == "Maturation":
+        return 2
+    elif cat == "Mineralization":
+        return 3
+    else:
+        return 4
+tpm_marker_long['Cat_Sort'] = tpm_marker_long['Category'].apply(assign_category_number)
+#Execute sort
+tpm_marker_long.sort_values(['Cat_Sort', 'Gene', 'Experiment'], inplace=True)
 
 #Create the faceted bar plot
 plt.figure(figsize=(8, 6))
