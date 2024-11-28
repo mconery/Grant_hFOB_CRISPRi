@@ -12,10 +12,14 @@ from scipy.sparse import csr_matrix
 import matplotlib.pyplot as plt
 import pickle
 import pybiomart
+import random
 from sklearn.cluster import KMeans
 
 
 #########################################################Main Thread####################################
+
+#Set random seed
+random.seed(5)
 
 #Set file locations
 qc_dir = '/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/pilot_hFOB_screen_bone/quality_control/'
