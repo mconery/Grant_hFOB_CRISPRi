@@ -536,7 +536,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2"), temp2 = "CON-BMP2") %>%
     left_join(hmsc_alp_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
@@ -548,7 +548,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2"), temp2 = "CON-BMP2") %>%
     left_join(hmsc_alp_count_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
@@ -560,7 +560,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2"), temp2 = "CON-BMP2") %>%
     left_join(hmsc_alp_intensity_dapi_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
@@ -577,7 +577,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2"), temp2 = "CON-BMP2") %>%
     left_join(hmsc_ars_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
@@ -589,7 +589,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2"), temp2 = "CON-BMP2") %>%
     left_join(hmsc_ars_count_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
@@ -601,7 +601,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "BMP2"), temp2 = "CON-BMP2") %>%
     left_join(hmsc_ars_intensity_dapi_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
@@ -618,7 +618,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "Adipo"), temp2 = "CON-Adipo") %>%
     left_join(hmsc_adipo_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Stain Intensity"),
   #DAPI Cell Counts
@@ -630,7 +630,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "Adipo"), temp2 = "CON-Adipo") %>%
     left_join(hmsc_adipo_count_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Cell Count"),
   #DAPI Cell Counts
@@ -642,7 +642,7 @@ rbind.data.frame(
     dplyr::summarize(mean_value=mean(Value, na.rm = TRUE), reps=as.character(n())) %>%
     dplyr::mutate(temp = paste0(siRNA, "-", "Adipo"), temp2 = "CON-Adipo") %>%
     left_join(hmsc_adipo_intensity_dapi_comparison_df, join_by(temp ==group1, temp2==group2, reps==reps)) %>% 
-    dplyr::select(siRNA, reps, mean_value, p, p.adj) %>%
+    dplyr::select(siRNA, Plate, reps, mean_value, p, p.adj) %>%
     dplyr::mutate(p = ifelse(is.na(p), "Not Tested", as.character(p)), p.adj = ifelse(is.na(p.adj), "Not Tested", as.character(p.adj))) %>%
     dplyr::mutate(type = "Intensity / Cell Count")
 ) %>%
