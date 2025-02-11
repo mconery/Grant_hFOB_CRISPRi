@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH -o check_and_map_loci.log
+#SBATCH -o check_and_map_loci_CAFEH.log
 #SBATCH --time=2-00:00:00
 #SBATCH --mem=1G
 
