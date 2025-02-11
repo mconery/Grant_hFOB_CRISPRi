@@ -31,7 +31,7 @@ from functools import reduce
 def help(exit_num=1):
     print("""-----------------------------------------------------------------
 ARGUMENTS
-    -p => <txt> file prefix for files should consist of trait.chr.start.stop.ancestry REQUIRED
+    -p => <txt> file prefix for files should consist of chr.start.stop REQUIRED
     -o => <txt> output folder location REQUIRED
     -m => <txt> munged summary statistics directory (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats) OPTIONAL
     -l => <txt> Storage location for map and matrix files (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/ld_matrices) OPTIONAL
