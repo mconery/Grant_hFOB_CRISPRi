@@ -41,7 +41,7 @@ ARGUMENTS
     -u => <num> purity threshold for determining real signals (default is 0.1) OPTIONAL
     -j => <txt> location of json specifying traits to map at each locus (default is /mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json) OPTIONAL
     -r => <num> random seed (default is 5) OPTIONAL
-    -c => <str> summary stats file naming convention showing where ANCestry and TRAIT are found relative to periods 
+    -c => <str> summary stats file naming convention showing where TRAIT is found relative to periods 
                 (default is TRAIT.sumstats.gz) OPTIONAL
 """)
     sys.exit(exit_num)
