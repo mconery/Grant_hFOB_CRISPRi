@@ -14,13 +14,6 @@
 library(coloc)
 library(stringr)
 
-summary_stats_file = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/temp_mapping_files/hdl_cholesterol.chr19.44000001.44750000.tsv.gz"
-ld_ref_matrix = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/temp_mapping_files/chr19.44000001.44750000.ld.gz"
-sample_size_file = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes_cc.tsv"
-out_file = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/susie_results/hdl_cholesterol.chr19.44000001.44750000.susie.rds"
-random_seed = 5
-confidence = 0.95
-
 # 1) Read in Needed Arguments from Command ====
 
 #Need to read in the following: 
