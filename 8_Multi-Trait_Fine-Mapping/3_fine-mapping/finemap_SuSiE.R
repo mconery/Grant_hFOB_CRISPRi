@@ -3,9 +3,9 @@
 #finemap_SuSiE.R
 
 #This script is designed to execute SuSiE fine-mapping given a fixed region 
-#when called by finemap_SuSiE.py after temp file generation. The code saves its 
-#output as a .rds file that can later be used for plotting or for downstream 
-#analysis.
+#when called by finemap_SuSiE_locus.py after temp file generation. The code 
+#saves its output as a .rds file that can later be used for plotting or for 
+#downstream analysis.
 
 ################################################################################
 
@@ -22,11 +22,12 @@ library(stringr)
   # 3) sample size (maps binary traits as continuous)
   # 4) out file name
   # 5) random seed [OPTIONAL; default is 5]
-  # 6) purity threshold [OPTIONAL; default is 0.1]
-  # 7) confidence level [OPTIONAL; default is 0.95]
+  # 6) number of signals to map [OPTIONAL; default is 10]
+  # 7) purity threshold [OPTIONAL; default is 0.1]
+  # 8) confidence level [OPTIONAL; default is 0.95]
 
 args <- commandArgs(trailingOnly = TRUE);
-if (length(args) == 7) {
+if (length(args) == 8) {
   #Print confirmation statement
   print("Necessary and Optional Parameters Input")
   #Set variables from the arguments in this case
@@ -35,8 +36,9 @@ if (length(args) == 7) {
   sample_size_file <- args[3]
   out_file <- args[4]
   random_seed <- as.integer(args[5])
-  purity_thresh <- as.numeric(args[6])
-  confidence <- as.numeric(args[7])
+  num_signals <- as.integer(args[6])
+  purity_thresh <- as.numeric(args[7])
+  confidence <- as.numeric(args[8])
 } else if(length(args) == 4) {
   #Print confirmation statement
   print("Necessary Parameters Input")
@@ -46,11 +48,12 @@ if (length(args) == 7) {
   sample_size_file <- args[3]
   out_file <- args[4]
   random_seed <- 5
+  num_signals <- 10
   purity_thresh <- 0.1
   confidence <- 0.95
 } else {
   print("ERROR: Invalid inputs given.")
-  print("Usage: %> Rscript finemap_SuSiE.R summary_stats_file ld_matrix_file sample_size_file out_file [random_seed] [purity_thresh] [confidence_level]");
+  print("Usage: %> Rscript finemap_SuSiE.R summary_stats_file ld_matrix_file sample_size_file out_file [random_seed] [num_signals] [purity_thresh] [confidence_level]");
   quit(save="no");
 }
 
@@ -66,6 +69,14 @@ if (purity_thresh >= 1 || purity_thresh < 0) {
 if (confidence >= 1 || confidence <= 0) {
   print("ERROR: Mapping confidence outside of acceptable range (0,1).")
   quit(save = "no");
+}
+if(!(is.integer(random_seed))) {
+  print("WARNING: Input random seed was not integer. Defaulting to 5.")
+  random_seed <- 5
+}
+if(!(is.integer(num_signals)) || num_signals < 1) {
+  print("WARNING: Number of signals was not an integer > 1. Defaulting to 10.")
+  num_signals <- 10
 }
 
 #Check file inputs
@@ -170,7 +181,7 @@ check <- function(expression){
 
 #Execute SuSiE
 set.seed(random_seed) #Nothing up until here has been random
-fitted_rss1 = check(runsusie(coloc_data, n=n, min_abs_corr=purity_thresh, coverage=confidence, estimate_residual_variance = FALSE, L = 5, maxit=10000, repeat_until_convergence=FALSE))
+fitted_rss1 = check(runsusie(coloc_data, n=n, min_abs_corr=purity_thresh, coverage=confidence, estimate_residual_variance = FALSE, L = num_signals, maxit=10000, repeat_until_convergence=FALSE))
 
 #Verify convergence
 if (fitted_rss1$converged == FALSE) {
