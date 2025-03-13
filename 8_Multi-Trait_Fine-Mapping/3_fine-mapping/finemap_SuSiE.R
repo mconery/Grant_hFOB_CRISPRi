@@ -17,15 +17,16 @@ library(stringr)
 # 1) Read in Needed Arguments from Command ====
 
 #Need to read in the following: 
-  # 1) summary stats file filtered for locus snps (Assumes trait first part of name; filtered to mapping snps)
+  # 1) summary stats file filtered for locus SNPs (Assumes trait first part of name; filtered to mapping snps)
   # 2) ld ref matrix (assumes snp names present in file; filtered to mapping snps)
-  # 3) sample size (maps binary traits as continous)
+  # 3) sample size (maps binary traits as continuous)
   # 4) out file name
   # 5) random seed [OPTIONAL; default is 5]
-  # 6) confidence level [OPTIONAL; default is 5]
+  # 6) purity threshold [OPTIONAL; default is 0.1]
+  # 7) confidence level [OPTIONAL; default is 0.95]
 
 args <- commandArgs(trailingOnly = TRUE);
-if (length(args) == 6) {
+if (length(args) == 7) {
   #Print confirmation statement
   print("Necessary and Optional Parameters Input")
   #Set variables from the arguments in this case
@@ -34,7 +35,8 @@ if (length(args) == 6) {
   sample_size_file <- args[3]
   out_file <- args[4]
   random_seed <- as.integer(args[5])
-  confidence <- as.numeric(args[6])
+  purity_thresh <- as.numeric(args[6])
+  confidence <- as.numeric(args[7])
 } else if(length(args) == 4) {
   #Print confirmation statement
   print("Necessary Parameters Input")
@@ -44,12 +46,38 @@ if (length(args) == 6) {
   sample_size_file <- args[3]
   out_file <- args[4]
   random_seed <- 5
+  purity_thresh <- 0.1
   confidence <- 0.95
 } else {
   print("ERROR: Invalid inputs given.")
-  print("Usage: %> Rscript finemap_SuSiE.R summary_stats_file ld_matrix_file sample_size_file out_file [random_seed] [confidence_level]");
+  print("Usage: %> Rscript finemap_SuSiE.R summary_stats_file ld_matrix_file sample_size_file out_file [random_seed] [purity_thresh] [confidence_level]");
   quit(save="no");
 }
+
+#Check numeric inputs
+if (!(is.numeric(confidence)) || !(is.numeric(random_seed)) || !(is.numeric(purity_thresh))) {
+  print("ERROR: Invalid numeric inputs (confidence, random_seed, purity_thresh) given. Please recheck.")
+  quit(save="no");
+}
+if (purity_thresh >= 1 || purity_thresh <= 0) {
+  print("ERROR: Purity threshold outside of acceptable range (0,1).")
+  quit(save = "no");
+}
+if (confidence >= 1 || confidence <= 0) {
+  print("ERROR: Mapping confidence outside of acceptable range (0,1).")
+  quit(save = "no");
+}
+
+#Check file inputs
+check_file <- function(file_loc, file_name){
+  if (!(file.exists(file_loc))) {
+    print(paste0("ERROR: ", file_name, " does not exist at specified location: ", file_loc))
+    quit(save = "no")
+  }
+}
+check_file(summary_stats_file, "Summary stats file")
+check_file(ld_ref_matrix, "LD matrix file")
+check_file(sample_size_file, "Sample size file")
 
 # 2) Prep for executing SuSiE ====
 
@@ -142,7 +170,7 @@ check <- function(expression){
 
 #Execute SuSiE
 set.seed(random_seed) #Nothing up until here has been random
-fitted_rss1 = check(runsusie(coloc_data, n=n, min_abs_corr=0, coverage=confidence, estimate_residual_variance = FALSE, L = 5, maxit=10000, repeat_until_convergence=FALSE))
+fitted_rss1 = check(runsusie(coloc_data, n=n, min_abs_corr=purity_thresh, coverage=confidence, estimate_residual_variance = FALSE, L = 5, maxit=10000, repeat_until_convergence=FALSE))
 
 #Verify convergence
 if (fitted_rss1$converged == FALSE) {
