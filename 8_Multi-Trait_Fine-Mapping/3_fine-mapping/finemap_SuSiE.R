@@ -59,8 +59,8 @@ if (!(is.numeric(confidence)) || !(is.numeric(random_seed)) || !(is.numeric(puri
   print("ERROR: Invalid numeric inputs (confidence, random_seed, purity_thresh) given. Please recheck.")
   quit(save="no");
 }
-if (purity_thresh >= 1 || purity_thresh <= 0) {
-  print("ERROR: Purity threshold outside of acceptable range (0,1).")
+if (purity_thresh >= 1 || purity_thresh < 0) {
+  print("ERROR: Purity threshold outside of acceptable range [0,1).")
   quit(save = "no");
 }
 if (confidence >= 1 || confidence <= 0) {
