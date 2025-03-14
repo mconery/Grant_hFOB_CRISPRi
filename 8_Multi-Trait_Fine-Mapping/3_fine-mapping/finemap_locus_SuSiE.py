@@ -46,27 +46,6 @@ ARGUMENTS
 """)
     sys.exit(exit_num)
 
-
-###############################################################################
-#################################  TEST VARIABLES  ############################
-###############################################################################
-
-file_prefix="chr19.44000001.44750000"
-out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/susie_results"
-munge_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/munged_summary_stats"
-ld_loc="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/ld_matrices"
-size_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes_cc.tsv"
-num_signals = 10
-purity_thresh = 0.1
-confidence = 0.95
-trait_json = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json"
-temp_dir = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/temp_mapping_files"
-script_dir = "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/temp_script_files"
-random_seed = 5
-file_format = 'TRAIT.sumstats.gz'
-map_script = "/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/full_hFOB_screen_bone/Grant_hFOB_CRISPRi/8_Multi-Trait_Fine-Mapping/3_fine-mapping/finemap_SuSiE.R"
-susie_mem = 40
-
 ###############################################################################
 ###########################  COLLECT AND CHECK ARGUMENTS  #####################
 ###############################################################################
@@ -222,7 +201,7 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, num_signals, puri
     
     #Set fine-mapping script paths
     temp = os.path.realpath(__file__)
-    map_script = temp[:temp.find('finemap_SuSiE.py')] + 'finemap_SuSiE.R'
+    map_script = temp[:temp.find('finemap_locus_SuSiE.py')] + 'finemap_trait_locus_SuSiE.R'
     
     #Add final slash to out_dir and ld_loc if it's missing
     out_dir = add_slash(out_dir)
