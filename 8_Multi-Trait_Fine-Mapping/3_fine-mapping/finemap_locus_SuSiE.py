@@ -234,6 +234,17 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, num_signals, puri
         print("ERROR: Given locus missing from trait json. Check json location or file prefix: " + file_prefix + '.')
         sys.exit(1)
     
+    #Check if locus has already been mapped, and if so skip the rest of the code
+    map_check = False
+    for trait in locus_traits:
+        #Create SuSiE out file name
+        out_file_loc = out_dir + trait + "." + file_prefix + ".susie.rds"
+        #Check if file exists
+        if exists(out_file_loc) == False:
+            map_check = True
+    if map_check == False:
+        print("NOTE: Skipping all traits for " + file_prefix +'. Output files already exist.')
+        
     #Read in lists of traits and filter for SNPs in locus
     trait_stats_dict = {}
     for trait in locus_traits:
@@ -276,13 +287,17 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, num_signals, puri
     trait_jobids = []
     #Loop over traits at the locus and make temp files of the summary stats then process jobs to console
     for trait in locus_traits:
+        #Create SuSiE out file name
+        out_file_loc = out_dir + trait + "." + file_prefix + ".susie.rds"
+        #Check if the SuSiE output file exists yet
+        if exists(out_file_loc):
+            print("NOTE: Skipping " + trait + ' for ' + file_prefix + '. Output file already exists.')
         #Write data to file
         temp_stats = trait_stats_dict[trait]
         temp_stats = temp_stats.loc[temp_stats['SNP'].isin(intersected_variants)]
         temp_stats_loc = temp_dir + trait + '.' + file_prefix + '.tsv.gz'
         temp_stats.to_csv(temp_stats_loc, sep = "\t", header =True, index = False, na_rep='nan', compression='gzip')
-        #Create SuSiE out file name
-        out_file_loc = out_dir + trait + "." + file_prefix + ".susie.rds"
+        
         #Create script file
         trait_commands = ["Rscript " + map_script + " " + temp_stats_loc + " " + ld_temp_loc + " " + size_file + " " + out_file_loc + " " + str(random_seed) + " " + str(num_signals) + " " + str(purity_thresh) + " " + str(confidence)]
         trait_commands.extend(["rm " + temp_stats_loc])
@@ -299,6 +314,8 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, num_signals, puri
     write_shell(ld_del_script, 16, ld_del_command, dependencies = trait_jobids)
     temp = subprocess.run(['sbatch', ld_del_script], stdout=subprocess.PIPE, text=True)
     
+    #Print out message
+    print("SUCCESS: Submitted all mapping jobs for " + file_prefix + '.')
         
 ###############################################################################
 
