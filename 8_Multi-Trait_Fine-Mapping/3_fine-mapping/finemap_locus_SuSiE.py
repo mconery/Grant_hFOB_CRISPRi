@@ -244,6 +244,7 @@ def driver(file_prefix, out_dir, munge_dir, ld_loc, size_file, num_signals, puri
             map_check = True
     if map_check == False:
         print("NOTE: Skipping all traits for " + file_prefix +'. Output files already exist.')
+        sys.exit(0)
         
     #Read in lists of traits and filter for SNPs in locus
     trait_stats_dict = {}
