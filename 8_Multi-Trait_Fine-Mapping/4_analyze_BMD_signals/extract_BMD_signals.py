@@ -159,19 +159,6 @@ def main(argv):
     driver(pickle_dir, out_dir, trait_sizes_file, assoc_type, active_thresh, purity, min_assoc, filt_high_flag)
 
 ###############################################################################
-################################  TEST LOCATIONS ##############################
-###############################################################################
-
-pickle_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/cafeh_results"
-out_dir="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related"
-trait_sizes_file="/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes.tsv"
-purity=0.1
-min_assoc=1
-assoc_type="gwas"
-active_thresh=0.95
-filt_high_flag=False
-
-###############################################################################
 #############################  HELPFUL FUNCTIONS ##############################
 ###############################################################################
 
