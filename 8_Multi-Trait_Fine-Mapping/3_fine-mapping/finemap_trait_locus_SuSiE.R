@@ -1,6 +1,6 @@
 ################################################################################
 
-#finemap_SuSiE.R
+#finemap_trait_locus_SuSiE.R
 
 #This script is designed to execute SuSiE fine-mapping given a fixed region 
 #when called by finemap_SuSiE_locus.py after temp file generation. The code 
