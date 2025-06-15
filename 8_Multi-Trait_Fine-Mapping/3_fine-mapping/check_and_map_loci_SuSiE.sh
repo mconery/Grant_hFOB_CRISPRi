@@ -39,7 +39,7 @@ awk -F "," '{print "chr"$1"."$2"."$3}' $locus_file | while read file_prefix; do
 	#Call the python script for each locus
 	echo "python $mapping_script -p $file_prefix -o $out_dir -m $munge_dir -l $ld_dir -n $size_file -k $num_signals -u $purity_thresh -f $confidence -j $trait_json -t $temp_mapping_dir -i $temp_script_dir -c TRAIT.sumstats.gz -e $susie_mem" > $temp_script_dir/$file_prefix.susie.sh
       sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.susie.sh
-      sbatch --mem=64G -t 7-00:00:00 --job-name $file_prefix $temp_script_dir/$file_prefix.susie.sh
+      sbatch --mem=96G -t 7-00:00:00 --job-name $file_prefix $temp_script_dir/$file_prefix.susie.sh
 
 
 done
