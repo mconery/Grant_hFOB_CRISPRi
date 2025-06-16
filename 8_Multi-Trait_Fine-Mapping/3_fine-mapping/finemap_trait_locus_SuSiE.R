@@ -215,7 +215,7 @@ for (i in cred_sets) {
   test2 = (test)/sqrt(fitted_rss1$sigma2 * (n-1) * diag(R))
   neglogp_absolute = (-log(2)-pt(-abs(test2), df = n - 1, lower.tail = TRUE, log.p = TRUE))/log(10)
   #Check if i == 1 to process info to data frames correctly
-  if(i == 1){
+  if(i == min(cred_sets)){
     neglogp_absolute_df = as.data.frame(neglogp_absolute)
   } else{
     neglogp_absolute_df = cbind.data.frame(neglogp_absolute_df, neglogp_absolute)
