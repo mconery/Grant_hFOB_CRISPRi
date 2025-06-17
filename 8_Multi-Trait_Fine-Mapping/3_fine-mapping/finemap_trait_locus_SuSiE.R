@@ -99,6 +99,14 @@ file_prefix = str_remove(basename(out_file), ".susie.rds")
 #Read in summary_statistics and ld matrix
 summary_stats_filt <- read.table(summary_stats_file, header = TRUE)
 ld_matrix_filt <- read.table(ld_ref_matrix, header = TRUE, row.names = 1)
+#Verify that at least some SNPs were retained or kick an error 
+if (nrow(summary_stats_filt) == 0) {
+  print(paste0("ERROR: ", file_prefix, " is unmappable. No SNPs were retained after filtering."))
+  #Write an empty output file and quit
+  fitted_rss1 = NULL
+  saveRDS(fitted_rss1, file = out_file)
+  quit(save="no");
+}
 
 #Reset colnames of ld matrix to rownames due to read in issue
 colnames(ld_matrix_filt) <- rownames(ld_matrix_filt)
