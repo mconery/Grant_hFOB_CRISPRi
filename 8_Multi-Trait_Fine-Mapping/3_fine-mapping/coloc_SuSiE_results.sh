@@ -17,7 +17,7 @@ locus_file=$locus_dir/bmd.sig_loci.csv
 rds_dir=$finemap_dir/susie_results
 bmd_trait="BMD"
 out_dir=$finemap_dir/susie_coloc_results
-temp_script_dir=$finemap_dir/temp_script_dir
+temp_script_dir=$finemap_dir/temp_script_files
 
 ###########################################################################################################################################################
 
