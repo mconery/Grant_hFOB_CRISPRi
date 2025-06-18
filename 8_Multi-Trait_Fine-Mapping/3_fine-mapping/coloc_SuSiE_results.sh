@@ -30,7 +30,7 @@ awk -F "," '{print "chr"$1"."$2"."$3}' $locus_file | while read file_prefix; do
 	if [ ! -f $out_dir/$file_prefix".susie-coloc.tsv" ]; then
 		#Call the Rscript for each locus
 		echo "Rscript $coloc_script $file_prefix $rds_dir BMD $out_dir" > $temp_script_dir/$file_prefix.coloc.sh
-      		sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.susie.sh
+      		sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.coloc.sh
       		sbatch --mem=8G -t 1:00:00 --job-name $file_prefix $temp_script_dir/$file_prefix.coloc.sh
 	fi
 done
