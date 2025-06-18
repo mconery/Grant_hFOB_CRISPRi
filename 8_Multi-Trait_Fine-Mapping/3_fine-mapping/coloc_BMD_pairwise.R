@@ -29,17 +29,6 @@ rds_dir <- args[2]         # Directory containing .rds files
 bmd_trait <- args[3]       # Name of BMD trait (e.g. "eBMD")
 out_dir <- args[4]         # Output directory
 
-#Test locations
-locus_prefix <- "chr12.131250001.132000000"
-rds_dir <- "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/susie_results"
-bmd_trait <- "BMD"
-out_dir <- "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/susie_coloc_results"
-# Optional arguments with defaults
-p1 <- 1e-4
-p2 <- 1e-4
-p12 <- 1e-5
-p4_cut <- 0.5
-
 # Parse optional parameters
 if(length(args) > 4) {
   opt_args <- args[5:length(args)]
@@ -77,11 +66,21 @@ message("\nLoading SuSiE results...")
 susie_objects <- lapply(rds_files, function(f) {
   obj <- readRDS(f)
   if(!inherits(obj, "susie")) {
-    stop(paste("Invalid SuSiE object in file:", f))
+    paste("WARNING: NULL object in file:", f)
+    return()
+  } else{
+    return(obj)
   }
-  return(obj)
 })
 names(susie_objects) <- str_remove(str_remove(basename(rds_files), "\\.susie\\.rds$"), paste0("\\.",locus_prefix))
+
+#Remove null objects
+susie_objects <- susie_objects[!unlist(lapply(susie_objects, is.null))]
+#Check if all mappings failed
+if (length(susie_objects) == 0 || !("BMD" %in% names(susie_objects))){
+  print(paste0("WARNING: ", locus_prefix, " was not mapped for any traits"))
+  quit(save = "no")
+}
 
 # 4) Prepare for Coloc ----
 message("\nPreparing coloc analysis...")
@@ -126,38 +125,53 @@ bmd_table <- cbind.data.frame(signal_id=paste(locus_prefix, bmd_sets, sep = ".")
                               max_neglogp=vapply(lapply(lapply(bmd_sets, FUN=extract_cs), extract_field, field="neglogp_gwas"), FUN=max, FUN.VALUE = numeric(1)),
                               max_pip=vapply(lapply(lapply(bmd_sets, FUN=extract_cs), extract_field, field="pip"), FUN=max, FUN.VALUE = numeric(1)))
 
-# 7) Extract other trait info into the table ====
+# 7) Extract summary of signals into a table of export ====
+
+#Create a function to extract table values
+extract_table_values <- function(index_pair, check_obj, bmd_object=bmd_obj, field="mu"){
+  cs <- names(extract_cs(index_pair[1], bmd_object))
+  max_pip_snp <- names(which.max(bmd_object$pip[cs])) #Get max pip snp
+  bmd_effect <- check_obj[[field]][index_pair[1],max_pip_snp]
+  check_effect <- check_obj[[field]][index_pair[2],max_pip_snp]
+  return(ifelse(bmd_effect * check_effect > 0, "+", "-"))
+}
 
 #Create a function to extract all the desired results
-extract_coloc <- function(non_bmd_trait, results_list=results){
+extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_objects){
   result_df = results_list[[non_bmd_trait]]$summary
   if (!is.null(result_df)) {
     good_coloc_rows = result_df %>% dplyr::filter(PP.H4.abf > p4_cut)
-    max_neglogp <- vapply(lapply(lapply(good_coloc_rows$idx2, FUN = extract_cs, bmd_object=susie_objects[[non_bmd_trait]]), extract_field, bmd_object=susie_objects[[non_bmd_trait]], field="neglogp_gwas"), FUN = max, FUN.VALUE = numeric(1))
-    max_pip <- vapply(lapply(lapply(good_coloc_rows$idx2, FUN = extract_cs, bmd_object=susie_objects[[non_bmd_trait]]), extract_field, bmd_object=susie_objects[[non_bmd_trait]], field="pip"), FUN = max, FUN.VALUE = numeric(1))
+    max_neglogp <- vapply(lapply(lapply(good_coloc_rows$idx2, FUN = extract_cs, bmd_object=susie_objs[[non_bmd_trait]]), extract_field, bmd_object=susie_objs[[non_bmd_trait]], field="neglogp_gwas"), FUN = max, FUN.VALUE = numeric(1))
+    max_pip <- vapply(lapply(lapply(good_coloc_rows$idx2, FUN = extract_cs, bmd_object=susie_objs[[non_bmd_trait]]), extract_field, bmd_object=susie_objs[[non_bmd_trait]], field="pip"), FUN = max, FUN.VALUE = numeric(1))
+    signs <- apply(good_coloc_rows[,c("idx1", "idx2")], MARGIN = 1, FUN = extract_table_values, check_obj=susie_objects[[non_bmd_trait]])
     return_df <- cbind.data.frame(signal=good_coloc_rows$idx1,
                                   other_traits=rep(non_bmd_trait, nrow(good_coloc_rows)), 
                                   PP4=good_coloc_rows$PP.H4.abf,
                                   other_traits_max_pip=max_pip,
-                                  other_traits_max_neglogp=max_neglogp)
+                                  other_traits_max_neglogp=max_neglogp,
+                                  other_traits_max_pip_sign=signs)
     return(return_df)
   } else{
     return_df <- cbind.data.frame(signal=NA,
                                   other_traits=NA, 
                                   PP4=NA,
                                   other_traits_max_pip=NA,
-                                  other_traits_max_neglogp=NA)
+                                  other_traits_max_neglogp=NA,
+                                  other_traits_max_pip_sign=NA)
     return(return_df)
   }
 }
 #Extract the results
 summarized_results <- na.omit(dplyr::bind_rows(lapply(other_traits, extract_coloc))) %>% group_by(signal) %>%
   summarize(num_other_traits=n(), other_traits=paste0(unique(other_traits), collapse = ","), 
-            PP4=paste0(PP4, collapse = ","), other_traits_max_pip=paste0(other_traits_max_pip, collapse = ","), other_traits_max_neglogp=paste0(other_traits_max_neglogp, collapse = ",")) %>%
+            PP4=paste0(PP4, collapse = ","), other_traits_max_pip=paste0(other_traits_max_pip, collapse = ","), 
+            other_traits_max_neglogp=paste0(other_traits_max_neglogp, collapse = ","),
+            other_traits_max_pip_signs=paste0(other_traits_max_pip_sign, collapse = ",")) %>%
   as.data.frame
 
 #Merge the dataframes
-export_table <- bmd_table %>% left_join(summarized_results, by = "signal")
+export_table <- bmd_table %>% left_join(summarized_results, by = "signal")  %>%
+  dplyr::mutate(num_other_traits=ifelse(is.na(num_other_traits), 0, num_other_traits))
 
 #Write to file
 write.table(export_table, file = file.path(out_dir, paste0(locus_prefix, ".susie-coloc.tsv")), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
