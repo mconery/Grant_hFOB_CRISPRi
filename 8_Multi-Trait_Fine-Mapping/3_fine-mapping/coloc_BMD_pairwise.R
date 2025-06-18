@@ -29,6 +29,12 @@ rds_dir <- args[2]         # Directory containing .rds files
 bmd_trait <- args[3]       # Name of BMD trait (e.g. "eBMD")
 out_dir <- args[4]         # Output directory
 
+# Optional arguments with defaults
+p1 <- 1e-4
+p2 <- 1e-4
+p12 <- 1e-5
+p4_cut <- 0.5
+
 # Parse optional parameters
 if(length(args) > 4) {
   opt_args <- args[5:length(args)]
