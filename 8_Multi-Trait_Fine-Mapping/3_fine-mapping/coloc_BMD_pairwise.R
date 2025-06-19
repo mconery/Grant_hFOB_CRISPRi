@@ -30,11 +30,6 @@ rds_dir <- args[2]         # Directory containing .rds files
 bmd_trait <- args[3]       # Name of BMD trait (e.g. "eBMD")
 out_dir <- args[4]         # Output directory
 
-#Test locations
-locus_prefix <- "chr12.131250001.132000000"
-rds_dir <- "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/susie_results"
-bmd_trait <- "BMD"
-out_dir <- "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/susie_coloc_results"
 # Optional arguments with defaults
 p1 <- 1e-4
 p2 <- 1e-4
