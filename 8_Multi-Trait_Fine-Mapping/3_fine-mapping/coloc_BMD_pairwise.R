@@ -217,7 +217,7 @@ extract_top_pp4 <- function(non_bmd_trait, bmd_cs, results_list=results, susie_o
   } else {
     cs_rows <- non_bmd_result$summary %>% filter(idx1 == bmd_cs)
     max_pp4_row <- cs_rows[which.max(PP.H4.abf),]
-    sign <- extract_table_values(unlist(max_pp4_row[,c("idx1", "idx2")]), check_obj=susie_objs[[non_bmd_trait]])
+    sign <- extract_signs(unlist(max_pp4_row[,c("idx1", "idx2")]), check_obj=susie_objs[[non_bmd_trait]])
     return(ifelse(sign == "+", max_pp4_row$PP.H4.abf, -max_pp4_row$PP.H4.abf))
   }
 }
