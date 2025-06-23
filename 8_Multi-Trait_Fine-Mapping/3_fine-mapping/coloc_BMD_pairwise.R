@@ -173,7 +173,12 @@ extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_
                                   other_traits_max_pip_sign=signs)
     return(return_df)
   } else{
-    return_df <- NULL
+    return_df <- cbind.data.frame(signal=NA,
+                                  other_traits="", 
+                                  PP4=NA,
+                                  other_traits_max_pip=NA,
+                                  other_traits_max_neglogp=NA,
+                                  other_traits_max_pip_sign="")
     return(return_df)
   }
 }
