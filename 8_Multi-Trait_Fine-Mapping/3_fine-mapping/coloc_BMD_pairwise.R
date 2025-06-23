@@ -134,6 +134,10 @@ for(trait in other_traits) {
 
 #Extract BMD Signals and send to a table
 bmd_sets <- bmd_obj$sets$cs_index
+if (is.null(bmd_sets)) {
+  print(paste("WARNING: No BMD signals detected for :", locus_prefix))
+  quit(save="no")
+}
 extract_cs <- function(index, bmd_object=bmd_obj){bmd_object$sets$cs[[paste0("L",index)]]}
 extract_field <- function(variant_indices, field ,bmd_object=bmd_obj){bmd_object[[field]][variant_indices]}
 bmd_table <- cbind.data.frame(signal_id=paste(locus_prefix, bmd_sets, sep = "."), 
