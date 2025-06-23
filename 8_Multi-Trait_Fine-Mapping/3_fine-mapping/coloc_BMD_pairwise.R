@@ -173,17 +173,13 @@ extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_
                                   other_traits_max_pip_sign=signs)
     return(return_df)
   } else{
-    return_df <- cbind.data.frame(signal=NA,
-                                  other_traits=NA, 
-                                  PP4=NA,
-                                  other_traits_max_pip=NA,
-                                  other_traits_max_neglogp=NA,
-                                  other_traits_max_pip_sign=NA)
+    return_df <- NULL
     return(return_df)
   }
 }
 #Extract the results
-summarized_results <- na.omit(dplyr::bind_rows(lapply(other_traits, extract_coloc))) %>% group_by(signal) %>%
+temp <- lapply(other_traits, extract_coloc) #Extract to a temporary list
+summarized_results <- na.omit(dplyr::bind_rows(temp[vapply(temp, FUN = nrow, FUN.VALUE = numeric(1)) > 0])) %>% group_by(signal) %>%
   summarize(num_other_traits=n(), other_traits=paste0(unique(other_traits), collapse = ","), 
             PP4=paste0(PP4, collapse = ","), other_traits_max_pip=paste0(other_traits_max_pip, collapse = ","), 
             other_traits_max_neglogp=paste0(other_traits_max_neglogp, collapse = ","),
