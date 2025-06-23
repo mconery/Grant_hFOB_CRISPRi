@@ -27,7 +27,7 @@ cd $temp_script_dir
 #Loop over the loci and map each that needs it
 awk -F "," '{print "chr"$1"."$2"."$3}' $locus_file | while read file_prefix; do 
 	#Check if output file exists
-	if [ ! -f $out_dir/$file_prefix".susie-coloc.tsv" || ! -f $out_dir/$file_prefix".signed_pp4s.tsv" ]; then
+	if [[ ! -f "$out_dir/$file_prefix.susie-coloc.tsv" || ! -f "$out_dir/$file_prefix.signed_pp4s.tsv" ]]; then
 		#Call the Rscript for each locus
 		echo "Rscript $coloc_script $file_prefix $rds_dir BMD $out_dir" > $temp_script_dir/$file_prefix.coloc.sh
       		sed -i '1i#!/bin/bash' $temp_script_dir/$file_prefix.coloc.sh
