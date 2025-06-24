@@ -69,9 +69,7 @@ locus_traits <- locus_json[[locus_prefix]]
 #Get traits corresponding to rds files
 rds_traits <- str_remove(str_remove(basename(rds_files), "\\.susie\\.rds$"), paste0("\\.",locus_prefix))
 
-if(length(rds_files) < 2) {
-  stop(paste("ERROR: Insufficient RDS files found for locus:", locus_prefix))
-} else if (any(sort(rds_traits) != sort(locus_traits))){
+if(any(sort(rds_traits) != sort(locus_traits))){
   paste("ERROR: At least one trait did not complete SuSiE fine-mapping for locus:", locus_prefix)
   quit(save="no")
 }
@@ -188,12 +186,19 @@ extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_
 }
 #Extract the results
 temp <- lapply(other_traits, extract_coloc) #Extract to a temporary list
-summarized_results <- na.omit(dplyr::bind_rows(temp[vapply(temp, FUN = nrow, FUN.VALUE = numeric(1)) > 0])) %>% group_by(signal) %>%
-  summarize(num_other_traits=n(), other_traits=paste0(unique(other_traits), collapse = ","), 
-            PP4=paste0(PP4, collapse = ","), other_traits_max_pip=paste0(other_traits_max_pip, collapse = ","), 
-            other_traits_max_neglogp=paste0(other_traits_max_neglogp, collapse = ","),
-            other_traits_max_pip_signs=paste0(other_traits_max_pip_sign, collapse = ",")) %>%
-  as.data.frame
+if (length(temp) > 0) {
+  summarized_results <- na.omit(dplyr::bind_rows(temp[vapply(temp, FUN = nrow, FUN.VALUE = numeric(1)) > 0])) %>% group_by(signal) %>%
+    summarize(num_other_traits=n(), other_traits=paste0(unique(other_traits), collapse = ","), 
+              PP4=paste0(PP4, collapse = ","), other_traits_max_pip=paste0(other_traits_max_pip, collapse = ","), 
+              other_traits_max_neglogp=paste0(other_traits_max_neglogp, collapse = ","),
+              other_traits_max_pip_signs=paste0(other_traits_max_pip_sign, collapse = ",")) %>%
+    as.data.frame
+} else {
+  summarized_results <- cbind.data.frame(signal=bmd_table$signal, num_other_traits=rep(0, nrow(bmd_table)), other_traits=rep(NA, nrow(bmd_table)),
+                                         PP4=rep(0,nrow(bmd_table)), other_traits_max_pip=rep(NA, nrow(bmd_table)), other_traits_max_neglogp=rep(NA, nrow(bmd_table)),
+                                         other_traits_max_pip_signs=rep(NA, nrow(bmd_table)))
+}
+
 
 #Merge the dataframes
 export_table <- bmd_table %>% left_join(summarized_results, by = "signal")  %>%
