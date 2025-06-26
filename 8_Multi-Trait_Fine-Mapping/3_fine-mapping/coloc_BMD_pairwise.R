@@ -240,4 +240,4 @@ signal_signed_pp4s <- lapply(bmd_obj$sets$cs_index, FUN=extract_signal_signed_pp
 activity_summary <- bind_rows(signal_signed_pp4s) %>% as.data.frame()
 row.names(activity_summary) <- paste(locus_prefix, bmd_obj$sets$cs_index, sep = ".")
 #Write to file
-write.table(activity_summary, file = file.path(out_dir, paste0(locus_prefix, ".signed_pp4s.tsv")), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
+write.table(activity_summary, file = file.path(out_dir, paste0(locus_prefix, ".signed_pp4s.tsv")), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
