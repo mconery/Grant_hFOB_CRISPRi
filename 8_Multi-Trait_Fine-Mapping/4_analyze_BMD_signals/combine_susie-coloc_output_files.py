@@ -1,5 +1,5 @@
 '''
-combine_susie_output_files.py
+combine_susie-coloc_output_files.py
 
 This script combines the locus-level result files from SuSiE-Coloc into a
 single file. 
@@ -47,10 +47,10 @@ def combine_files(directory, naming_convention, output_file):
 def main():
     parser = argparse.ArgumentParser(
         description='Combine all files in a directory matching a naming convention into a single CSV file.',
-        usage='python script.py <directory> <naming_convention> [--output OUTPUT_FILE]'
+        usage='python script.py <--directory> <--naming_convention> [--output OUTPUT_FILE]'
     )
-    parser.add_argument('directory', help='Directory containing files to combine')
-    parser.add_argument('naming_convention', help='File naming convention to match (e.g., *.csv)')
+    parser.add_argument('--directory', help='Directory containing files to combine')
+    parser.add_argument('--naming_convention', help='File naming convention to match (e.g., *.csv)')
     parser.add_argument('--output', '-o', default='combined_output.csv', help='Name of the output file (default: combined_output.csv)')
     args = parser.parse_args()
     
