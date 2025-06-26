@@ -8,11 +8,11 @@ single file.
 '''
 
 import os
-import sys
 import glob
 import pandas as pd
+import argparse
 
-def combine_files(directory, naming_convention, output_file='combined_output.csv'):
+def combine_files(directory, naming_convention, output_file):
     # Create the full path pattern for glob
     pattern = os.path.join(directory, naming_convention)
     # Find all files matching the pattern
@@ -26,8 +26,16 @@ def combine_files(directory, naming_convention, output_file='combined_output.csv
     dfs = []
     
     for file in files:
-        df = pd.read_csv(file)
-        dfs.append(df)
+        try:
+            df = pd.read_csv(file)
+            dfs.append(df)
+        except Exception as e:
+            print(f"Error reading {file}: {e}")
+            continue
+    
+    if not dfs:
+        print("No dataframes were loaded. Exiting.")
+        return
     
     # Concatenate all dataframes, keeping the header only once
     combined_df = pd.concat(dfs, ignore_index=True)
@@ -36,10 +44,18 @@ def combine_files(directory, naming_convention, output_file='combined_output.csv
     combined_df.to_csv(output_file, index=False)
     print(f"Combined file saved as {output_file}")
 
+def main():
+    parser = argparse.ArgumentParser(
+        description='Combine all files in a directory matching a naming convention into a single CSV file.',
+        usage='python script.py <directory> <naming_convention> [--output OUTPUT_FILE]'
+    )
+    parser.add_argument('directory', help='Directory containing files to combine')
+    parser.add_argument('naming_convention', help='File naming convention to match (e.g., *.csv)')
+    parser.add_argument('--output', '-o', default='combined_output.csv', help='Name of the output file (default: combined_output.csv)')
+    args = parser.parse_args()
+    
+    combine_files(args.directory, args.naming_convention, args.output)
+
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: python script.py <directory> <naming_convention>")
-        sys.exit(1)
-    directory = sys.argv[1]
-    naming_convention = sys.argv[2]
-    combine_files(directory, naming_convention)
+    main()
+
