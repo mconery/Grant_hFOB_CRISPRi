@@ -27,7 +27,7 @@ def combine_files(directory, naming_convention, output_file):
     
     for file in files:
         try:
-            df = pd.read_csv(file)
+            df = pd.read_csv(file, delimiter="\t")
             dfs.append(df)
         except Exception as e:
             print(f"Error reading {file}: {e}")
@@ -41,7 +41,7 @@ def combine_files(directory, naming_convention, output_file):
     combined_df = pd.concat(dfs, ignore_index=True)
     
     # Save to a new file
-    combined_df.to_csv(output_file, index=False)
+    combined_df.to_csv(output_file, index=False, sep="\t")
     print(f"Combined file saved as {output_file}")
 
 def main():
