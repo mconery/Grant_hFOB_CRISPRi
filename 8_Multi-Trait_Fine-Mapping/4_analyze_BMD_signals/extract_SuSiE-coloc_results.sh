@@ -18,3 +18,6 @@ python $combination_script --directory $susie_coloc_dir --naming_convention "chr
 
 #Process PP4s files second
 python $combination_script --directory $susie_coloc_dir --naming_convention "chr*.signed_pp4s.tsv" --output $susie_coloc_dir/master.signed_pp4s.tsv --set_rows=True
+
+#Last process the bed files
+python $combination_script --directory $susie_coloc_dir --naming_convention "chr*.variants.bed" --output $susie_coloc_dir/master.variants.bed --set_rows=False
