@@ -14,7 +14,7 @@ combination_script="/mnt/isilon/sfgi/conerym/analyses/grant/crispri_screen/full_
 ###########################################################################################################################################################
 
 #Process signal files first
-python $combination_script --directory $susie_coloc_dir --naming_convention "chr*.susie-coloc.tsv" --output $susie_coloc_dir/master.susie-coloc.tsv
+python $combination_script --directory $susie_coloc_dir --naming_convention "chr*.susie-coloc.tsv" --output $susie_coloc_dir/master.susie-coloc.tsv --set_rows=False
 
 #Process PP4s files second
-python $combination_script --directory $susie_coloc_dir --naming_convention "chr*.signed_pp4s.tsv" --output $susie_coloc_dir/master.signed_pp4s.tsv
+python $combination_script --directory $susie_coloc_dir --naming_convention "chr*.signed_pp4s.tsv" --output $susie_coloc_dir/master.signed_pp4s.tsv --set_rows=True
