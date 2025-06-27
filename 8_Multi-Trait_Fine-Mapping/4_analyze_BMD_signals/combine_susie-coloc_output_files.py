@@ -12,7 +12,9 @@ import glob
 import pandas as pd
 import argparse
 
-def combine_files(directory, naming_convention, output_file):
+def combine_files(directory, naming_convention, output_file, set_rows):
+    #Convert set_rows to boolean
+    set_rows = bool(set_rows)
     # Create the full path pattern for glob
     pattern = os.path.join(directory, naming_convention)
     # Find all files matching the pattern
@@ -41,7 +43,7 @@ def combine_files(directory, naming_convention, output_file):
     combined_df = pd.concat(dfs, ignore_index=True)
     
     # Save to a new file
-    combined_df.to_csv(output_file, index=False, sep="\t")
+    combined_df.to_csv(output_file, index=set_rows, sep="\t")
     print(f"Combined file saved as {output_file}")
 
 def main():
@@ -52,9 +54,10 @@ def main():
     parser.add_argument('--directory', help='Directory containing files to combine')
     parser.add_argument('--naming_convention', help='File naming convention to match (e.g., *.csv)')
     parser.add_argument('--output', '-o', default='combined_output.csv', help='Name of the output file (default: combined_output.csv)')
+    parser.add_argument('--set_rows', default='False', help='Whether to add row names to output file (default: False')
     args = parser.parse_args()
     
-    combine_files(args.directory, args.naming_convention, args.output)
+    combine_files(args.directory, args.naming_convention, args.output, args.set_rows)
 
 if __name__ == '__main__':
     main()
