@@ -164,6 +164,15 @@ extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_
   result_df = results_list[[non_bmd_trait]]$summary
   if (!is.null(result_df)) {
     good_coloc_rows = result_df %>% dplyr::filter(PP.H4.abf > p4_cut)
+    if (nrow(good_coloc_rows) == 0) {
+      return_df <- cbind.data.frame(signal=NA,
+                                    other_traits="", 
+                                    PP4=NA,
+                                    other_traits_max_pip=NA,
+                                    other_traits_max_neglogp=NA,
+                                    other_traits_max_pip_sign="")
+      return(return_df)
+    }
     max_neglogp <- vapply(lapply(lapply(good_coloc_rows$idx2, FUN = extract_cs, bmd_object=susie_objs[[non_bmd_trait]]), extract_field, bmd_object=susie_objs[[non_bmd_trait]], field="neglogp_gwas"), FUN = max, FUN.VALUE = numeric(1))
     max_pip <- vapply(lapply(lapply(good_coloc_rows$idx2, FUN = extract_cs, bmd_object=susie_objs[[non_bmd_trait]]), extract_field, bmd_object=susie_objs[[non_bmd_trait]], field="pip"), FUN = max, FUN.VALUE = numeric(1))
     signs <- apply(good_coloc_rows[,c("idx1", "idx2")], MARGIN = 1, FUN = extract_signs, check_obj=susie_objects[[non_bmd_trait]])
