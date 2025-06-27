@@ -277,12 +277,14 @@ extract_variant_info <- function(bmd_signal){
 }
 
 # Write the variant-level output
-lapply(names(bmd_obj$sets$cs), FUN = extract_variant_info) %>% 
-  write.table(
-    file = paste0(locus_prefix, ".variants.bed"),
-    sep = "\t",
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = TRUE
-  )
+bed_list <- lapply(names(bmd_obj$sets$cs), FUN = extract_variant_info) 
+bed_df <- bed_list %>% bind_rows()
+write.table(
+  bed_df,
+  file = paste0(locus_prefix, ".variants.bed"),
+  sep = "\t",
+  quote = FALSE,
+  row.names = FALSE,
+  col.names = TRUE
+)
 
