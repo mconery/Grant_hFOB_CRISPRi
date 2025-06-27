@@ -250,3 +250,39 @@ activity_summary <- bind_rows(signal_signed_pp4s) %>% as.data.frame()
 row.names(activity_summary) <- paste(locus_prefix, bmd_obj$sets$cs_index, sep = ".")
 #Write to file
 write.table(activity_summary, file = file.path(out_dir, paste0(locus_prefix, ".signed_pp4s.tsv")), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
+
+# 9) Extract Variants into a bed file ====
+
+# Create variant-level coloc output via a function
+extract_variant_info <- function(bmd_signal){
+  variant_output <- data.frame(
+    chr = bmd_obj$chr,
+    start = bmd_obj$bp[bmd_obj$sets$cs[[bmd_signal]]],
+    end = (bmd_obj$bp + 1)[bmd_obj$sets$cs[[bmd_signal]]],
+    signal.snp_id = paste(locus_prefix, str_replace(bmd_signal, "L", ""), names(bmd_obj$sets$cs[[bmd_signal]]), sep = "."),
+    rsid = bmd_obj$rsid[bmd_obj$sets$cs[[bmd_signal]]],
+    total_pip = bmd_obj$pip[bmd_obj$sets$cs[[bmd_signal]]]
+  )
+  #Extract the signal info
+  signal_row <- export_table %>% filter(signal_id == paste(locus_prefix, str_replace(bmd_signal, "L", ""), sep = "."))
+  #Check if there are no other traits
+  if (signal_row$num_other_traits == 0) {
+    return(cbind.data.frame(variant_output, "colocalizing_traits"="", "colocalizing_pp4s"=""))
+  } else {
+    #Get names of other traits and pp4s
+    other_traits <- signal_row$other_traits
+    pp4s <- signal_row$PP4
+    return(cbind.data.frame(variant_output, "colocalizing_traits"=rep(other_traits, nrow(variant_output)), "colocalizing_pp4s"=rep(pp4s, nrow(variant_output))))
+  }
+}
+
+# Write the variant-level output
+lapply(names(bmd_obj$sets$cs), FUN = extract_variant_info) %>% 
+  write.table(
+    file = paste0(locus_prefix, ".variants.bed"),
+    sep = "\t",
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = TRUE
+  )
+
