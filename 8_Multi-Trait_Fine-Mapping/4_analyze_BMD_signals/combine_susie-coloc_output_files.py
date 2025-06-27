@@ -4,7 +4,7 @@ combine_susie-coloc_output_files.py
 This script combines the locus-level result files from SuSiE-Coloc into a
 single file. 
 
-***This needs to be run in the rsparsepro conda environment ***
+***This needs to be run in the default conda environment ***
 '''
 
 import os
@@ -14,7 +14,10 @@ import argparse
 
 def combine_files(directory, naming_convention, output_file, set_rows):
     #Convert set_rows to boolean
-    set_rows = bool(set_rows)
+    if set_rows == 'False' or set_rows == 'F':
+        set_rows = False
+    else:
+        set_row = True
     # Create the full path pattern for glob
     pattern = os.path.join(directory, naming_convention)
     # Find all files matching the pattern
@@ -40,7 +43,7 @@ def combine_files(directory, naming_convention, output_file, set_rows):
         return
     
     # Concatenate all dataframes, keeping the header only once
-    combined_df = pd.concat(dfs, ignore_index=True)
+    combined_df = pd.concat(dfs, ignore_index=(not set_rows))
     
     # Save to a new file
     combined_df.to_csv(output_file, index=set_rows, sep="\t")
