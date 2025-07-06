@@ -109,7 +109,9 @@ for (tr in other_traits) {
     dataset2 = susie_objects[[tr]],
     p1 = opt$p1, p2 = opt$p2, p12 = opt$p12
   )
-  
+  if (length(coloc_res) == 1) {
+    next
+  }
   summ <- coloc_res$summary %>%
     filter(PP.H4.abf > opt$pp4_cut)
   if (nrow(summ) > 0) {
