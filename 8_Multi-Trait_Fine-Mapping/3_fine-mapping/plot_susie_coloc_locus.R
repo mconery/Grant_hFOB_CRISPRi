@@ -1,10 +1,12 @@
+#!/usr/bin/env Rscript
 ################################################################################
 # Plot SuSiE–coloc results for a single locus
 #
 # USAGE:
 #   Rscript plot_susie_coloc_locus.R locus_prefix \
 #           [--rds_dir ./] [--out_dir ./] [--bmd_trait BMD] \
-#           [--p1 1e-4] [--p2 1e-4] [--p12 1e-5] [--pp4_cut 0.5]
+#           [--p1 1e-4] [--p2 1e-4] [--p12 1e-5] [--pp4_cut 0.5] \
+#           [--sig_filter 5e-8] [--purity_filter 0.1]
 #
 # EXAMPLE:
 #   Rscript plot_susie_coloc_locus.R chr6.12345678.12355678 \
@@ -39,6 +41,7 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 1) {
   stop("Usage: Rscript plot_susie_coloc_locus.R locus_prefix [--options]")
 }
+
 ## defaults
 opt <- list(
   locus_prefix = args[1],
@@ -48,7 +51,9 @@ opt <- list(
   p1        = 1e-4,
   p2        = 1e-4,
   p12       = 1e-5,
-  pp4_cut   = 0.50
+  pp4_cut   = 0.50,
+  sig_filter = 5e-8,
+  purity_filter = 0.1
 )
 
 if (length(args) > 1) {
@@ -57,7 +62,7 @@ if (length(args) > 1) {
     key   <- gsub("^--", "", args[f])
     value <- args[f + 1]
     if (key %in% names(opt)) {
-      if (key %in% c("p1","p2","p12","pp4_cut")) {
+      if (key %in% c("p1","p2","p12","pp4_cut","sig_filter","purity_filter")) {
         opt[[key]] <- as.numeric(value)
       } else {
         opt[[key]] <- value
@@ -93,7 +98,36 @@ bmd_obj      <- susie_objects[[bmd_name]]
 other_traits <- setdiff(names(susie_objects), bmd_name)
 
 ################################################################################
-# 3. MAP COLOCALISING SIGNALS (re-run coloc quickly – lightweight)
+# 3. APPLY SIGNIFICANCE AND PURITY FILTERS TO BMD SIGNALS
+################################################################################
+message("Applying significance and purity filters to BMD signals...")
+
+# Function to compute min p-value for each credible set
+get_min_pval <- function(index, bmd_object=bmd_obj) {
+  cs <- bmd_object$sets$cs[[paste0("L", index)]]
+  min(10^(-bmd_object$neglogp_gwas[cs]))
+}
+
+bmd_sets <- bmd_obj$sets$cs_index
+bmd_min_pvals <- sapply(bmd_sets, get_min_pval)
+
+# Only keep BMD signals that pass both significance and purity filters
+keep_bmd_idx <- bmd_sets[which(bmd_min_pvals <= opt$sig_filter & 
+                                 bmd_obj$sets$purity$min.abs.corr > opt$purity_filter)]
+
+if(length(keep_bmd_idx) == 0) {
+  message("No BMD signals pass the significance (", opt$sig_filter, ") and purity (", opt$purity_filter, ") filters. Exiting.")
+  quit(save="no")
+}
+
+# Update bmd_obj$sets to only include kept signals
+bmd_obj$sets$cs <- bmd_obj$sets$cs[paste0("L", keep_bmd_idx)]
+bmd_obj$sets$purity <- bmd_obj$sets$purity[paste0("L", keep_bmd_idx),]
+bmd_obj$sets$coverage <- bmd_obj$sets$coverage[bmd_obj$sets$cs_index %in% keep_bmd_idx]
+bmd_obj$sets$cs_index <- keep_bmd_idx
+
+################################################################################
+# 4. MAP COLOCALISING SIGNALS WITH FILTERING
 ################################################################################
 message("Running pair-wise coloc to map signal pairs ...")
 bmd_cs   <- bmd_obj$sets$cs_index
@@ -109,26 +143,49 @@ for (tr in other_traits) {
     dataset2 = susie_objects[[tr]],
     p1 = opt$p1, p2 = opt$p2, p12 = opt$p12
   )
+  
   if (length(coloc_res) == 1) {
     next
   }
+  
   summ <- coloc_res$summary %>%
     filter(PP.H4.abf > opt$pp4_cut)
+  
   if (nrow(summ) > 0) {
-    pair_map[[tr]] <- summ %>% select(idx1, idx2) %>% 
-      mutate(trait = tr)
+    # Apply filters to non-BMD signals
+    nonbmd_obj <- susie_objects[[tr]]
+    
+    # Function to get min p-value for non-BMD signals
+    get_nonbmd_minp <- function(idx2) {
+      cs <- nonbmd_obj$sets$cs[[paste0("L", idx2)]]
+      min(10^(-nonbmd_obj$neglogp_gwas[cs]))
+    }
+    
+    nonbmd_min_pvals <- sapply(summ$idx2, get_nonbmd_minp)
+    
+    # Keep only rows where non-BMD signal passes both filters and BMD signal is kept
+    keep_rows <- which((nonbmd_min_pvals <= opt$sig_filter) & 
+                         (summ$idx1 %in% keep_bmd_idx) & 
+                         (nonbmd_obj$sets$purity$min.abs.corr[summ$idx2] > opt$purity_filter))
+    
+    if (length(keep_rows) > 0) {
+      pair_map[[tr]] <- summ[keep_rows, ] %>% 
+        select(idx1, idx2) %>% 
+        mutate(trait = tr)
+    }
   }
 }
 
 pair_df <- bind_rows(pair_map)
 
-# Only keep traits that have at least one signal colocalizing with BMD
+# Only keep traits that have at least one signal colocalizing with BMD after filtering
 traits_with_coloc <- unique(pair_df$trait)
 other_traits_filtered <- intersect(other_traits, traits_with_coloc)
 
+message("After filtering, ", length(other_traits_filtered), " traits have signals colocalizing with BMD")
 
 ################################################################################
-# 4. FUNCTION: ASSIGN COLOURS PER VARIANT
+# 5. FUNCTION: ASSIGN COLOURS PER VARIANT
 ################################################################################
 get_variant_df <- function(obj, trait_name) {
   df <- data.frame(
@@ -154,9 +211,13 @@ get_variant_df <- function(obj, trait_name) {
     if (trait_name == bmd_name) {
       ## BMD: map cs index → colour
       idx <- as.integer(str_remove(cs, "L"))
-      df$col[i] <- signal_colours[as.character(idx)]
+      if (idx %in% keep_bmd_idx) {  # Only color if signal passes filters
+        df$col[i] <- signal_colours[as.character(idx)]
+      } else {
+        df$col[i] <- "darkgrey"     # BMD signal that didn't pass filters
+      }
     } else {
-      ## Non-BMD: does this CS colocalise?
+      ## Non-BMD: does this CS colocalise with a filtered BMD signal?
       idx2_match <- pair_df %>% 
         filter(trait == trait_name,
                idx2 == as.integer(str_remove(cs,"L"))) %>%
@@ -173,40 +234,40 @@ get_variant_df <- function(obj, trait_name) {
 }
 
 ################################################################################
-# 5. BUILD DATA FOR ALL TRAITS
+# 6. BUILD DATA FOR ALL TRAITS
 ################################################################################
 plot_dfs <- lapply(c(bmd_name, other_traits_filtered), function(tr) {
   get_variant_df(susie_objects[[tr]], tr)
 })
 names(plot_dfs) <- c(bmd_name, other_traits_filtered)
 
-#Create function to clean up trait names
+# Function to clean up trait names
 correct_trait_names <- function(trait_names){
-  trait_names %>% str_replace_all(pattern = "_", replacement = " ") %>%
+  trait_names %>% str_replace_all(pattern = "_", replacement = " ") %>% 
     str_replace_all(pattern = "[.]", replacement = "-") %>%
     toTitleCase %>%
-    str_replace(pattern = "Alp", "ALP") %>%
-    str_replace(pattern = "Alt", "ALT") %>%
-    str_replace(pattern = "BF", "Bone Fracture") %>%
-    str_replace(pattern = "Bmi", "BMI") %>%
-    str_replace(pattern = "Ldl", "LDL") %>%
+    str_replace(pattern = "Alp", "ALP") %>% 
+    str_replace(pattern = "Alt", "ALT") %>% 
+    str_replace(pattern = "BF", "Bone Fracture") %>% 
+    str_replace(pattern = "Bmi", "BMI") %>% 
+    str_replace(pattern = "Ldl", "LDL") %>% 
     str_replace(pattern = "Hdl", "HDL") %>%
     str_replace(pattern = "Egfr Creat", "eGFR Creatinine") %>%
-    str_replace(pattern = "Ggt", "GGT") %>%
+    str_replace(pattern = "Ggt", "GGT") %>% 
     str_replace(pattern = "Hba1c", "HbA1c") %>%
     str_replace(pattern = "Vitamin d", "Vitamin D") %>%
     str_replace(pattern = "Smoking Ever Never", "Smoking Ever/Never") %>%
-    str_replace(pattern = "Lbs", "(lbs)") %>%
+    str_replace(pattern = "Lbs", "(lbs)") %>% 
     str_replace(pattern = "Bone Mineral Density", "BMD (Pan-UKBB)") %>%
-    str_replace(pattern = "Whole Body", replacement = "Whole-Body") %>%
+    str_replace(pattern = "Whole Body", replacement = "Whole-Body") %>% 
     return
 }
-#Create cleaned trait names for plot
+
+# Create cleaned trait names for plot
 clean_trait_names <- correct_trait_names(names(plot_dfs))
 
-
 ################################################################################
-# 6. GENERATE STACKED PLOTS
+# 7. GENERATE STACKED PLOTS
 ################################################################################
 message("Generating plots ...")
 
@@ -224,22 +285,27 @@ make_panel <- function(df, trait_label) {
     )
 }
 
-panels <- mapply(plot_dfs, FUN = make_panel, 
+panels <- mapply(plot_dfs, FUN = make_panel,
                  trait_label = clean_trait_names,
                  SIMPLIFY = FALSE)
 
 ## bottom panel keeps x-axis labels
-panels[[length(panels)]] <- panels[[length(panels)]] +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.ticks.x = element_line())
-
-plot_stack <- plot_grid(plotlist = panels, ncol = 1, align = "v")
-
-################################################################################
-# 7. SAVE OUTPUT
-################################################################################
-out_base <- file.path(opt$out_dir, paste0(locus_prefix, ".susie_coloc_plot"))
-ggsave(paste0(out_base, ".pdf"), plot_stack, width = 10, height = 2.5*length(panels))
-ggsave(paste0(out_base, ".png"), plot_stack, width = 10, height = 2.5*length(panels), dpi = 300)
-
-message("Plot written to: ", out_base, ".pdf / .png")
+if (length(panels) > 0) {
+  panels[[length(panels)]] <- panels[[length(panels)]] +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          axis.ticks.x = element_line())
+  
+  plot_stack <- plot_grid(plotlist = panels, ncol = 1, align = "v")
+  
+  ################################################################################
+  # 8. SAVE OUTPUT
+  ################################################################################
+  out_base <- file.path(opt$out_dir, paste0(locus_prefix, ".susie_coloc_plot"))
+  ggsave(paste0(out_base, ".pdf"), plot_stack, width = 10, height = 2.5*length(panels))
+  ggsave(paste0(out_base, ".png"), plot_stack, width = 10, height = 2.5*length(panels), dpi = 300)
+  
+  message("Plot written to: ", out_base, ".pdf / .png")
+  message("Filtered to ", length(keep_bmd_idx), " BMD signals and ", length(other_traits_filtered), " colocalizing traits")
+} else {
+  message("No traits remain after filtering - no plots generated")
+}
