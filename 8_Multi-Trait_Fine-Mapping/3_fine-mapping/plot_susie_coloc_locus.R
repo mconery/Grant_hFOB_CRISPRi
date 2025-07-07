@@ -292,8 +292,7 @@ panels <- mapply(plot_dfs, FUN = make_panel,
 ## bottom panel keeps x-axis labels
 if (length(panels) > 0) {
   panels[[length(panels)]] <- panels[[length(panels)]] +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          axis.ticks.x = element_line())
+    theme(axis.ticks.x = element_line())
   
   plot_stack <- plot_grid(plotlist = panels, ncol = 1, align = "v")
   
@@ -301,9 +300,7 @@ if (length(panels) > 0) {
   # 8. SAVE OUTPUT
   ################################################################################
   out_base <- file.path(opt$out_dir, paste0(locus_prefix, ".susie_coloc_plot"))
-  ggsave(paste0(out_base, ".pdf"), plot_stack, width = 10, height = 2.5*length(panels))
   ggsave(paste0(out_base, ".png"), plot_stack, width = 10, height = 2.5*length(panels), dpi = 300)
-  
   message("Plot written to: ", out_base, ".pdf / .png")
   message("Filtered to ", length(keep_bmd_idx), " BMD signals and ", length(other_traits_filtered), " colocalizing traits")
 } else {
