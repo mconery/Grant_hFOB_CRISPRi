@@ -38,7 +38,7 @@ target_file <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/dat
 sceptre_file <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/sceptre_results/discovery_results.tsv"
 
 #Set filtering criteria
-purity_thresh=0.5
+purity_thresh=0.1
 bmd_sig_thresh=5e-8
 
 # 1) Read in Signal, PP4, and Bed Files and Filter them ====
