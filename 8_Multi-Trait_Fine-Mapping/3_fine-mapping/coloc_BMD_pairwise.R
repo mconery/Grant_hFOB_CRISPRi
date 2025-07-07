@@ -21,7 +21,7 @@ suppressPackageStartupMessages({
 args <- commandArgs(trailingOnly = TRUE)
 
 if(length(args) < 4) {
-  stop("Usage: Rscript coloc_pairwise.R <locus_prefix> <rds_dir> <bmd_trait> <out_dir> [--p1 1e-4] [--p2 1e-4] [--p12 1e-5] [--p4_cut 0.5]")
+  stop("Usage: Rscript coloc_pairwise.R <locus_prefix> <rds_dir> <bmd_trait> <out_dir> [--p1 1e-4] [--p2 1e-4] [--p12 1e-5] [--p4_cut 0.95]")
 }
 
 # Required arguments
@@ -34,7 +34,9 @@ out_dir <- args[4]         # Output directory
 p1 <- 1e-4
 p2 <- 1e-4
 p12 <- 1e-5
-p4_cut <- 0.5
+p4_cut <- 0.95
+sig_filter <- 5e-8
+purity_filter <- 0.1
 trait_file <- "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/trait_sample_sizes_cc.tsv"
 locus_file <- "/mnt/isilon/sfgi/conerym/analyses/grant/multi-trait_fine-mapping/bmd_and_related/loci_files/traits_per_loci.json"
 
@@ -46,6 +48,8 @@ if(length(args) > 4) {
     if(opt_args[i] == "--p2") p2 <- as.numeric(opt_args[i+1])
     if(opt_args[i] == "--p12") p12 <- as.numeric(opt_args[i+1])
     if(opt_args[i] == "--p4_cut") p4_cut <- as.numeric(opt_args[i+1])
+    if(opt_args[i] == "--purity_filter") purity_filter <- as.numeric(opt_args[i+1])
+    if(opt_args[i] == "--sig_filter") sig_filter <- as.numeric(opt_args[i+1])
     if(opt_args[i] == "--trait_file") trait_file <- as.numeric(opt_args[i+1])
     if(opt_args[i] == "--locus_file") locus_file <- as.numeric(opt_args[i+1])
   }
@@ -126,9 +130,93 @@ for(trait in other_traits) {
   results[[trait]] <- coloc_res
 }
 
-# [Remaining code for output formatting and saving would go here]
+# 6) Apply significance filter to BMD asignals ----
 
-# 6) Extract BMD information into a Table ====
+# Compute min p-value for each BMD credible set
+get_min_pval <- function(index, bmd_object=bmd_obj) {
+  cs <- bmd_object$sets$cs[[paste0("L", index)]]
+  min(10^(-bmd_object$neglogp_gwas[cs]))
+}
+bmd_sets <- bmd_obj$sets$cs_index
+bmd_min_pvals <- sapply(bmd_sets, get_min_pval)
+# Only keep BMD signals with min p-value <= sig_filter
+keep_bmd_idx <- bmd_sets[which(bmd_min_pvals <= sig_filter & bmd_obj$sets$purity$min.abs.corr > purity_filter)]
+
+if(length(keep_bmd_idx) == 0) {
+  message("No BMD signals pass the significance and purity filter (", sig_filter, "). Exiting.")
+  quit(save="no")
+}
+
+# Update bmd_obj$sets to only include kept signals
+bmd_obj$sets$cs <- bmd_obj$sets$cs[paste0("L", keep_bmd_idx)]
+bmd_obj$sets$purity <- bmd_obj$sets$purity[paste0("L", keep_bmd_idx),]
+bmd_obj$sets$coverage <- bmd_obj$sets$coverage[bmd_obj$sets$cs_index %in% keep_bmd_idx]
+bmd_obj$sets$cs_index <- keep_bmd_idx
+
+# 7) Extract Signal PP4s into a Table ====
+
+#Read in trait file
+trait_raw <- read.csv(trait_file, sep = "\t", header = TRUE)
+#Extract list of traits
+all_traits <- trait_raw$Trait
+extract_cs <- function(index, bmd_object=bmd_obj){bmd_object$sets$cs[[paste0("L",index)]]}
+extract_field <- function(variant_indices, field ,bmd_object=bmd_obj){bmd_object[[field]][variant_indices]}
+#Create a function to extract table values
+extract_signs <- function(index_pair, check_obj, bmd_object=bmd_obj, field="mu"){
+  cs <- names(extract_cs(index_pair[1], bmd_object))
+  max_pip_snp <- names(which.max(bmd_object$pip[cs])) #Get max pip snp
+  bmd_effect <- check_obj[[field]][index_pair[1],max_pip_snp]
+  check_effect <- check_obj[[field]][index_pair[2],max_pip_snp]
+  return(ifelse(bmd_effect * check_effect > 0, "+", "-"))
+}
+
+#Create a function set to extract signed PP4s of top signal
+extract_top_pp4 <- function(non_bmd_trait, bmd_cs, results_list=results, susie_objs=susie_objects, bmd_name="BMD"){
+  non_bmd_result <- results_list[[non_bmd_trait]]
+  if (any(is.na(non_bmd_result))) {
+    return(0)
+  } else {
+    cs_rows <- non_bmd_result$summary %>% filter(idx1 == bmd_cs)
+    max_pp4_row <- cs_rows[which.max(PP.H4.abf),]
+    sign <- extract_signs(unlist(max_pp4_row[,c("idx1", "idx2")]), check_obj=susie_objs[[non_bmd_trait]])
+    return(ifelse(sign == "+", max_pp4_row$PP.H4.abf, -max_pp4_row$PP.H4.abf))
+  }
+}
+extract_signal_signed_pp4s <- function(bmd_cs, locus_trait_list=locus_traits[locus_traits != "BMD"], all_trait_list=all_traits){
+  locus_traits_pp4s <- vapply(locus_trait_list, FUN = extract_top_pp4, FUN.VALUE = numeric(1), bmd_cs=bmd_cs)
+  temp <- rep(0, length(all_trait_list))
+  names(temp) <- all_trait_list
+  temp[names(locus_traits_pp4s)] <- locus_traits_pp4s
+  return(temp)
+}
+#Apply the functions to all the bmd signals
+signal_signed_pp4s <- lapply(bmd_obj$sets$cs_index, FUN=extract_signal_signed_pp4s)
+
+#Create the output dataframe for the activities
+activity_summary <- bind_rows(signal_signed_pp4s) %>% as.data.frame()
+row.names(activity_summary) <- paste(locus_prefix, bmd_obj$sets$cs_index, sep = ".")
+#Write to file
+write.table(activity_summary, file = file.path(out_dir, paste0(locus_prefix, ".signed_pp4s.tsv")), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
+
+# 8) Filter out colocalizations where non-BMD signal fails filters ====
+
+# For each coloc result, filter out colocalizations where non-BMD signal min p > sig_filter or purity threshold is not met
+for(trait in names(results)) {
+  coloc_sum <- results[[trait]]$summary
+  if(is.null(coloc_sum)) next
+  # For each row, get min p-value for the non-BMD signal
+  nonbmd_obj <- susie_objects[[trait]]
+  get_nonbmd_minp <- function(idx2) {
+    cs <- nonbmd_obj$sets$cs[[paste0("L", idx2)]]
+    min(10^(-nonbmd_obj$neglogp_gwas[cs]))
+  }
+  nonbmd_min_pvals <- sapply(coloc_sum$idx2, get_nonbmd_minp)
+  # Keep only rows where non-BMD min p <= sig_filter and BMD signal is kept
+  keep_rows <- which((nonbmd_min_pvals <= sig_filter) & (coloc_sum$idx1 %in% keep_bmd_idx) & (nonbmd_obj$sets$purity$min.abs.corr[coloc_sum$idx2] > purity_filter))
+  results[[trait]]$summary <- coloc_sum[keep_rows, , drop=FALSE]
+}
+
+# 9) Extract BMD information into a Table ====
 
 #Extract BMD Signals and send to a table
 bmd_sets <- bmd_obj$sets$cs_index
@@ -136,8 +224,6 @@ if (is.null(bmd_sets)) {
   print(paste("WARNING: No BMD signals detected for:", locus_prefix))
   quit(save="no")
 }
-extract_cs <- function(index, bmd_object=bmd_obj){bmd_object$sets$cs[[paste0("L",index)]]}
-extract_field <- function(variant_indices, field ,bmd_object=bmd_obj){bmd_object[[field]][variant_indices]}
 bmd_table <- cbind.data.frame(signal_id=paste(locus_prefix, bmd_sets, sep = "."), 
                               locus=rep(locus_prefix, length(bmd_sets)),
                               signal=bmd_sets,
@@ -148,16 +234,9 @@ bmd_table <- cbind.data.frame(signal_id=paste(locus_prefix, bmd_sets, sep = ".")
                               max_neglogp=vapply(lapply(lapply(bmd_sets, FUN=extract_cs), extract_field, field="neglogp_gwas"), FUN=max, FUN.VALUE = numeric(1)),
                               max_pip=vapply(lapply(lapply(bmd_sets, FUN=extract_cs), extract_field, field="pip"), FUN=max, FUN.VALUE = numeric(1)))
 
-# 7) Extract summary of signals into a table of export ====
+# 10) Extract summary of signals into a table of export ====
 
-#Create a function to extract table values
-extract_signs <- function(index_pair, check_obj, bmd_object=bmd_obj, field="mu"){
-  cs <- names(extract_cs(index_pair[1], bmd_object))
-  max_pip_snp <- names(which.max(bmd_object$pip[cs])) #Get max pip snp
-  bmd_effect <- check_obj[[field]][index_pair[1],max_pip_snp]
-  check_effect <- check_obj[[field]][index_pair[2],max_pip_snp]
-  return(ifelse(bmd_effect * check_effect > 0, "+", "-"))
-}
+
 
 #Create a function to extract all the desired results
 extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_objects){
@@ -216,42 +295,7 @@ export_table <- bmd_table %>% left_join(summarized_results, by = "signal")  %>%
 #Write to file
 write.table(export_table, file = file.path(out_dir, paste0(locus_prefix, ".susie-coloc.tsv")), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
 
-# 8) Extract Signal Activities into a Table ====
-
-#Read in trait file
-trait_raw <- read.csv(trait_file, sep = "\t", header = TRUE)
-#Extract list of traits
-all_traits <- trait_raw$Trait
-
-#Create a function set to extract signed PP4s of top signal
-extract_top_pp4 <- function(non_bmd_trait, bmd_cs, results_list=results, susie_objs=susie_objects, bmd_name="BMD"){
-  non_bmd_result <- results_list[[non_bmd_trait]]
-  if (any(is.na(non_bmd_result))) {
-    return(0)
-  } else {
-    cs_rows <- non_bmd_result$summary %>% filter(idx1 == bmd_cs)
-    max_pp4_row <- cs_rows[which.max(PP.H4.abf),]
-    sign <- extract_signs(unlist(max_pp4_row[,c("idx1", "idx2")]), check_obj=susie_objs[[non_bmd_trait]])
-    return(ifelse(sign == "+", max_pp4_row$PP.H4.abf, -max_pp4_row$PP.H4.abf))
-  }
-}
-extract_signal_signed_pp4s <- function(bmd_cs, locus_trait_list=locus_traits[locus_traits != "BMD"], all_trait_list=all_traits){
-  locus_traits_pp4s <- vapply(locus_trait_list, FUN = extract_top_pp4, FUN.VALUE = numeric(1), bmd_cs=bmd_cs)
-  temp <- rep(0, length(all_trait_list))
-  names(temp) <- all_trait_list
-  temp[names(locus_traits_pp4s)] <- locus_traits_pp4s
-  return(temp)
-}
-#Apply the functions to all the bmd signals
-signal_signed_pp4s <- lapply(bmd_obj$sets$cs_index, FUN=extract_signal_signed_pp4s)
-
-#Create the output dataframe for the activities
-activity_summary <- bind_rows(signal_signed_pp4s) %>% as.data.frame()
-row.names(activity_summary) <- paste(locus_prefix, bmd_obj$sets$cs_index, sep = ".")
-#Write to file
-write.table(activity_summary, file = file.path(out_dir, paste0(locus_prefix, ".signed_pp4s.tsv")), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
-
-# 9) Extract Variants into a bed file ====
+# 11) Extract Variants into a bed file ====
 
 # Create variant-level coloc output via a function
 extract_variant_info <- function(bmd_signal){
