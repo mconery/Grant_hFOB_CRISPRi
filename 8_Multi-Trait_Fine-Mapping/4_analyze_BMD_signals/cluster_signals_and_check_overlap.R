@@ -288,8 +288,8 @@ targeted_signal_df <- targeted_signal_df %>% mutate(grna_group = str_replace(tar
 #Also append a signal column
 targeted_signal_df <- targeted_signal_df %>% mutate(signal = str_replace(signal.snp_id, "((\\.[^\\.]+){3}\\.).*", "\\1")) %>% mutate(signal = str_replace(signal, "\\.$", ""))
 #Identify the number of unique signals that were targeted in the screen and how many targets that lines up with
-targeted_signal_df %>% dplyr::select(grna_group) %>% unique %>% nrow 
-targeted_signal_df %>% dplyr::select(signal) %>% unique %>% nrow 
+targeted_signal_df %>% dplyr::select(grna_group) %>% unique %>% nrow #Targeted 29 signals
+targeted_signal_df %>% dplyr::select(signal) %>% unique %>% nrow #The 29 signals account for 30 Targets
 
 #Read in the file of sceptre results to identify how many signals had genes identified if any
 sceptre_raw <- read.csv(sceptre_file, sep = "\t", header = TRUE)
