@@ -40,6 +40,7 @@ sceptre_file <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/da
 #Set filtering criteria
 purity_thresh=0.1
 bmd_sig_thresh=5e-8
+pp4_thresh=0.95
 
 # 1) Read in Signal, PP4, and Bed Files and Filter them ====
 
@@ -57,6 +58,10 @@ write.table(signal_filt, paste0(inp_dir, "master.filtered.susie-coloc.tsv"), col
 #Filter the pp4 table down for the same signals
 pp4_raw[rownames(pp4_raw) %in% signal_filt$signal_id,] %>% 
   write.table(paste0(inp_dir, "master.filtered.signed_pp4s.tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
+
+#Count number of traits with a colocalization
+pp4_binarized = pp4_raw >= pp4_thresh
+((pp4_binarized %>% colSums) > 0) %>% sum 
 
 #Filter down the variant table as well
 get_signal <- function(signal_variant){sub("\\.[^.]*$", "", signal_variant)}
