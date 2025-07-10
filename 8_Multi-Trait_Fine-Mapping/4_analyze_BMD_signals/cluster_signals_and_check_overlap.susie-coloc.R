@@ -49,7 +49,7 @@ pp4_raw <- read.csv(paste0(inp_dir, "master.signed_pp4s.tsv"), header = TRUE, se
 bed_raw <- read.csv(paste0(inp_dir, "master.variants.bed"), header = TRUE, sep = "\t")
 
 #Filter the signal table for the pure high significance signals
-signal_filt <- signal_raw %>% filter(max_neglogp > -log10(bmd_sig_thresh) & purity >= purity_thresh) %>%
+signal_filt <- signal_raw %>%
   mutate(PP4 = ifelse(is.na(other_traits) | other_traits == "", "", PP4))
 #Write the filtered signal table to file  
 write.table(signal_filt, paste0(inp_dir, "master.filtered.susie-coloc.tsv"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
