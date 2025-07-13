@@ -75,6 +75,15 @@ p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
                axis.text.x = element_text(size = 12, angle=45, hjust = 1, vjust = 1), 
                axis.title=element_text(size=12), 
                legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
+#Add annotation
+p <- p + annotate(
+  "text",
+  x = Inf, y = Inf,
+  label = expression("* BH-Adj. " * italic(P) * " < 0.05"),
+  hjust = 1.1, vjust = 1.5,
+  size = 6,
+  color = "black"
+)
 jpeg(plot_loc, width = 10800, height=4000, res=1000)
 print(p)
 dev.off()
@@ -99,6 +108,15 @@ p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
                axis.text.x = element_text(size = 12, angle=45, hjust = 1, vjust = 1), 
                axis.title=element_text(size=12), 
                legend.position = "none", axis.text.y = element_text(color="black", size=12), axis.title.x = element_blank()) 
+#Add annotation
+p <- p + annotate(
+  "text",
+  x = Inf, y = Inf,
+  label = expression("* BH-Adj. " * italic(P) * " < 0.05"),
+  hjust = 1.1, vjust = 1.5,
+  size = 6,
+  color = "black"
+)
 jpeg(no_second_bmd_plot_loc, width = 10800, height=4000, res=1000)
 print(p)
 dev.off()
@@ -124,6 +142,15 @@ p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
                axis.title=element_text(size=7), 
                legend.position = "none", 
                axis.text.y = element_text(color="black", size=7, family = "Arial"), axis.title.x = element_blank()) 
+#Add annotation
+p <- p + annotate(
+  "text",
+  x = Inf, y = Inf,
+  label = expression("* BH-Adj. " * italic(P) * " < 0.05"),
+  hjust = 1.1, vjust = 1.5,
+  size = 3,
+  color = "black"
+)
 ggsave(str_replace(no_second_bmd_plot_loc, pattern = ".jpeg", replacement = ".tiff"), 
        width = 6, height=2.2222, device = "tiff", units = "in", dpi=1000, plot = p)
 
