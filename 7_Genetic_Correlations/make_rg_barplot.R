@@ -57,7 +57,7 @@ global_bmd <- global_bmd %>% mutate(non_bmd_trait_clean=toTitleCase(str_replace_
 # Create a bar plot
 p <- ggplot(global_bmd, aes(x = non_bmd_trait_clean, y = rg)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  ylab("Genetic Correlation") +
+  ylab("Genetic Correlation with BMD") +
   xlab("Phenotype") +
   theme_minimal()
 
@@ -93,7 +93,7 @@ global_bmd_filt <- global_bmd %>% filter(non_bmd_trait != "bone_mineral_density"
 # Create a bar plot
 p <- ggplot(global_bmd_filt, aes(x = non_bmd_trait_clean, y = rg)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  ylab("Genetic Correlation") +
+  ylab("Genetic Correlation with BMD") +
   xlab("Phenotype") +
   theme_minimal()
 # Add asterisks for significant values (p < 0.05)
@@ -124,7 +124,7 @@ dev.off()
 #Create tiff image
 p <- ggplot(global_bmd_filt, aes(x = non_bmd_trait_clean, y = rg)) +
   geom_bar(stat = "identity", fill = "steelblue") +
-  ylab("Genetic Correlation") +
+  ylab("Genetic Correlation with BMD") +
   xlab("Phenotype") +
   theme_minimal()
 # Add asterisks for significant values (p < 0.05)
