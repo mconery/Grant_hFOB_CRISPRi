@@ -151,7 +151,7 @@ p <- p + annotate(
   size = 3,
   color = "black"
 )
-ggsave(str_replace(no_second_bmd_plot_loc, pattern = ".jpeg", replacement = ".tiff"), 
+ggsave(str_replace(no_second_bmd_plot_loc, pattern = ".jpeg", replacement = ".tif"), 
        width = 6, height=2.2222, device = "tiff", units = "in", dpi=1000, plot = p)
 
 #Write table to file for use in supplement
