@@ -236,8 +236,6 @@ bmd_table <- cbind.data.frame(signal_id=paste(locus_prefix, bmd_sets, sep = ".")
 
 # 10) Extract summary of signals into a table of export ====
 
-
-
 #Create a function to extract all the desired results
 extract_coloc <- function(non_bmd_trait, results_list=results, susie_objs=susie_objects){
   result_df = results_list[[non_bmd_trait]]$summary
