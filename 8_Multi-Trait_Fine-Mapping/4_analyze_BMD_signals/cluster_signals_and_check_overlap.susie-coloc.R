@@ -26,6 +26,7 @@ library(umap)
 library(igraph)
 library(pbapply)
 library(tools)
+library(VennDiagram)
 
 #Set directory
 inp_dir <- "C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/SuSiE-Coloc_Results/"
@@ -60,8 +61,12 @@ pp4_raw[rownames(pp4_raw) %in% signal_filt$signal_id,] %>%
   write.table(paste0(inp_dir, "master.filtered.signed_pp4s.tsv"), col.names = TRUE, row.names = TRUE, quote = FALSE, sep = "\t")
 
 #Count number of traits with a colocalization
-pp4_binarized = pp4_raw >= pp4_thresh
+pp4_binarized = pp4_raw >= pp4_thresh | pp4_raw <= -pp4_thresh
 ((pp4_binarized %>% colSums) > 0) %>% sum 
+
+#Get name of most pleiotropic signal
+pp4_binarized %>% rowSums %>% which.max %>% names
+pp4_binarized %>% rowSums %>% max
 
 #Filter down the variant table as well
 get_signal <- function(signal_variant){sub("\\.[^.]*$", "", signal_variant)}
@@ -341,3 +346,42 @@ targeted_perturbed_signal_df %>% group_by(grna_group) %>% summarise(genes=paste(
                                                                     colocalizing_traits=paste(unique(colocalizing_traits), collapse = ",")) %>%
   write.table(file = paste0(inp_dir, "supplement.screen_intersected_perturbed.susie-fine-mapped_targets.tsv"), sep = "\t", quote = FALSE, col.names = TRUE, row.names = FALSE)
   
+
+# 5) Compare Overlap of CAFEH Signals ====
+
+#Read in CAFEH Files
+cafeh_bed <- read.csv(paste0("C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/summary_files/supplement.variants.purity_0.5.activity_0.95.gwas_5e-08.highest_residual_filtered.txt"), header = TRUE, sep = "\t")
+cafeh_signals <- read.csv("C:/Users/mitch/Documents/UPenn/Grant_Lab/hFOB_CRISPRi_Screen/data/multi-trait_fine-mapping/summary_files/supplement.signals.purity_0.5.activity_0.95.gwas_5e-08.highest_residual_filtered.txt", header = TRUE, sep = "\t")
+#Remove spurious signals from cafeh_bed file
+cafeh_bed <- cafeh_bed %>% mutate(cafeh_signal=sub("\\.[^.]*$", "", signal.snp_id)) %>% dplyr::filter(cafeh_signal %in% cafeh_signals$signal_id)
+#Find intersection of variant sets
+cafeh_intersect <- cafeh_bed %>% inner_join(bed_raw, by = c("chr", "start", "end"))
+#Extract signal IDs
+cafeh_intersect <- cafeh_intersect %>% mutate(cafeh_signal=sub("\\.[^.]*$", "", signal.snp_id.x), 
+                                              susie_signal=sub("\\.[^.]*$", "", signal.snp_id.y)) %>%
+  dplyr::select(cafeh_signal, susie_signal) %>% distinct()
+# 371 unique pairings
+#Count intersection
+cafeh_intersect$cafeh_signal %>% unique %>% length
+cafeh_intersect$susie_signal %>% unique %>% length
+#Make Venn diagram
+venn.plot <- draw.pairwise.venn(
+  area1 = nrow(cafeh_signals),          # size of set A
+  area2 = nrow(signal_filt),           # size of set B
+  cross.area = cafeh_intersect$susie_signal %>% unique %>% length,      # size of intersection A ∩ B
+  fill = c("red", "blue"),
+  filename = paste0(plot_dir, "CAFEH-SuSiE_Venn.png"),  # Output file path
+  height = 2000,                   # Height in pixels
+  width = 2000,                    # Width in pixels
+  resolution = 300
+)
+
+#Compare credible set sizes of the intersecting signals
+overlap_susie_sizes <- signal_filt %>% filter(signal_id %in% cafeh_intersect$susie_signal) %>% dplyr::select(signal_id, set_size)
+overlap_cafeh_sizes <- cafeh_signals %>% filter(signal_id %in% cafeh_intersect$cafeh_signal) %>% dplyr::select(signal_id, num_snps)
+#Link sizes together
+size_compare <- cafeh_intersect %>% inner_join(overlap_cafeh_sizes, by = c("cafeh_signal" = "signal_id")) %>%
+  inner_join(overlap_susie_sizes, by = c("susie_signal" = "signal_id"))
+size_test <- wilcox.test(size_compare$num_snps, size_compare$set_size, paired = TRUE, alternative = "two.sided")
+mean(overlap_susie_sizes$set_size)
+mean(overlap_cafeh_sizes$num_snps)
