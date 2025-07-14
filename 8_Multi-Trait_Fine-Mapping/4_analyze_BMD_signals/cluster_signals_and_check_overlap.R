@@ -291,6 +291,17 @@ targeted_signal_df <- targeted_signal_df %>% mutate(signal = str_replace(signal.
 targeted_signal_df %>% dplyr::select(grna_group) %>% unique %>% nrow #Targeted 29 signals
 targeted_signal_df %>% dplyr::select(signal) %>% unique %>% nrow #The 29 signals account for 30 Targets
 
+#Make distribution of PIPs plot
+fine_map_hist <- targeted_signal_df %>% dplyr::select(rsid, total_pip) %>% distinct() %>% ggplot(aes(x = total_pip)) + geom_histogram(binwidth = 0.1) + 
+  xlab("PIP") + ylab("Fine-Mapped Variants") + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), legend.title = element_blank(), axis.line = element_line(colour = "black"),
+        axis.text.x = element_text(size = 24, angle=45, hjust = 1, vjust = 1), 
+        legend.position = "none", axis.text.y = element_text(color="black", size=24), axis.title = element_text(size = 24))
+tiff(paste0(plot_dir, "CAFEH.fine-mapped_pips.hist.tif"), width = 10800, height=10800, res=1000)
+print(fine_map_hist)
+dev.off()
+
 #Read in the file of sceptre results to identify how many signals had genes identified if any
 sceptre_raw <- read.csv(sceptre_file, sep = "\t", header = TRUE)
 #Merge the dataframes by the grna group names
